@@ -33,6 +33,7 @@ var (
 	colorEmerald  = pdfColor{16, 185, 129}   // Emerald-500
 	colorRed      = pdfColor{239, 68, 68}    // Red-500
 	colorAmber    = pdfColor{245, 158, 11}   // Amber-500
+	colorIndigo   = pdfColor{99, 102, 241}   // Indigo-500
 )
 
 // pdfBuilder wraps gofpdf with helper methods

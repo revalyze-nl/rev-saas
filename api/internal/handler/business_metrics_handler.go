@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"rev-saas-api/internal/middleware"
 	"rev-saas-api/internal/service"
@@ -27,6 +28,10 @@ type setMetricsRequest struct {
 	MonthlyChurnRate float64  `json:"monthly_churn_rate"`
 	PricingGoal      string   `json:"pricing_goal"`
 	TargetArrGrowth  *float64 `json:"target_arr_growth"` // nullable/optional
+
+	// Plan-based customer counts (additive fields)
+	TotalActiveCustomers *int           `json:"total_active_customers,omitempty"`
+	PlanCustomerCounts   map[string]int `json:"plan_customer_counts,omitempty"`
 }
 
 // Get handles GET /api/business-metrics - retrieves the current user's business metrics.
@@ -70,24 +75,28 @@ func (h *BusinessMetricsHandler) Set(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := service.MetricsInput{
-		Currency:         req.Currency,
-		MRR:              req.MRR,
-		Customers:        req.Customers,
-		MonthlyChurnRate: req.MonthlyChurnRate,
-		PricingGoal:      req.PricingGoal,
-		TargetArrGrowth:  req.TargetArrGrowth,
+		Currency:             req.Currency,
+		MRR:                  req.MRR,
+		Customers:            req.Customers,
+		MonthlyChurnRate:     req.MonthlyChurnRate,
+		PricingGoal:          req.PricingGoal,
+		TargetArrGrowth:      req.TargetArrGrowth,
+		TotalActiveCustomers: req.TotalActiveCustomers,
+		PlanCustomerCounts:   req.PlanCustomerCounts,
 	}
 
 	metrics, err := h.service.SetMetrics(r.Context(), userID, input)
 	if err != nil {
 		// Check if it's a validation error
-		if err.Error() == "mrr must be non-negative" ||
-			err.Error() == "customers must be non-negative" ||
-			err.Error() == "monthly_churn_rate must be non-negative" {
-			writeJSONError(w, err.Error(), http.StatusBadRequest)
+		errMsg := err.Error()
+		if errMsg == "mrr must be non-negative" ||
+			errMsg == "customers must be non-negative" ||
+			errMsg == "monthly_churn_rate must be non-negative" ||
+			strings.HasPrefix(errMsg, "plan_customer_counts values must be non-negative") {
+			writeJSONError(w, errMsg, http.StatusBadRequest)
 			return
 		}
-		writeJSONError(w, err.Error(), http.StatusInternalServerError)
+		writeJSONError(w, errMsg, http.StatusInternalServerError)
 		return
 	}
 

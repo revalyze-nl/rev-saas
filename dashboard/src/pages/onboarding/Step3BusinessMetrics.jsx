@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { toPlanKey, computeTotalFromPlanCounts, hasPlanCounts } from '../../lib/planUtils';
+
 const PRICING_GOALS = [
   { value: 'revenue', label: 'Maximize Revenue' },
   { value: 'retention', label: 'Improve Retention' },
@@ -12,7 +15,22 @@ const CURRENCIES = [
   { value: 'TRY', label: 'TRY (₺)' },
 ];
 
-const Step3BusinessMetrics = ({ data, onChange }) => {
+const Step3BusinessMetrics = ({ data, onChange, plans = [] }) => {
+  const [showPlanCounts, setShowPlanCounts] = useState(false);
+
+  // Check if we have plan counts on load
+  useEffect(() => {
+    if (hasPlanCounts(data.planCustomerCounts)) {
+      setShowPlanCounts(true);
+    }
+  }, []);
+
+  // Compute total from plan counts if available
+  const computedTotal = hasPlanCounts(data.planCustomerCounts)
+    ? computeTotalFromPlanCounts(data.planCustomerCounts)
+    : null;
+
+  const isAutoTotal = computedTotal !== null;
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     
@@ -23,6 +41,27 @@ const Step3BusinessMetrics = ({ data, onChange }) => {
     } else {
       onChange({ [name]: value });
     }
+  };
+
+  const handlePlanCountChange = (planKey, value) => {
+    const numValue = value === '' ? '' : parseInt(value) || 0;
+    const updatedCounts = {
+      ...(data.planCustomerCounts || {}),
+      [planKey]: numValue,
+    };
+    onChange({ planCustomerCounts: updatedCounts });
+
+    // Auto-update total if plan counts are filled
+    if (hasPlanCounts(updatedCounts)) {
+      const newTotal = computeTotalFromPlanCounts(updatedCounts);
+      onChange({ totalActiveCustomers: newTotal, planCustomerCounts: updatedCounts });
+    }
+  };
+
+  const handleTotalChange = (e) => {
+    const value = e.target.value;
+    const numValue = value === '' ? '' : parseInt(value) || 0;
+    onChange({ totalActiveCustomers: numValue === '' ? null : numValue });
   };
 
   return (
@@ -162,6 +201,81 @@ const Step3BusinessMetrics = ({ data, onChange }) => {
           </p>
         </div>
 
+        {/* Total Active Customers (Optional) */}
+        <div>
+          <label htmlFor="totalActiveCustomers" className="block text-sm font-semibold text-slate-300 mb-2">
+            Total Active Customers <span className="text-slate-500 font-normal">(optional)</span>
+            {isAutoTotal && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full">Auto</span>
+            )}
+          </label>
+          <input
+            id="totalActiveCustomers"
+            type="number"
+            min="0"
+            value={isAutoTotal ? computedTotal : (data.totalActiveCustomers ?? '')}
+            onChange={handleTotalChange}
+            disabled={isAutoTotal}
+            className={`w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all ${isAutoTotal ? 'opacity-70 cursor-not-allowed' : ''}`}
+            placeholder="e.g., 500"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            {isAutoTotal 
+              ? 'Calculated from customers by plan below.'
+              : 'Optional. If you know customers by plan, expand below and total will be calculated automatically.'}
+          </p>
+        </div>
+
+        {/* Customers by Plan (Optional, Collapsible) */}
+        {plans.length > 0 && (
+          <div className="border border-slate-700 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowPlanCounts(!showPlanCounts)}
+              className="w-full px-4 py-3 flex items-center justify-between bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
+            >
+              <span className="text-sm font-medium text-slate-300">
+                I know customers by plan <span className="text-slate-500 font-normal">(optional)</span>
+              </span>
+              <svg
+                className={`w-5 h-5 text-slate-400 transition-transform ${showPlanCounts ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showPlanCounts && (
+              <div className="p-4 space-y-4 bg-slate-900/30">
+                <p className="text-xs text-slate-500 mb-3">
+                  Enter the number of active customers on each plan. Total will be calculated automatically.
+                </p>
+                {plans.map((plan) => {
+                  const planKey = toPlanKey(plan);
+                  const count = data.planCustomerCounts?.[planKey] ?? '';
+                  return (
+                    <div key={planKey} className="flex items-center gap-4">
+                      <label className="flex-1 text-sm text-slate-300">
+                        {plan.name} customers
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={count}
+                        onChange={(e) => handlePlanCountChange(planKey, e.target.value)}
+                        className="w-32 px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-right"
+                        placeholder="0"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Info box */}
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
@@ -189,5 +303,6 @@ const Step3BusinessMetrics = ({ data, onChange }) => {
 };
 
 export default Step3BusinessMetrics;
+
 
 

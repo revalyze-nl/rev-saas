@@ -25,6 +25,10 @@ type BusinessMetrics struct {
 	PricingGoal      string             `bson:"pricing_goal,omitempty" json:"pricing_goal,omitempty"`
 	TargetArrGrowth  *float64           `bson:"target_arr_growth,omitempty" json:"target_arr_growth,omitempty"` // nullable/optional
 	UpdatedAt        time.Time          `bson:"updated_at" json:"updated_at"`
+
+	// Plan-based customer counts (additive fields)
+	TotalActiveCustomers *int           `bson:"total_active_customers,omitempty" json:"total_active_customers,omitempty"`
+	PlanCustomerCounts   map[string]int `bson:"plan_customer_counts,omitempty" json:"plan_customer_counts,omitempty"`
 }
 
 

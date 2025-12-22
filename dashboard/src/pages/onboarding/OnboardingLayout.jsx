@@ -28,6 +28,8 @@ const OnboardingLayout = () => {
     monthlyChurnRate: '',
     pricingGoal: '',
     targetArrGrowth: '',
+    totalActiveCustomers: null,
+    planCustomerCounts: {},
   });
 
   const totalSteps = 4;
@@ -149,6 +151,25 @@ const OnboardingLayout = () => {
         metricsPayload.target_arr_growth = parseFloat(businessMetrics.targetArrGrowth);
       }
 
+      // Include total_active_customers if set
+      if (businessMetrics.totalActiveCustomers !== null && businessMetrics.totalActiveCustomers !== '') {
+        metricsPayload.total_active_customers = parseInt(businessMetrics.totalActiveCustomers) || 0;
+      }
+
+      // Include plan_customer_counts if any values are filled
+      if (businessMetrics.planCustomerCounts && Object.keys(businessMetrics.planCustomerCounts).length > 0) {
+        const cleanedCounts = {};
+        for (const [key, value] of Object.entries(businessMetrics.planCustomerCounts)) {
+          const numValue = parseInt(value);
+          if (!isNaN(numValue) && numValue >= 0) {
+            cleanedCounts[key] = numValue;
+          }
+        }
+        if (Object.keys(cleanedCounts).length > 0) {
+          metricsPayload.plan_customer_counts = cleanedCounts;
+        }
+      }
+
       await businessMetricsApi.set(metricsPayload);
 
       // 4. Run first analysis
@@ -171,7 +192,7 @@ const OnboardingLayout = () => {
       case 2:
         return <Step2Competitors data={competitors} onChange={setCompetitors} />;
       case 3:
-        return <Step3BusinessMetrics data={businessMetrics} onChange={updateBusinessMetrics} />;
+        return <Step3BusinessMetrics data={businessMetrics} onChange={updateBusinessMetrics} plans={plans} />;
       case 4:
         return (
           <Step4Review

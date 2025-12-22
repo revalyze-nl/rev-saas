@@ -17,9 +17,11 @@ func NewRouter(
 	competitorHandler *handler.CompetitorHandler,
 	analysisHandler *handler.AnalysisHandler,
 	analysisPDFHandler *handler.AnalysisPDFHandler,
+	analysisV2Handler *handler.AnalysisV2Handler,
 	businessMetricsHandler *handler.BusinessMetricsHandler,
 	limitsHandler *handler.LimitsHandler,
 	simulationHandler *handler.SimulationHandler,
+	aiCreditsHandler *handler.AICreditsHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -45,6 +47,9 @@ func NewRouter(
 	// Usage stats
 	api.HandleFunc("/usage", limitsHandler.GetUsageStats).Methods(http.MethodGet)
 
+	// AI Insight Credits
+	api.HandleFunc("/ai-credits", aiCreditsHandler.GetCredits).Methods(http.MethodGet)
+
 	// Plans
 	api.HandleFunc("/plans", planHandler.Create).Methods(http.MethodPost)
 	api.HandleFunc("/plans", planHandler.List).Methods(http.MethodGet)
@@ -56,10 +61,16 @@ func NewRouter(
 	api.HandleFunc("/competitors/{id}", competitorHandler.Update).Methods(http.MethodPut)
 	api.HandleFunc("/competitors/{id}", competitorHandler.Delete).Methods(http.MethodDelete)
 
-	// Analysis
+	// Analysis (V1 - legacy)
 	api.HandleFunc("/analysis/run", analysisHandler.RunAnalysis).Methods(http.MethodPost)
 	api.HandleFunc("/analysis", analysisHandler.List).Methods(http.MethodGet)
 	api.HandleFunc("/analysis/{id}/export-pdf", analysisPDFHandler.ExportPDF).Methods(http.MethodGet)
+
+	// Analysis V2 (new deterministic engine)
+	api.HandleFunc("/analysis/v2", analysisV2Handler.RunAnalysisV2).Methods(http.MethodPost)
+	api.HandleFunc("/analysis/v2", analysisV2Handler.ListAnalysesV2).Methods(http.MethodGet)
+	api.HandleFunc("/analysis/v2/{id}", analysisV2Handler.GetAnalysisV2).Methods(http.MethodGet)
+	api.HandleFunc("/analysis/v2/{id}/pdf", analysisV2Handler.ExportPDFV2).Methods(http.MethodGet)
 
 	// Business Metrics
 	api.HandleFunc("/business-metrics", businessMetricsHandler.Get).Methods(http.MethodGet)

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { analysisApi, LimitError } from '../lib/apiClient';
+import { analysisApi, LimitError, AICreditsError } from '../lib/apiClient';
 import { useAuth } from './AuthContext';
 
 const AnalysisContext = createContext();
@@ -120,6 +120,28 @@ export const AnalysisProvider = ({ children }) => {
       return { success: true, analysis: transformedAnalysis };
     } catch (err) {
       console.error('Failed to run analysis:', err);
+      
+      // Handle AI credits errors
+      if (err instanceof AICreditsError) {
+        setLimitError({
+          errorCode: err.code,
+          reason: err.message,
+          plan: null,
+          limit: null,
+          current: null,
+          isAICreditsError: true,
+        });
+        return { 
+          success: false, 
+          error: err.message,
+          isLimitError: true,
+          isAICreditsError: true,
+          limitError: {
+            errorCode: err.code,
+            reason: err.message,
+          }
+        };
+      }
       
       // Handle limit errors specifically
       if (err instanceof LimitError) {

@@ -16,15 +16,17 @@ import (
 
 // SimulationHandler handles HTTP requests for pricing simulations.
 type SimulationHandler struct {
-	service   *service.SimulationService
-	aiService *service.AIPricingService
+	service          *service.SimulationService
+	aiService        *service.AIPricingService
+	aiCreditsService *service.AICreditsService
 }
 
 // NewSimulationHandler creates a new SimulationHandler.
-func NewSimulationHandler(service *service.SimulationService, aiService *service.AIPricingService) *SimulationHandler {
+func NewSimulationHandler(service *service.SimulationService, aiService *service.AIPricingService, aiCreditsService *service.AICreditsService) *SimulationHandler {
 	return &SimulationHandler{
-		service:   service,
-		aiService: aiService,
+		service:          service,
+		aiService:        aiService,
+		aiCreditsService: aiCreditsService,
 	}
 }
 
@@ -52,6 +54,25 @@ func (h *SimulationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
+	}
+
+	planType := user.GetEffectivePlan()
+
+	// Check AI credits and simulation availability before running
+	if h.aiCreditsService != nil {
+		err := h.aiCreditsService.ConsumeCreditForSimulation(r.Context(), userID, planType)
+		if err != nil {
+			if err == service.ErrSimulationNotInPlan {
+				WriteSimulationNotAvailableError(w)
+				return
+			}
+			if err == service.ErrAIQuotaExceeded {
+				WriteAIQuotaExceededError(w)
+				return
+			}
+			writeJSONError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Parse request body

@@ -20,12 +20,20 @@ const Analyses = () => {
       'LIMIT_COMPETITORS': 'Competitor Limit Reached',
       'LIMIT_PLANS': 'Plan Limit Reached',
       'LIMIT_TRIAL_EXPIRED': 'Trial Expired',
+      'AI_QUOTA_EXCEEDED': 'AI Insight Credits Exhausted',
+      'SIMULATION_NOT_AVAILABLE': 'Feature Not Available',
     };
     return titles[errorCode] || 'Limit Reached';
   };
 
   // Get upgrade message
   const getLimitErrorMessage = (limitError) => {
+    if (limitError.errorCode === 'AI_QUOTA_EXCEEDED') {
+      return "You've used all your AI Insight Credits for this month on your current plan. Upgrade to get more credits.";
+    }
+    if (limitError.errorCode === 'SIMULATION_NOT_AVAILABLE') {
+      return 'Pricing simulations are only available on Growth and Enterprise plans.';
+    }
     if (limitError.errorCode === 'LIMIT_TRIAL_EXPIRED') {
       return 'Your free trial has expired. Upgrade to continue using Revalyze.';
     }

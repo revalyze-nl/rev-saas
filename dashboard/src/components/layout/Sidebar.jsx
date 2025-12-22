@@ -21,6 +21,14 @@ const Sidebar = () => {
       )
     },
     {
+      name: 'Analysis V2',
+      path: '/app/analyses-v2',
+      badge: 'NEW',
+      icon: (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      )
+    },
+    {
       name: 'Competitors',
       path: '/app/competitors',
       icon: (
@@ -91,6 +99,11 @@ const Sidebar = () => {
               {item.icon}
             </svg>
             {item.name}
+            {item.badge && (
+              <span className="ml-auto text-[10px] font-semibold bg-gradient-to-r from-purple-500 to-blue-500 text-white px-1.5 py-0.5 rounded">
+                {item.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

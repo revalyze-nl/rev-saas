@@ -6,10 +6,14 @@ import "rev-saas-api/internal/model"
 type PlanLimits struct {
 	MaxCompetitors       int  // Maximum number of competitors allowed
 	MaxPlans             int  // Maximum number of pricing plans allowed
-	MaxAnalysesPerMonth  int  // Maximum analyses per month (0 = unlimited)
-	MaxAnalysesTotal     int  // Maximum total analyses lifetime (0 = unlimited, used for free plan)
+	MaxAnalysesPerMonth  int  // Maximum analyses per month (0 = unlimited) - DEPRECATED, use MonthlyAICredits
+	MaxAnalysesTotal     int  // Maximum total analyses lifetime (0 = unlimited, used for free plan) - DEPRECATED
 	TrialDays            int  // Trial period in days (0 = no trial)
 	IsUnlimited          bool // If true, skip all checks
+
+	// AI Insight Credits system
+	MonthlyAICredits   int  // AI Insight Credits per month (each AI action = 1 credit)
+	SimulationsEnabled bool // Whether pricing simulations are available on this plan
 }
 
 // Plan limits configuration (hardcoded)
@@ -21,6 +25,9 @@ var planLimitsConfig = map[string]PlanLimits{
 		MaxAnalysesTotal:    2, // Lifetime limit
 		TrialDays:           14,
 		IsUnlimited:         false,
+		// AI Insight Credits
+		MonthlyAICredits:   3,
+		SimulationsEnabled: false,
 	},
 	model.PlanStarter: {
 		MaxCompetitors:      3,
@@ -29,6 +36,9 @@ var planLimitsConfig = map[string]PlanLimits{
 		MaxAnalysesTotal:    0, // Unlimited lifetime
 		TrialDays:           0, // No trial for paid plans
 		IsUnlimited:         false,
+		// AI Insight Credits
+		MonthlyAICredits:   5,
+		SimulationsEnabled: false,
 	},
 	model.PlanGrowth: {
 		MaxCompetitors:      5,
@@ -37,6 +47,9 @@ var planLimitsConfig = map[string]PlanLimits{
 		MaxAnalysesTotal:    0,
 		TrialDays:           0,
 		IsUnlimited:         false,
+		// AI Insight Credits
+		MonthlyAICredits:   20,
+		SimulationsEnabled: true,
 	},
 	model.PlanEnterprise: {
 		MaxCompetitors:      10,
@@ -45,6 +58,9 @@ var planLimitsConfig = map[string]PlanLimits{
 		MaxAnalysesTotal:    0,
 		TrialDays:           0,
 		IsUnlimited:         false,
+		// AI Insight Credits
+		MonthlyAICredits:   100,
+		SimulationsEnabled: true,
 	},
 	model.PlanAdmin: {
 		MaxCompetitors:      0,
@@ -53,6 +69,9 @@ var planLimitsConfig = map[string]PlanLimits{
 		MaxAnalysesTotal:    0,
 		TrialDays:           0,
 		IsUnlimited:         true,
+		// AI Insight Credits - unlimited for admin
+		MonthlyAICredits:   9999,
+		SimulationsEnabled: true,
 	},
 }
 

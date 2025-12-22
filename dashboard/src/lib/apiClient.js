@@ -51,6 +51,16 @@ export class LimitError extends Error {
   }
 }
 
+// Custom error class for AI credits errors
+export class AICreditsError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'AICreditsError';
+    this.code = code;
+    this.message = message;
+  }
+}
+
 // Generic fetch wrapper with error handling
 const fetchWithError = async (url, options = {}) => {
   try {
@@ -82,6 +92,14 @@ const fetchWithError = async (url, options = {}) => {
             data.limit,
             data.current
           );
+        }
+      }
+      
+      // Check for AI credits errors (402 or 403 with code field)
+      if ((response.status === 402 || response.status === 403) && typeof data === 'object' && data.code) {
+        const aiErrorCodes = ['AI_QUOTA_EXCEEDED', 'SIMULATION_NOT_AVAILABLE'];
+        if (aiErrorCodes.includes(data.code)) {
+          throw new AICreditsError(data.code, data.message);
         }
       }
       
@@ -240,12 +258,23 @@ export const downloadBlob = (blob, filename) => {
   window.URL.revokeObjectURL(url);
 };
 
-// Analysis API calls
+// Analysis API calls (legacy V1)
 export const analysisApi = {
   run: () => postJson('/api/analysis/run', {}),
   list: () => getJson('/api/analysis'),
   exportPdf: async (analysisId) => {
     const { ok, blob } = await fetchBlob(`/api/analysis/${analysisId}/export-pdf`);
+    return { ok, blob };
+  },
+};
+
+// Analysis V2 API calls (new deterministic engine)
+export const analysisV2Api = {
+  run: () => postJson('/api/analysis/v2', {}),
+  list: (limit = 20) => getJson(`/api/analysis/v2?limit=${limit}`),
+  get: (id) => getJson(`/api/analysis/v2/${id}`),
+  exportPdf: async (analysisId) => {
+    const { ok, blob } = await fetchBlob(`/api/analysis/v2/${analysisId}/pdf`);
     return { ok, blob };
   },
 };
@@ -288,6 +317,11 @@ export const simulationApi = {
   },
 };
 
+// AI Credits API calls
+export const aiCreditsApi = {
+  get: () => getJson('/api/ai-credits'),
+};
+
 export default {
   postJson,
   getJson,
@@ -302,7 +336,10 @@ export default {
   plansApi,
   competitorsApi,
   analysisApi,
+  analysisV2Api,
   businessMetricsApi,
   simulationApi,
+  aiCreditsApi,
+  AICreditsError,
 };
 

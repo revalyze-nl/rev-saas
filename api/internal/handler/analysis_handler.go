@@ -11,17 +11,19 @@ import (
 
 // AnalysisHandler handles HTTP requests for pricing analysis.
 type AnalysisHandler struct {
-	service         *service.AnalysisService
-	limitsService   *service.LimitsService
+	service          *service.AnalysisService
+	limitsService    *service.LimitsService
 	aiPricingService *service.AIPricingService
+	aiCreditsService *service.AICreditsService
 }
 
 // NewAnalysisHandler creates a new AnalysisHandler.
-func NewAnalysisHandler(service *service.AnalysisService, limitsService *service.LimitsService, aiPricingService *service.AIPricingService) *AnalysisHandler {
+func NewAnalysisHandler(service *service.AnalysisService, limitsService *service.LimitsService, aiPricingService *service.AIPricingService, aiCreditsService *service.AICreditsService) *AnalysisHandler {
 	return &AnalysisHandler{
-		service:         service,
-		limitsService:   limitsService,
+		service:          service,
+		limitsService:    limitsService,
 		aiPricingService: aiPricingService,
+		aiCreditsService: aiCreditsService,
 	}
 }
 
@@ -40,19 +42,19 @@ func (h *AnalysisHandler) RunAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check limits before running analysis
-	result := h.limitsService.CanRunAnalysis(r.Context(), user)
-	if !result.Allowed {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   result.ErrorCode,
-			"reason":  result.Reason,
-			"plan":    result.Plan,
-			"limit":   result.Limit,
-			"current": result.Current,
-		})
-		return
+	planType := user.GetEffectivePlan()
+
+	// Check AI credits before running analysis
+	if h.aiCreditsService != nil {
+		err := h.aiCreditsService.ConsumeCredit(r.Context(), userID, planType)
+		if err != nil {
+			if err == service.ErrAIQuotaExceeded {
+				WriteAIQuotaExceededError(w)
+				return
+			}
+			writeJSONError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Run the rule-based analysis
@@ -63,7 +65,7 @@ func (h *AnalysisHandler) RunAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Run AI analysis for paid plans (non-blocking, graceful fallback)
-	if h.aiPricingService != nil && h.aiPricingService.ShouldRunAI(user.GetEffectivePlan()) {
+	if h.aiPricingService != nil && h.aiPricingService.ShouldRunAI(planType) {
 		aiInput.RuleBasedResult = analysis
 		aiReport, err := h.aiPricingService.GenerateAIPricingReport(r.Context(), user, *aiInput)
 		if err == nil && aiReport != nil {
@@ -75,11 +77,6 @@ func (h *AnalysisHandler) RunAnalysis(w http.ResponseWriter, r *http.Request) {
 			_ = h.service.UpdateAnalysis(r.Context(), analysis)
 		}
 		// If AI fails, we just skip it - no error returned
-	}
-
-	// Increment usage counter after successful analysis
-	if err := h.limitsService.IncrementAnalysisCount(r.Context(), user); err != nil {
-		// Log error but don't fail the request - analysis was successful
 	}
 
 	w.Header().Set("Content-Type", "application/json")

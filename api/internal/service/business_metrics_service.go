@@ -18,6 +18,10 @@ type MetricsInput struct {
 	MonthlyChurnRate float64  `json:"monthly_churn_rate"`
 	PricingGoal      string   `json:"pricing_goal"`
 	TargetArrGrowth  *float64 `json:"target_arr_growth"` // nullable/optional
+
+	// Plan-based customer counts (additive fields)
+	TotalActiveCustomers *int           `json:"total_active_customers,omitempty"`
+	PlanCustomerCounts   map[string]int `json:"plan_customer_counts,omitempty"`
 }
 
 // BusinessMetricsService handles business logic for business metrics.
@@ -60,20 +64,43 @@ func (s *BusinessMetricsService) SetMetrics(ctx context.Context, userID string, 
 		return nil, errors.New("monthly_churn_rate must be non-negative")
 	}
 
+	// Validate plan customer counts (must be >= 0)
+	for planKey, count := range input.PlanCustomerCounts {
+		if count < 0 {
+			return nil, errors.New("plan_customer_counts values must be non-negative: " + planKey)
+		}
+	}
+
 	// Default currency if not provided
 	currency := input.Currency
 	if currency == "" {
 		currency = "USD"
 	}
 
+	// Compute total_active_customers from plan_customer_counts if present
+	totalActiveCustomers := input.TotalActiveCustomers
+	planCustomerCounts := input.PlanCustomerCounts
+
+	if len(planCustomerCounts) > 0 {
+		// If plan_customer_counts is present, compute total as sum of plan counts
+		// This overwrites any provided total_active_customers
+		sum := 0
+		for _, count := range planCustomerCounts {
+			sum += count
+		}
+		totalActiveCustomers = &sum
+	}
+
 	metrics := &model.BusinessMetrics{
-		UserID:           uid,
-		Currency:         currency,
-		MRR:              input.MRR,
-		Customers:        input.Customers,
-		MonthlyChurnRate: input.MonthlyChurnRate,
-		PricingGoal:      input.PricingGoal,
-		TargetArrGrowth:  input.TargetArrGrowth,
+		UserID:               uid,
+		Currency:             currency,
+		MRR:                  input.MRR,
+		Customers:            input.Customers,
+		MonthlyChurnRate:     input.MonthlyChurnRate,
+		PricingGoal:          input.PricingGoal,
+		TargetArrGrowth:      input.TargetArrGrowth,
+		TotalActiveCustomers: totalActiveCustomers,
+		PlanCustomerCounts:   planCustomerCounts,
 	}
 
 	if err := s.repo.UpsertForUser(ctx, metrics); err != nil {

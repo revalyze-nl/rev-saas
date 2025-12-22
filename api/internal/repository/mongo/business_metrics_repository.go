@@ -42,17 +42,45 @@ func (r *BusinessMetricsRepository) UpsertForUser(ctx context.Context, metrics *
 	metrics.UpdatedAt = time.Now().UTC()
 
 	filter := bson.M{"user_id": metrics.UserID}
+
+	// Build the $set document with required fields
+	setDoc := bson.M{
+		"currency":           metrics.Currency,
+		"mrr":                metrics.MRR,
+		"customers":          metrics.Customers,
+		"monthly_churn_rate": metrics.MonthlyChurnRate,
+		"updated_at":         metrics.UpdatedAt,
+	}
+
+	// Add optional fields only if they are set
+	if metrics.PricingGoal != "" {
+		setDoc["pricing_goal"] = metrics.PricingGoal
+	}
+	if metrics.TargetArrGrowth != nil {
+		setDoc["target_arr_growth"] = metrics.TargetArrGrowth
+	}
+	if metrics.TotalActiveCustomers != nil {
+		setDoc["total_active_customers"] = metrics.TotalActiveCustomers
+	}
+	if len(metrics.PlanCustomerCounts) > 0 {
+		setDoc["plan_customer_counts"] = metrics.PlanCustomerCounts
+	}
+
 	update := bson.M{
-		"$set": bson.M{
-			"currency":           metrics.Currency,
-			"mrr":                metrics.MRR,
-			"customers":          metrics.Customers,
-			"monthly_churn_rate": metrics.MonthlyChurnRate,
-			"updated_at":         metrics.UpdatedAt,
-		},
+		"$set": setDoc,
 		"$setOnInsert": bson.M{
 			"user_id": metrics.UserID,
 		},
+	}
+
+	// Handle unsetting optional fields when they are nil/empty
+	unsetDoc := bson.M{}
+	if metrics.TotalActiveCustomers == nil && len(metrics.PlanCustomerCounts) == 0 {
+		unsetDoc["total_active_customers"] = ""
+		unsetDoc["plan_customer_counts"] = ""
+	}
+	if len(unsetDoc) > 0 {
+		update["$unset"] = unsetDoc
 	}
 
 	opts := options.Update().SetUpsert(true)
@@ -79,6 +107,7 @@ func (r *BusinessMetricsRepository) UpsertForUser(ctx context.Context, metrics *
 
 	return nil
 }
+
 
 
 

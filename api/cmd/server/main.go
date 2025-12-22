@@ -50,8 +50,10 @@ func main() {
 	planRepo := mongorepo.NewPlanRepository(db)
 	competitorRepo := mongorepo.NewCompetitorRepository(db)
 	analysisRepo := mongorepo.NewAnalysisRepository(db)
+	analysisV2Repo := mongorepo.NewAnalysisV2Repository(db)
 	businessMetricsRepo := mongorepo.NewBusinessMetricsRepository(db)
 	simulationRepo := mongorepo.NewSimulationRepository(db)
+	aiUsageRepo := mongorepo.NewAIUsageRepository(db)
 
 	// Initialize services
 	jwtService := service.NewJWTService(cfg.JWTSecret)
@@ -62,7 +64,13 @@ func main() {
 	businessMetricsService := service.NewBusinessMetricsService(businessMetricsRepo)
 	limitsService := service.NewLimitsService(userRepo, planRepo, competitorRepo, analysisRepo)
 	aiPricingService := service.NewAIPricingService(cfg.OpenAIAPIKey)
+	aiCreditsService := service.NewAICreditsService(aiUsageRepo)
 	simulationService := service.NewSimulationService(elasticityCfg, simulationRepo, planRepo, aiPricingService)
+
+	// V2 Analysis Engine services
+	ruleEngine := service.NewPricingRuleEngine()
+	llmAnalysisServiceV2 := service.NewLLMAnalysisServiceV2(cfg.OpenAIAPIKey)
+	analysisServiceV2 := service.NewAnalysisServiceV2(ruleEngine, llmAnalysisServiceV2, analysisV2Repo, planRepo, competitorRepo, businessMetricsRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
@@ -72,14 +80,16 @@ func main() {
 	authHandler := handler.NewAuthHandler(authService)
 	planHandler := handler.NewPlanHandler(planService, limitsService)
 	competitorHandler := handler.NewCompetitorHandler(competitorService, limitsService)
-	analysisHandler := handler.NewAnalysisHandler(analysisService, limitsService, aiPricingService)
+	analysisHandler := handler.NewAnalysisHandler(analysisService, limitsService, aiPricingService, aiCreditsService)
 	analysisPDFHandler := handler.NewAnalysisPDFHandler(analysisService, businessMetricsRepo)
+	analysisV2Handler := handler.NewAnalysisV2Handler(analysisServiceV2, aiCreditsService)
 	businessMetricsHandler := handler.NewBusinessMetricsHandler(businessMetricsService)
 	limitsHandler := handler.NewLimitsHandler(limitsService)
-	simulationHandler := handler.NewSimulationHandler(simulationService, aiPricingService)
+	simulationHandler := handler.NewSimulationHandler(simulationService, aiPricingService, aiCreditsService)
+	aiCreditsHandler := handler.NewAICreditsHandler(aiCreditsService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, analysisHandler, analysisPDFHandler, businessMetricsHandler, limitsHandler, simulationHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

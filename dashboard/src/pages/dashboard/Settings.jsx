@@ -4,10 +4,11 @@ import { usePlans } from '../../context/PlansContext';
 import { useCompetitors } from '../../context/CompetitorsContext';
 import { useAnalysis } from '../../context/AnalysisContext';
 import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
+import { toPlanKey, computeTotalFromPlanCounts, hasPlanCounts } from '../../lib/planUtils';
 
 const Settings = () => {
   const { profile, updateProfile } = useSettings();
-  const { clearPlans } = usePlans();
+  const { plans, clearPlans } = usePlans();
   const { clearCompetitors } = useCompetitors();
   const { clearAnalyses } = useAnalysis();
   const { metrics, saveMetrics, isSaving, error: metricsError, clearError } = useBusinessMetrics();
@@ -17,19 +18,29 @@ const Settings = () => {
     currency: 'USD',
     mrr: '',
     customers: '',
-    monthly_churn_rate: ''
+    monthly_churn_rate: '',
+    total_active_customers: '',
+    plan_customer_counts: {}
   });
   const [metricsSaved, setMetricsSaved] = useState(false);
+  const [showPlanCounts, setShowPlanCounts] = useState(false);
 
   // Initialize form with existing metrics
   useEffect(() => {
     if (metrics) {
+      const planCounts = metrics.plan_customer_counts || {};
       setMetricsForm({
         currency: metrics.currency || 'USD',
         mrr: metrics.mrr?.toString() || '',
         customers: metrics.customers?.toString() || '',
-        monthly_churn_rate: metrics.monthly_churn_rate?.toString() || ''
+        monthly_churn_rate: metrics.monthly_churn_rate?.toString() || '',
+        total_active_customers: metrics.total_active_customers?.toString() || '',
+        plan_customer_counts: planCounts
       });
+      // Show plan counts section if there are existing values
+      if (hasPlanCounts(planCounts)) {
+        setShowPlanCounts(true);
+      }
     }
   }, [metrics]);
 
@@ -52,15 +63,65 @@ const Settings = () => {
     if (metricsSaved) setMetricsSaved(false);
   };
 
+  const handlePlanCountChange = (planKey, value) => {
+    const numValue = value === '' ? '' : parseInt(value) || 0;
+    setMetricsForm(prev => {
+      const updatedCounts = {
+        ...prev.plan_customer_counts,
+        [planKey]: numValue,
+      };
+      
+      // Auto-update total if plan counts are filled
+      let newTotal = prev.total_active_customers;
+      if (hasPlanCounts(updatedCounts)) {
+        newTotal = computeTotalFromPlanCounts(updatedCounts).toString();
+      }
+      
+      return {
+        ...prev,
+        plan_customer_counts: updatedCounts,
+        total_active_customers: newTotal
+      };
+    });
+    if (metricsError) clearError();
+    if (metricsSaved) setMetricsSaved(false);
+  };
+
+  // Compute if total is auto-calculated
+  const isAutoTotal = hasPlanCounts(metricsForm.plan_customer_counts);
+  const computedTotal = isAutoTotal ? computeTotalFromPlanCounts(metricsForm.plan_customer_counts) : null;
+
   const handleMetricsSubmit = async (e) => {
     e.preventDefault();
     
-    const result = await saveMetrics({
+    const payload = {
       currency: metricsForm.currency,
       mrr: parseFloat(metricsForm.mrr) || 0,
       customers: parseInt(metricsForm.customers) || 0,
       monthly_churn_rate: parseFloat(metricsForm.monthly_churn_rate) || 0
-    });
+    };
+
+    // Include total_active_customers if set
+    const totalValue = isAutoTotal ? computedTotal : parseInt(metricsForm.total_active_customers);
+    if (!isNaN(totalValue) && totalValue >= 0) {
+      payload.total_active_customers = totalValue;
+    }
+
+    // Include plan_customer_counts if any values are filled
+    if (metricsForm.plan_customer_counts && Object.keys(metricsForm.plan_customer_counts).length > 0) {
+      const cleanedCounts = {};
+      for (const [key, value] of Object.entries(metricsForm.plan_customer_counts)) {
+        const numValue = parseInt(value);
+        if (!isNaN(numValue) && numValue >= 0) {
+          cleanedCounts[key] = numValue;
+        }
+      }
+      if (Object.keys(cleanedCounts).length > 0) {
+        payload.plan_customer_counts = cleanedCounts;
+      }
+    }
+
+    const result = await saveMetrics(payload);
 
     if (result.success) {
       setMetricsSaved(true);
@@ -322,7 +383,83 @@ const Settings = () => {
                 placeholder="e.g., 2.5"
               />
             </div>
+
+            {/* Total Active Customers */}
+            <div>
+              <label htmlFor="totalActiveCustomers" className="block text-sm font-semibold text-slate-300 mb-2">
+                Total Active Customers <span className="text-slate-500 font-normal">(optional)</span>
+                {isAutoTotal && (
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full">Auto</span>
+                )}
+              </label>
+              <input
+                id="totalActiveCustomers"
+                type="number"
+                min="0"
+                value={isAutoTotal ? computedTotal : metricsForm.total_active_customers}
+                onChange={(e) => handleMetricsChange('total_active_customers', e.target.value)}
+                disabled={isSaving || isAutoTotal}
+                className={`w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all disabled:opacity-50 ${isAutoTotal ? 'cursor-not-allowed' : ''}`}
+                placeholder="e.g., 500"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {isAutoTotal 
+                  ? 'Calculated from customers by plan below.'
+                  : 'Optional. Expand below to enter customers by plan.'}
+              </p>
+            </div>
           </div>
+
+          {/* Customers by Plan (Collapsible) */}
+          {plans && plans.length > 0 && (
+            <div className="mt-6 border border-slate-700 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowPlanCounts(!showPlanCounts)}
+                className="w-full px-4 py-3 flex items-center justify-between bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
+              >
+                <span className="text-sm font-medium text-slate-300">
+                  Customers by Plan <span className="text-slate-500 font-normal">(optional)</span>
+                </span>
+                <svg
+                  className={`w-5 h-5 text-slate-400 transition-transform ${showPlanCounts ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showPlanCounts && (
+                <div className="p-4 space-y-4 bg-slate-900/30">
+                  <p className="text-xs text-slate-500 mb-3">
+                    Enter the number of active customers on each plan. Total will be calculated automatically.
+                  </p>
+                  {plans.map((plan) => {
+                    const planKey = toPlanKey(plan);
+                    const count = metricsForm.plan_customer_counts?.[planKey] ?? '';
+                    return (
+                      <div key={planKey} className="flex items-center gap-4">
+                        <label className="flex-1 text-sm text-slate-300">
+                          {plan.name} customers
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={count}
+                          onChange={(e) => handlePlanCountChange(planKey, e.target.value)}
+                          disabled={isSaving}
+                          className="w-32 px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-right disabled:opacity-50"
+                          placeholder="0"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-6 flex items-center gap-4">
             <button

@@ -39,11 +39,137 @@ api/
 
 The API uses environment variables for configuration:
 
+### Core Settings
+
 | Variable        | Default                       | Description           |
 |-----------------|-------------------------------|-----------------------|
 | `APP_PORT`      | `8080`                        | HTTP server port      |
 | `MONGO_URI`     | `mongodb://localhost:27017`   | MongoDB connection URI|
 | `MONGO_DB_NAME` | `rev_saas`                    | MongoDB database name |
+| `JWT_SECRET`    | `dev-secret-change-me`        | JWT signing secret    |
+| `OPENAI_API_KEY`| -                             | OpenAI API key        |
+
+### Stripe Connect Settings (Optional)
+
+| Variable                     | Description                                      |
+|------------------------------|--------------------------------------------------|
+| `STRIPE_SECRET_KEY`          | Stripe secret key (`sk_test_...` or `sk_live_...`) |
+| `STRIPE_CONNECT_CLIENT_ID`   | Stripe Connect client ID (`ca_...`)              |
+| `STRIPE_CONNECT_REDIRECT_URL`| Full callback URL (e.g., `http://localhost:8080/api/stripe/connect/callback`) |
+| `APP_PUBLIC_URL`             | Frontend URL for redirects (e.g., `http://localhost:5173`) |
+| `ENCRYPTION_KEY`             | 32-byte hex string for token encryption (64 hex chars) |
+
+---
+
+## Stripe Connect Setup (Required for Stripe Integration)
+
+Follow these steps to enable Stripe Connect OAuth:
+
+### 1. Enable Stripe Connect in Dashboard
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
+2. Navigate to **Settings → Connect → Get started**
+3. Choose **Standard** account type
+4. Complete the Connect onboarding
+
+### 2. Get Your Client ID
+
+1. Go to **Settings → Connect → Settings**
+2. Find your **Client ID** (starts with `ca_`)
+3. Copy it to `STRIPE_CONNECT_CLIENT_ID`
+
+> **Note**: The Client ID is the same for test and live mode.
+
+### 3. Configure Redirect URLs
+
+1. Go to **Settings → Connect → Settings → Redirects**
+2. Add your callback URLs to the whitelist:
+
+**Local Development:**
+```
+http://localhost:8080/api/stripe/connect/callback
+```
+
+**Production:**
+```
+https://api.yourdomain.com/api/stripe/connect/callback
+```
+
+> **IMPORTANT**: The redirect URL must match `STRIPE_CONNECT_REDIRECT_URL` **EXACTLY** — including scheme (http/https), host, port, and path.
+
+### 4. Get Your Secret Key
+
+1. Go to **Developers → API keys**
+2. Copy your **Secret key**:
+   - Test mode: `sk_test_...`
+   - Live mode: `sk_live_...`
+3. Set it as `STRIPE_SECRET_KEY`
+
+### 5. Generate Encryption Key
+
+Generate a 32-byte (64 hex character) encryption key for secure token storage:
+
+```bash
+openssl rand -hex 32
+```
+
+Set the output as `ENCRYPTION_KEY`.
+
+### 6. Example Configuration
+
+**Local Development (.env):**
+```bash
+STRIPE_SECRET_KEY=sk_test_51ABC...
+STRIPE_CONNECT_CLIENT_ID=ca_ABC123...
+STRIPE_CONNECT_REDIRECT_URL=http://localhost:8080/api/stripe/connect/callback
+APP_PUBLIC_URL=http://localhost:5173
+ENCRYPTION_KEY=a1b2c3d4e5f6...  # 64 hex chars
+```
+
+**Production:**
+```bash
+STRIPE_SECRET_KEY=sk_live_51ABC...
+STRIPE_CONNECT_CLIENT_ID=ca_ABC123...
+STRIPE_CONNECT_REDIRECT_URL=https://api.yourdomain.com/api/stripe/connect/callback
+APP_PUBLIC_URL=https://app.yourdomain.com
+ENCRYPTION_KEY=a1b2c3d4e5f6...  # 64 hex chars
+```
+
+### Test vs Live Mode Consistency
+
+- **Test mode**: Use `sk_test_...` secret key
+- **Live mode**: Use `sk_live_...` secret key
+- The Client ID (`ca_...`) works for both modes
+
+### Troubleshooting
+
+#### 404 or "Page not found" after clicking Connect
+
+1. **Check redirect URL whitelist**: The URL in `STRIPE_CONNECT_REDIRECT_URL` must be **exactly** whitelisted in Stripe Dashboard → Connect → Redirects
+2. **Check Connect is enabled**: Ensure Stripe Connect is enabled in your dashboard
+3. **Check Client ID**: Must start with `ca_` (not `pk_` or `sk_`)
+
+#### "invalid_request" error
+
+1. Copy the generated connect URL from browser address bar
+2. Check the URL parameters:
+   - `client_id` should be `ca_...`
+   - `redirect_uri` should match your whitelist exactly
+3. Check Stripe error message in the URL
+
+#### Callback returns error
+
+Check server logs for debug output:
+```
+[stripe] connect URL generated user=xxx redirect=http://... client_id_prefix=ca_ABC123... livemode=false
+```
+
+#### Token encryption errors
+
+Ensure `ENCRYPTION_KEY` is exactly 64 hex characters (32 bytes):
+```bash
+echo $ENCRYPTION_KEY | wc -c  # Should output 65 (64 chars + newline)
+```
 
 ## Running the Server
 

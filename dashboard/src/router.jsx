@@ -2,8 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CompetitorsProvider } from './context/CompetitorsContext';
 import { PlansProvider } from './context/PlansContext';
-import { AnalysisProvider } from './context/AnalysisContext';
-import { AnalysisV2Provider } from './context/AnalysisV2Context';
+import { AnalysisProvider } from './context/AnalysisV2Context';
 import { SettingsProvider } from './context/SettingsContext';
 import { BusinessMetricsProvider } from './context/BusinessMetricsContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -12,8 +11,7 @@ import SignUp from './pages/SignUp';
 import OnboardingLayout from './pages/onboarding/OnboardingLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
-import Analyses from './pages/dashboard/Analyses';
-import AnalysesV2 from './pages/dashboard/AnalysesV2';
+import Analyses from './pages/dashboard/AnalysesV2';
 import Competitors from './pages/dashboard/Competitors';
 import Plans from './pages/dashboard/Plans';
 import PricingSimulation from './pages/dashboard/PricingSimulation';
@@ -26,13 +24,11 @@ const DashboardWithProviders = () => (
   <CompetitorsProvider>
     <PlansProvider>
       <AnalysisProvider>
-        <AnalysisV2Provider>
-          <SettingsProvider>
-            <BusinessMetricsProvider>
-              <DashboardLayout />
-            </BusinessMetricsProvider>
-          </SettingsProvider>
-        </AnalysisV2Provider>
+        <SettingsProvider>
+          <BusinessMetricsProvider>
+            <DashboardLayout />
+          </BusinessMetricsProvider>
+        </SettingsProvider>
       </AnalysisProvider>
     </PlansProvider>
   </CompetitorsProvider>
@@ -93,10 +89,6 @@ export const router = createBrowserRouter([
         element: <Analyses />
       },
       {
-        path: 'analyses-v2',
-        element: <AnalysesV2 />
-      },
-      {
         path: 'competitors',
         element: <Competitors />
       },
@@ -117,7 +109,7 @@ export const router = createBrowserRouter([
         element: <Settings />
       },
       {
-        path: 'billing',
+        path: 'settings/billing',
         element: <Billing />
       }
     ]

@@ -26,10 +26,11 @@ func NewPlanHandler(service *service.PlanService, limitsService *service.LimitsS
 }
 
 type createPlanRequest struct {
-	Name         string  `json:"name"`
-	Price        float64 `json:"price"`
-	Currency     string  `json:"currency"`
-	BillingCycle string  `json:"billing_cycle"`
+	Name          string  `json:"name"`
+	Price         float64 `json:"price"`
+	Currency      string  `json:"currency"`
+	BillingCycle  string  `json:"billing_cycle"`
+	StripePriceID string  `json:"stripe_price_id,omitempty"`
 }
 
 // Create handles plan creation.
@@ -69,10 +70,11 @@ func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	plan, err := h.service.CreatePlan(r.Context(), userID, service.PlanInput{
-		Name:         req.Name,
-		Price:        req.Price,
-		Currency:     req.Currency,
-		BillingCycle: req.BillingCycle,
+		Name:          req.Name,
+		Price:         req.Price,
+		Currency:      req.Currency,
+		BillingCycle:  req.BillingCycle,
+		StripePriceID: req.StripePriceID,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -134,5 +136,55 @@ func (h *PlanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type updatePlanRequest struct {
+	Name          *string  `json:"name,omitempty"`
+	Price         *float64 `json:"price,omitempty"`
+	Currency      *string  `json:"currency,omitempty"`
+	BillingCycle  *string  `json:"billing_cycle,omitempty"`
+	StripePriceID *string  `json:"stripe_price_id,omitempty"`
+}
+
+// Update handles plan update.
+func (h *PlanHandler) Update(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+	if userID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	if id == "" {
+		http.Error(w, "missing plan id", http.StatusBadRequest)
+		return
+	}
+
+	var req updatePlanRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	plan, err := h.service.UpdatePlan(r.Context(), userID, id, service.PlanUpdateInput{
+		Name:          req.Name,
+		Price:         req.Price,
+		Currency:      req.Currency,
+		BillingCycle:  req.BillingCycle,
+		StripePriceID: req.StripePriceID,
+	})
+	if err != nil {
+		if err == service.ErrPlanNotFound {
+			http.Error(w, "plan not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(plan)
 }
 

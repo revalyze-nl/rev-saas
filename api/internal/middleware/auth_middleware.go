@@ -112,3 +112,12 @@ func UserFromContext(ctx context.Context) *model.User {
 	return nil
 }
 
+// UserEmailFromContext returns the user's email from context, or "" if not present.
+func UserEmailFromContext(ctx context.Context) string {
+	user := UserFromContext(ctx)
+	if user == nil {
+		return ""
+	}
+	return user.Email
+}
+

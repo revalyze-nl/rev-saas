@@ -22,6 +22,8 @@ func NewRouter(
 	limitsHandler *handler.LimitsHandler,
 	simulationHandler *handler.SimulationHandler,
 	aiCreditsHandler *handler.AICreditsHandler,
+	stripeHandler *handler.StripeHandler,
+	billingHandler *handler.BillingHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -53,6 +55,7 @@ func NewRouter(
 	// Plans
 	api.HandleFunc("/plans", planHandler.Create).Methods(http.MethodPost)
 	api.HandleFunc("/plans", planHandler.List).Methods(http.MethodGet)
+	api.HandleFunc("/plans/{id}", planHandler.Update).Methods(http.MethodPut)
 	api.HandleFunc("/plans/{id}", planHandler.Delete).Methods(http.MethodDelete)
 
 	// Competitors
@@ -81,6 +84,24 @@ func NewRouter(
 	api.HandleFunc("/simulations", simulationHandler.List).Methods(http.MethodGet)
 	api.HandleFunc("/simulations/{id}", simulationHandler.Get).Methods(http.MethodGet)
 	api.HandleFunc("/simulations/{id}/pdf", simulationHandler.ExportPDF).Methods(http.MethodGet)
+
+	// Stripe Connect (protected endpoints)
+	api.HandleFunc("/stripe/status", stripeHandler.GetStatus).Methods(http.MethodGet)
+	api.HandleFunc("/stripe/connect", stripeHandler.Connect).Methods(http.MethodPost)
+	api.HandleFunc("/stripe/disconnect", stripeHandler.Disconnect).Methods(http.MethodPost)
+	api.HandleFunc("/stripe/sync/metrics", stripeHandler.SyncMetrics).Methods(http.MethodPost)
+	api.HandleFunc("/stripe/sync/prices", stripeHandler.SyncPrices).Methods(http.MethodPost)
+
+	// Stripe OAuth callback (public - state token validates user)
+	r.HandleFunc("/api/stripe/connect/callback", stripeHandler.Callback).Methods(http.MethodGet)
+
+	// Stripe Billing (protected endpoints)
+	api.HandleFunc("/billing/status", billingHandler.GetStatus).Methods(http.MethodGet)
+	api.HandleFunc("/billing/checkout-session", billingHandler.CreateCheckoutSession).Methods(http.MethodPost)
+	api.HandleFunc("/billing/portal", billingHandler.CreatePortalSession).Methods(http.MethodPost)
+
+	// Stripe Billing Webhook (public - uses Stripe signature verification, not auth)
+	r.HandleFunc("/api/billing/webhook", billingHandler.HandleWebhook).Methods(http.MethodPost)
 
 	// Apply CORS middleware to all routes
 	return middleware.CORS(r)

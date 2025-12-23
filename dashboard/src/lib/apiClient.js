@@ -190,8 +190,9 @@ export const authApi = {
 // Plans API calls
 export const plansApi = {
   list: () => getJson('/api/plans'),
-  create: (name, price, currency = 'USD', billingCycle = 'monthly') => 
-    postJson('/api/plans', { name, price, currency, billing_cycle: billingCycle }),
+  create: (name, price, currency = 'USD', billingCycle = 'monthly', stripePriceId = '') => 
+    postJson('/api/plans', { name, price, currency, billing_cycle: billingCycle, stripe_price_id: stripePriceId || undefined }),
+  update: (id, data) => putJson(`/api/plans/${id}`, data),
   delete: (id) => deleteJson(`/api/plans/${id}`),
 };
 
@@ -322,6 +323,21 @@ export const aiCreditsApi = {
   get: () => getJson('/api/ai-credits'),
 };
 
+// Stripe Connect API calls
+export const stripeApi = {
+  getStatus: () => getJson('/api/stripe/status'),
+  connect: () => postJson('/api/stripe/connect'),
+  disconnect: () => postJson('/api/stripe/disconnect'),
+  syncMetrics: () => postJson('/api/stripe/sync/metrics'),
+};
+
+// Billing API calls (Stripe subscription management)
+export const billingApi = {
+  getStatus: () => getJson('/api/billing/status'),
+  createCheckoutSession: (planKey) => postJson('/api/billing/checkout-session', { plan_key: planKey }),
+  createPortalSession: () => postJson('/api/billing/portal'),
+};
+
 export default {
   postJson,
   getJson,
@@ -340,6 +356,8 @@ export default {
   businessMetricsApi,
   simulationApi,
   aiCreditsApi,
+  stripeApi,
+  billingApi,
   AICreditsError,
 };
 

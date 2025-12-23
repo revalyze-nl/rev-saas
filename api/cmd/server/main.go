@@ -21,6 +21,16 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
+	// Validate Stripe configuration (fail fast with clear error messages)
+	if err := cfg.ValidateStripeConfig(); err != nil {
+		log.Fatalf("Stripe configuration error: %v", err)
+	}
+
+	// Validate Stripe Billing configuration
+	if err := cfg.ValidateStripeBillingConfig(); err != nil {
+		log.Fatalf("Stripe Billing configuration error: %v", err)
+	}
+
 	// Load elasticity configuration for pricing simulations
 	elasticityCfg, err := config.LoadElasticityConfig()
 	if err != nil {
@@ -54,9 +64,13 @@ func main() {
 	businessMetricsRepo := mongorepo.NewBusinessMetricsRepository(db)
 	simulationRepo := mongorepo.NewSimulationRepository(db)
 	aiUsageRepo := mongorepo.NewAIUsageRepository(db)
+	stripeConnRepo := mongorepo.NewStripeConnectionRepository(db)
+	billingSubRepo := mongorepo.NewBillingSubscriptionRepository(db)
+	webhookEventRepo := mongorepo.NewWebhookEventRepository(db)
 
 	// Initialize services
 	jwtService := service.NewJWTService(cfg.JWTSecret)
+	encryptionService := service.NewEncryptionService(cfg.EncryptionKey)
 	authService := service.NewAuthService(userRepo, companyRepo, userMetadataRepo, jwtService)
 	planService := service.NewPlanService(planRepo)
 	competitorService := service.NewCompetitorService(competitorRepo)
@@ -67,10 +81,27 @@ func main() {
 	aiCreditsService := service.NewAICreditsService(aiUsageRepo)
 	simulationService := service.NewSimulationService(elasticityCfg, simulationRepo, planRepo, aiPricingService)
 
+	// Stripe Connect service
+	stripeService := service.NewStripeService(
+		cfg.StripeSecretKey,
+		cfg.StripeConnectClientID,
+		cfg.StripeConnectRedirectURL,
+		cfg.AppPublicURL,
+		cfg.JWTSecret,
+		cfg.StripeLivemode,
+		encryptionService,
+		stripeConnRepo,
+		planRepo,
+		businessMetricsRepo,
+	)
+
 	// V2 Analysis Engine services
 	ruleEngine := service.NewPricingRuleEngine()
 	llmAnalysisServiceV2 := service.NewLLMAnalysisServiceV2(cfg.OpenAIAPIKey)
 	analysisServiceV2 := service.NewAnalysisServiceV2(ruleEngine, llmAnalysisServiceV2, analysisV2Repo, planRepo, competitorRepo, businessMetricsRepo)
+
+	// Stripe Billing service
+	billingService := service.NewBillingService(cfg, billingSubRepo, webhookEventRepo, userRepo, aiUsageRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
@@ -87,9 +118,11 @@ func main() {
 	limitsHandler := handler.NewLimitsHandler(limitsService)
 	simulationHandler := handler.NewSimulationHandler(simulationService, aiPricingService, aiCreditsService)
 	aiCreditsHandler := handler.NewAICreditsHandler(aiCreditsService)
+	stripeHandler := handler.NewStripeHandler(stripeService)
+	billingHandler := handler.NewBillingHandler(billingService, cfg)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

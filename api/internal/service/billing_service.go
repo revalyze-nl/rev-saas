@@ -1,0 +1,510 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"rev-saas-api/internal/config"
+	"rev-saas-api/internal/model"
+	"rev-saas-api/internal/repository/mongo"
+)
+
+// Stripe API endpoints
+const (
+	stripeCustomersURL       = "https://api.stripe.com/v1/customers"
+	stripeCheckoutSessionURL = "https://api.stripe.com/v1/checkout/sessions"
+	stripePortalSessionURL   = "https://api.stripe.com/v1/billing_portal/sessions"
+)
+
+// Billing errors
+var (
+	ErrBillingNotConfigured   = errors.New("billing not configured")
+	ErrInvalidPlanKey         = errors.New("invalid plan key")
+	ErrNoStripeCustomer       = errors.New("no Stripe customer found for this user")
+	ErrSubscriptionNotFound   = errors.New("subscription not found")
+	ErrWebhookSignatureInvalid = errors.New("webhook signature verification failed")
+)
+
+// BillingService handles Stripe billing operations.
+type BillingService struct {
+	cfg           *config.Config
+	billingRepo   *mongo.BillingSubscriptionRepository
+	webhookRepo   *mongo.WebhookEventRepository
+	userRepo      *mongo.UserRepository
+	aiUsageRepo   *mongo.AIUsageRepository
+}
+
+// NewBillingService creates a new billing service.
+func NewBillingService(
+	cfg *config.Config,
+	billingRepo *mongo.BillingSubscriptionRepository,
+	webhookRepo *mongo.WebhookEventRepository,
+	userRepo *mongo.UserRepository,
+	aiUsageRepo *mongo.AIUsageRepository,
+) *BillingService {
+	return &BillingService{
+		cfg:         cfg,
+		billingRepo: billingRepo,
+		webhookRepo: webhookRepo,
+		userRepo:    userRepo,
+		aiUsageRepo: aiUsageRepo,
+	}
+}
+
+// IsConfigured returns true if billing is properly configured.
+func (s *BillingService) IsConfigured() bool {
+	return s.cfg.IsBillingEnabled()
+}
+
+// GetBillingStatus returns the user's current billing status.
+func (s *BillingService) GetBillingStatus(ctx context.Context, userID string) (*model.BillingStatusResponse, error) {
+	uid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+
+	sub, err := s.billingRepo.GetByUserID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	// No subscription = free tier
+	if sub == nil {
+		return &model.BillingStatusResponse{
+			PlanKey: model.PlanKeyFree,
+			Status:  "",
+		}, nil
+	}
+
+	var periodEnd *time.Time
+	if !sub.CurrentPeriodEnd.IsZero() {
+		periodEnd = &sub.CurrentPeriodEnd
+	}
+
+	return &model.BillingStatusResponse{
+		PlanKey:              sub.PlanKey,
+		Status:               sub.Status,
+		CancelAtPeriodEnd:    sub.CancelAtPeriodEnd,
+		CurrentPeriodEnd:     periodEnd,
+		StripeSubscriptionID: sub.StripeSubscriptionID,
+		StripeCustomerID:     sub.StripeCustomerID,
+	}, nil
+}
+
+// CreateCheckoutSession creates a Stripe Checkout session for subscription purchase.
+func (s *BillingService) CreateCheckoutSession(ctx context.Context, userID, userEmail, planKey string) (string, error) {
+	if !s.IsConfigured() {
+		return "", ErrBillingNotConfigured
+	}
+
+	// Validate plan key and get price ID
+	priceID := s.cfg.GetPriceIDForPlan(planKey)
+	if priceID == "" {
+		return "", ErrInvalidPlanKey
+	}
+
+	uid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return "", fmt.Errorf("invalid user id: %w", err)
+	}
+
+	// Get or create Stripe customer
+	customerID, err := s.getOrCreateStripeCustomer(ctx, uid, userEmail)
+	if err != nil {
+		return "", fmt.Errorf("failed to get/create Stripe customer: %w", err)
+	}
+
+	// Create Checkout Session
+	data := url.Values{}
+	data.Set("customer", customerID)
+	data.Set("mode", "subscription")
+	data.Set("line_items[0][price]", priceID)
+	data.Set("line_items[0][quantity]", "1")
+	data.Set("success_url", s.cfg.StripeBillingSuccessURL)
+	data.Set("cancel_url", s.cfg.StripeBillingCancelURL)
+	data.Set("allow_promotion_codes", "true")
+	// Store user ID in metadata for webhook processing
+	data.Set("subscription_data[metadata][user_id]", userID)
+	data.Set("client_reference_id", userID)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", stripeCheckoutSessionURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	req.SetBasicAuth(s.cfg.StripeBillingSecretKey, "")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("stripe checkout session error: %s", string(body))
+	}
+
+	var result struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	return result.URL, nil
+}
+
+// CreatePortalSession creates a Stripe Customer Portal session.
+func (s *BillingService) CreatePortalSession(ctx context.Context, userID string) (string, error) {
+	if !s.IsConfigured() {
+		return "", ErrBillingNotConfigured
+	}
+
+	uid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return "", fmt.Errorf("invalid user id: %w", err)
+	}
+
+	// Get existing subscription to find customer ID
+	sub, err := s.billingRepo.GetByUserID(ctx, uid)
+	if err != nil {
+		return "", err
+	}
+
+	if sub == nil || sub.StripeCustomerID == "" {
+		return "", ErrNoStripeCustomer
+	}
+
+	// Create Portal Session
+	data := url.Values{}
+	data.Set("customer", sub.StripeCustomerID)
+	data.Set("return_url", s.cfg.StripeCustomerPortalReturnURL)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", stripePortalSessionURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	req.SetBasicAuth(s.cfg.StripeBillingSecretKey, "")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("stripe portal session error: %s", string(body))
+	}
+
+	var result struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	return result.URL, nil
+}
+
+// getOrCreateStripeCustomer gets or creates a Stripe customer for the user.
+func (s *BillingService) getOrCreateStripeCustomer(ctx context.Context, userID primitive.ObjectID, email string) (string, error) {
+	// Check if user already has a subscription with customer ID
+	sub, err := s.billingRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+
+	if sub != nil && sub.StripeCustomerID != "" {
+		return sub.StripeCustomerID, nil
+	}
+
+	// Create new Stripe customer
+	data := url.Values{}
+	data.Set("email", email)
+	data.Set("metadata[user_id]", userID.Hex())
+
+	req, err := http.NewRequestWithContext(ctx, "POST", stripeCustomersURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	req.SetBasicAuth(s.cfg.StripeBillingSecretKey, "")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("stripe customer creation error: %s", string(body))
+	}
+
+	var customer struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&customer); err != nil {
+		return "", err
+	}
+
+	// Store the customer ID in a new subscription record (will be updated by webhook)
+	newSub := &model.BillingSubscription{
+		UserID:           userID,
+		StripeCustomerID: customer.ID,
+		PlanKey:          model.PlanKeyFree,
+		Status:           model.SubscriptionStatusIncomplete,
+	}
+	if err := s.billingRepo.Upsert(ctx, newSub); err != nil {
+		log.Printf("[billing] warning: failed to store customer ID: %v", err)
+	}
+
+	return customer.ID, nil
+}
+
+// HandleWebhookEvent processes a Stripe webhook event.
+func (s *BillingService) HandleWebhookEvent(ctx context.Context, eventID, eventType string, eventData json.RawMessage) error {
+	// Check idempotency
+	processed, err := s.webhookRepo.IsProcessed(ctx, eventID)
+	if err != nil {
+		return fmt.Errorf("idempotency check failed: %w", err)
+	}
+	if processed {
+		log.Printf("[billing] event %s already processed, skipping", eventID)
+		return nil
+	}
+
+	// Process based on event type
+	switch eventType {
+	case "checkout.session.completed":
+		err = s.handleCheckoutCompleted(ctx, eventData)
+	case "customer.subscription.created":
+		err = s.handleSubscriptionCreatedOrUpdated(ctx, eventData)
+	case "customer.subscription.updated":
+		err = s.handleSubscriptionCreatedOrUpdated(ctx, eventData)
+	case "customer.subscription.deleted":
+		err = s.handleSubscriptionDeleted(ctx, eventData)
+	case "invoice.paid":
+		err = s.handleInvoicePaid(ctx, eventData)
+	case "invoice.payment_failed":
+		err = s.handlePaymentFailed(ctx, eventData)
+	default:
+		log.Printf("[billing] unhandled event type: %s", eventType)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Mark event as processed
+	if err := s.webhookRepo.MarkProcessed(ctx, eventID, eventType); err != nil {
+		log.Printf("[billing] warning: failed to mark event processed: %v", err)
+	}
+
+	return nil
+}
+
+// handleCheckoutCompleted handles checkout.session.completed event.
+func (s *BillingService) handleCheckoutCompleted(ctx context.Context, data json.RawMessage) error {
+	var session struct {
+		Customer          string `json:"customer"`
+		Subscription      string `json:"subscription"`
+		ClientReferenceID string `json:"client_reference_id"`
+	}
+	if err := json.Unmarshal(data, &session); err != nil {
+		return err
+	}
+
+	log.Printf("[billing] checkout completed: customer=%s subscription=%s user=%s",
+		session.Customer, session.Subscription, session.ClientReferenceID)
+
+	// The subscription.created event will handle the actual subscription setup
+	return nil
+}
+
+// handleSubscriptionCreatedOrUpdated handles subscription created/updated events.
+func (s *BillingService) handleSubscriptionCreatedOrUpdated(ctx context.Context, data json.RawMessage) error {
+	var subscription struct {
+		ID                 string `json:"id"`
+		Customer           string `json:"customer"`
+		Status             string `json:"status"`
+		CancelAtPeriodEnd  bool   `json:"cancel_at_period_end"`
+		CurrentPeriodEnd   int64  `json:"current_period_end"`
+		Items              struct {
+			Data []struct {
+				Price struct {
+					ID string `json:"id"`
+				} `json:"price"`
+			} `json:"data"`
+		} `json:"items"`
+		Metadata map[string]string `json:"metadata"`
+	}
+	if err := json.Unmarshal(data, &subscription); err != nil {
+		return err
+	}
+
+	// Get price ID from first item
+	var priceID string
+	if len(subscription.Items.Data) > 0 {
+		priceID = subscription.Items.Data[0].Price.ID
+	}
+
+	// Determine plan key from price ID
+	planKey := model.PlanKey(s.cfg.GetPlanKeyForPriceID(priceID))
+
+	// Try to find user ID from metadata or existing subscription
+	var userID primitive.ObjectID
+	if uid, ok := subscription.Metadata["user_id"]; ok {
+		userID, _ = primitive.ObjectIDFromHex(uid)
+	}
+
+	// If no user ID in metadata, try to find by customer ID
+	if userID.IsZero() {
+		existingSub, _ := s.billingRepo.GetByStripeCustomerID(ctx, subscription.Customer)
+		if existingSub != nil {
+			userID = existingSub.UserID
+		}
+	}
+
+	if userID.IsZero() {
+		log.Printf("[billing] warning: could not determine user_id for subscription %s", subscription.ID)
+		return nil // Don't fail, just log
+	}
+
+	// Upsert subscription
+	sub := &model.BillingSubscription{
+		UserID:               userID,
+		StripeCustomerID:     subscription.Customer,
+		StripeSubscriptionID: subscription.ID,
+		StripePriceID:        priceID,
+		PlanKey:              planKey,
+		Status:               model.SubscriptionStatus(subscription.Status),
+		CancelAtPeriodEnd:    subscription.CancelAtPeriodEnd,
+		CurrentPeriodEnd:     time.Unix(subscription.CurrentPeriodEnd, 0),
+	}
+
+	if err := s.billingRepo.Upsert(ctx, sub); err != nil {
+		return fmt.Errorf("failed to upsert subscription: %w", err)
+	}
+
+	log.Printf("[billing] subscription upserted: user=%s plan=%s status=%s",
+		userID.Hex(), planKey, subscription.Status)
+
+	return nil
+}
+
+// handleSubscriptionDeleted handles subscription.deleted event.
+func (s *BillingService) handleSubscriptionDeleted(ctx context.Context, data json.RawMessage) error {
+	var subscription struct {
+		ID       string `json:"id"`
+		Customer string `json:"customer"`
+	}
+	if err := json.Unmarshal(data, &subscription); err != nil {
+		return err
+	}
+
+	// Find subscription by customer ID
+	existingSub, err := s.billingRepo.GetByStripeCustomerID(ctx, subscription.Customer)
+	if err != nil {
+		return err
+	}
+
+	if existingSub == nil {
+		log.Printf("[billing] subscription deleted but not found: %s", subscription.ID)
+		return nil
+	}
+
+	// Update to canceled/free
+	existingSub.Status = model.SubscriptionStatusCanceled
+	existingSub.PlanKey = model.PlanKeyFree
+	existingSub.StripeSubscriptionID = ""
+
+	if err := s.billingRepo.Upsert(ctx, existingSub); err != nil {
+		return fmt.Errorf("failed to update canceled subscription: %w", err)
+	}
+
+	log.Printf("[billing] subscription canceled: user=%s", existingSub.UserID.Hex())
+
+	return nil
+}
+
+// handleInvoicePaid handles invoice.paid event - resets credits.
+func (s *BillingService) handleInvoicePaid(ctx context.Context, data json.RawMessage) error {
+	var invoice struct {
+		ID           string `json:"id"`
+		Customer     string `json:"customer"`
+		Subscription string `json:"subscription"`
+		BillingReason string `json:"billing_reason"` // "subscription_cycle", "subscription_create", etc.
+	}
+	if err := json.Unmarshal(data, &invoice); err != nil {
+		return err
+	}
+
+	// Only reset credits for subscription cycle payments
+	if invoice.BillingReason != "subscription_cycle" && invoice.BillingReason != "subscription_create" {
+		return nil
+	}
+
+	// Find user by customer ID
+	sub, err := s.billingRepo.GetByStripeCustomerID(ctx, invoice.Customer)
+	if err != nil || sub == nil {
+		log.Printf("[billing] invoice paid but subscription not found: customer=%s", invoice.Customer)
+		return nil
+	}
+
+	// Reset AI credits for this user
+	monthKey := time.Now().Format("2006-01")
+	if err := s.aiUsageRepo.ResetCredits(ctx, sub.UserID.Hex(), monthKey); err != nil {
+		log.Printf("[billing] warning: failed to reset credits for user %s: %v", sub.UserID.Hex(), err)
+	} else {
+		log.Printf("[billing] credits reset for user %s (invoice %s)", sub.UserID.Hex(), invoice.ID)
+	}
+
+	return nil
+}
+
+// handlePaymentFailed handles invoice.payment_failed event.
+func (s *BillingService) handlePaymentFailed(ctx context.Context, data json.RawMessage) error {
+	var invoice struct {
+		ID           string `json:"id"`
+		Customer     string `json:"customer"`
+		Subscription string `json:"subscription"`
+	}
+	if err := json.Unmarshal(data, &invoice); err != nil {
+		return err
+	}
+
+	// Find subscription by customer ID
+	sub, err := s.billingRepo.GetByStripeCustomerID(ctx, invoice.Customer)
+	if err != nil || sub == nil {
+		log.Printf("[billing] payment failed but subscription not found: customer=%s", invoice.Customer)
+		return nil
+	}
+
+	// Update status to past_due
+	sub.Status = model.SubscriptionStatusPastDue
+	if err := s.billingRepo.Upsert(ctx, sub); err != nil {
+		return fmt.Errorf("failed to update past_due status: %w", err)
+	}
+
+	log.Printf("[billing] payment failed, marked past_due: user=%s", sub.UserID.Hex())
+
+	return nil
+}
+

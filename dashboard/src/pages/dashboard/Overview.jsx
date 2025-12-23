@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompetitors } from '../../context/CompetitorsContext';
 import { usePlans } from '../../context/PlansContext';
-import { useAnalysis } from '../../context/AnalysisContext';
+import { useAnalysis } from '../../context/AnalysisV2Context';
 import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
 
 const Overview = () => {

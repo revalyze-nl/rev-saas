@@ -170,6 +170,9 @@ export const AnalysisV2Provider = ({ children }) => {
     setSelectedAnalysisId(null);
   };
 
+  // Alias for backward compatibility with old context
+  const clearAnalyses = reset;
+
   const value = {
     analyses,
     lastAnalysis,
@@ -183,6 +186,7 @@ export const AnalysisV2Provider = ({ children }) => {
     selectAnalysis,
     clearError,
     clearLimitError,
+    clearAnalyses,
     reset,
   };
 
@@ -200,4 +204,8 @@ export const useAnalysisV2 = () => {
   }
   return context;
 };
+
+// Aliases for backward compatibility - use these going forward
+export const useAnalysis = useAnalysisV2;
+export const AnalysisProvider = AnalysisV2Provider;
 

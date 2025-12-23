@@ -78,6 +78,7 @@ export const BusinessMetricsProvider = ({ children }) => {
     saveMetrics,
     clearError,
     resetMetrics,
+    refetch: loadMetrics,
     hasMetrics: metrics !== null,
   };
 

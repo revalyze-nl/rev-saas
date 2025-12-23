@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAnalysis } from '../../context/AnalysisContext';
-import { analysisApi, downloadBlob } from '../../lib/apiClient';
+import { useAnalysis } from '../../context/AnalysisV2Context';
+import { analysisV2Api, downloadBlob } from '../../lib/apiClient';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ const Reports = () => {
     setExportSuccess(null);
     
     try {
-      const { ok, blob } = await analysisApi.exportPdf(analysisId);
+      const { ok, blob } = await analysisV2Api.exportPdf(analysisId);
       
       if (ok && blob) {
         const dateStr = new Date(analysisDate).toISOString().split('T')[0];
@@ -64,18 +64,14 @@ const Reports = () => {
     }).format(date);
   };
 
-  // Get action counts
-  const getActionCounts = (recommendations = []) => {
-    const raiseCount = recommendations.filter(r => 
-      r.suggestedAction === 'raise_price' || 
-      r.suggestedAction === 'raise_price_conservative' || 
-      r.suggestedAction === 'raise_price_aggressive'
-    ).length;
-    const lowerCount = recommendations.filter(r => r.suggestedAction === 'lower_price').length;
-    const keepCount = recommendations.filter(r => 
-      r.suggestedAction === 'keep' || r.suggestedAction === 'keep_for_growth'
-    ).length;
-    return { raiseCount, lowerCount, keepCount };
+  // Get insight counts by severity (for V2 structure)
+  const getInsightCounts = (analysis) => {
+    const insights = analysis.ruleResult?.insights || [];
+    const criticalCount = insights.filter(i => i.severity === 'critical').length;
+    const warningCount = insights.filter(i => i.severity === 'warning').length;
+    const infoCount = insights.filter(i => i.severity === 'info').length;
+    const recommendationCount = analysis.llmOutput?.recommendations?.length || 0;
+    return { criticalCount, warningCount, infoCount, recommendationCount };
   };
 
   // Loading state
@@ -202,10 +198,12 @@ const Reports = () => {
         {/* Table Body */}
         <div className="divide-y divide-slate-800/50">
           {analyses.map((analysis, index) => {
-            const { raiseCount, lowerCount, keepCount } = getActionCounts(analysis.recommendations);
+            const { criticalCount, warningCount, infoCount, recommendationCount } = getInsightCounts(analysis);
             const isExporting = exportingId === analysis.id;
             const justExported = exportSuccess === analysis.id;
             const isLatest = index === 0;
+            const numPlans = analysis.ruleResult?.numPlans || 0;
+            const numCompetitors = analysis.ruleResult?.numCompetitors || 0;
 
             return (
               <div
@@ -244,12 +242,12 @@ const Reports = () => {
                 <div className="col-span-2">
                   <div className="flex items-center gap-4">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-white">{analysis.numPlans}</div>
+                      <div className="text-lg font-bold text-white">{numPlans}</div>
                       <div className="text-xs text-slate-500">Plans</div>
                     </div>
                     <div className="w-px h-8 bg-slate-700"></div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-white">{analysis.numCompetitors}</div>
+                      <div className="text-lg font-bold text-white">{numCompetitors}</div>
                       <div className="text-xs text-slate-500">Competitors</div>
                     </div>
                   </div>
@@ -258,32 +256,32 @@ const Reports = () => {
                 {/* Insights */}
                 <div className="col-span-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {raiseCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
+                    {criticalCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        {raiseCount} Raise
+                        {criticalCount} Critical
                       </span>
                     )}
-                    {lowerCount > 0 && (
+                    {warningCount > 0 && (
                       <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {lowerCount} Lower
+                        {warningCount} Warning
                       </span>
                     )}
-                    {keepCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg">
+                    {recommendationCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {keepCount} Keep
+                        {recommendationCount} Recommendations
                       </span>
                     )}
-                    {raiseCount === 0 && lowerCount === 0 && keepCount === 0 && (
-                      <span className="text-xs text-slate-500">No recommendations</span>
+                    {criticalCount === 0 && warningCount === 0 && recommendationCount === 0 && (
+                      <span className="text-xs text-slate-500">No insights</span>
                     )}
                   </div>
                 </div>

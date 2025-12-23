@@ -99,3 +99,4 @@ func (r *AnalysisV2Repository) GetLatestByUser(ctx context.Context, userID primi
 	return &analysis, nil
 }
 
+

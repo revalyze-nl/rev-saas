@@ -31,10 +31,11 @@ func NewPlanService(repo *mongorepo.PlanRepository) *PlanService {
 
 // PlanInput represents input for creating a plan.
 type PlanInput struct {
-	Name         string
-	Price        float64
-	Currency     string
-	BillingCycle string
+	Name          string
+	Price         float64
+	Currency      string
+	BillingCycle  string
+	StripePriceID string
 }
 
 // CreatePlan creates a new plan for a user.
@@ -65,11 +66,12 @@ func (s *PlanService) CreatePlan(ctx context.Context, userID string, input PlanI
 	}
 
 	plan := &model.Plan{
-		UserID:       uid,
-		Name:         name,
-		Price:        input.Price,
-		Currency:     currency,
-		BillingCycle: billingCycle,
+		UserID:        uid,
+		Name:          name,
+		Price:         input.Price,
+		Currency:      currency,
+		BillingCycle:  billingCycle,
+		StripePriceID: strings.TrimSpace(input.StripePriceID),
 	}
 
 	if err := s.repo.Create(ctx, plan); err != nil {
@@ -110,6 +112,79 @@ func (s *PlanService) DeletePlan(ctx context.Context, userID string, planID stri
 	}
 
 	return nil
+}
+
+// PlanUpdateInput represents input for updating a plan.
+type PlanUpdateInput struct {
+	Name          *string  `json:"name,omitempty"`
+	Price         *float64 `json:"price,omitempty"`
+	Currency      *string  `json:"currency,omitempty"`
+	BillingCycle  *string  `json:"billing_cycle,omitempty"`
+	StripePriceID *string  `json:"stripe_price_id,omitempty"`
+}
+
+// UpdatePlan updates a plan by ID, ensuring it belongs to the user.
+func (s *PlanService) UpdatePlan(ctx context.Context, userID string, planID string, input PlanUpdateInput) (*model.Plan, error) {
+	uid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, errors.New("invalid user id")
+	}
+
+	pid, err := primitive.ObjectIDFromHex(planID)
+	if err != nil {
+		return nil, errors.New("invalid plan id")
+	}
+
+	// Build update document
+	update := make(map[string]interface{})
+
+	if input.Name != nil {
+		name := strings.TrimSpace(*input.Name)
+		if name == "" {
+			return nil, errors.New("plan name cannot be empty")
+		}
+		update["name"] = name
+	}
+
+	if input.Price != nil {
+		if *input.Price < 0 {
+			return nil, errors.New("price must be non-negative")
+		}
+		update["price"] = *input.Price
+	}
+
+	if input.Currency != nil {
+		currency := strings.TrimSpace(*input.Currency)
+		if currency != "" {
+			update["currency"] = currency
+		}
+	}
+
+	if input.BillingCycle != nil {
+		cycle := strings.TrimSpace(*input.BillingCycle)
+		if cycle != "" {
+			update["billing_cycle"] = cycle
+		}
+	}
+
+	if input.StripePriceID != nil {
+		update["stripe_price_id"] = strings.TrimSpace(*input.StripePriceID)
+	}
+
+	if len(update) == 0 {
+		return nil, errors.New("no fields to update")
+	}
+
+	err = s.repo.UpdateByIDAndUser(ctx, pid, uid, update)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrPlanNotFound
+		}
+		return nil, err
+	}
+
+	// Fetch and return updated plan
+	return s.repo.GetByIDAndUser(ctx, pid, uid)
 }
 
 

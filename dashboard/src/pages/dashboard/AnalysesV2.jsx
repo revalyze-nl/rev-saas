@@ -77,7 +77,7 @@ const AnalysesV2 = () => {
   const handleRunNewAnalysis = async () => {
     const result = await runAnalysis();
     if (!result.success) {
-      console.error('Failed to run V2 analysis:', result.error);
+      console.error('Failed to run analysis:', result.error);
     }
   };
 
@@ -90,7 +90,7 @@ const AnalysesV2 = () => {
       
       if (ok && blob) {
         const dateStr = new Date(analysisDate).toISOString().split('T')[0];
-        const filename = `pricing-report-v2-${dateStr}.pdf`;
+        const filename = `pricing-report-${dateStr}.pdf`;
         downloadBlob(blob, filename);
       }
     } catch (error) {
@@ -108,7 +108,7 @@ const AnalysesV2 = () => {
       <div className="max-w-5xl mx-auto">
         <div className="text-center py-20">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading V2 analysis history...</p>
+          <p className="text-slate-400">Loading analysis history...</p>
         </div>
       </div>
     );
@@ -125,17 +125,17 @@ const AnalysesV2 = () => {
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">
-            No V2 Analyses Yet
+            No Analyses Yet
           </h2>
           <p className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
-            Run your first V2 pricing analysis to get deterministic insights with AI-powered commentary.
+            Run your first pricing analysis to get deterministic insights with AI-powered commentary.
           </p>
           <button
             onClick={handleRunNewAnalysis}
             disabled={isRunning}
             className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-blue-700 hover:scale-105 transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50"
           >
-            {isRunning ? 'Running Analysis...' : 'Run V2 Analysis'}
+            {isRunning ? 'Running Analysis...' : 'Run Analysis'}
           </button>
         </div>
       </div>
@@ -220,7 +220,7 @@ const AnalysesV2 = () => {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Analysis Engine V2
+                    Analysis Engine
                   </span>
                 </div>
                 <h1 className="text-3xl font-bold text-white mb-2">
@@ -476,7 +476,7 @@ const AnalysesV2 = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-base font-semibold text-white">V2 Analysis History</h3>
+              <h3 className="text-base font-semibold text-white">Analysis History</h3>
             </div>
             <span className="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full">
               {analyses.length}
@@ -550,7 +550,7 @@ const AnalysesV2 = () => {
               disabled={isRunning}
               className="w-full text-center text-sm font-medium py-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-400 hover:from-purple-500/20 hover:to-blue-500/20 transition-all border border-purple-500/20 disabled:opacity-50"
             >
-              {isRunning ? 'Running...' : '+ Run New V2 Analysis'}
+              {isRunning ? 'Running...' : '+ Run New Analysis'}
             </button>
           </div>
         </div>

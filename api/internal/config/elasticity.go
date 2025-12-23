@@ -124,3 +124,4 @@ func (c *ElasticityConfig) DeriveRiskLevel(absPriceChangePct float64, scenarioLe
 
 
 
+

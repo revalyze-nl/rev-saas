@@ -31,6 +31,7 @@ export const PlansProvider = ({ children }) => {
         currency: plan.currency || 'USD',
         interval: plan.billing_cycle || 'monthly',
         description: '',
+        stripePriceId: plan.stripe_price_id || '',
         createdAt: plan.created_at
       }));
       setPlans(transformedPlans);
@@ -51,7 +52,7 @@ export const PlansProvider = ({ children }) => {
   }, [authLoading, fetchPlans]);
 
   // Add a new plan via API
-  const addPlan = async ({ name, price, currency, interval, description }) => {
+  const addPlan = async ({ name, price, currency, interval, description, stripePriceId }) => {
     setError(null);
 
     try {
@@ -59,7 +60,8 @@ export const PlansProvider = ({ children }) => {
         name, 
         Number(price), 
         currency || 'USD', 
-        interval || 'monthly'
+        interval || 'monthly',
+        stripePriceId || ''
       );
       
       // Add the new plan to state with local-only fields
@@ -70,6 +72,7 @@ export const PlansProvider = ({ children }) => {
         currency: data.currency || currency || 'USD',
         interval: data.billing_cycle || interval || 'monthly',
         description: description || '',
+        stripePriceId: data.stripe_price_id || stripePriceId || '',
         createdAt: data.created_at
       };
       
@@ -97,13 +100,44 @@ export const PlansProvider = ({ children }) => {
     }
   };
 
-  // Update a plan locally (backend doesn't support update yet)
-  const updatePlan = (id, partialData) => {
-    setPlans(prev =>
-      prev.map(plan =>
-        plan.id === id ? { ...plan, ...partialData } : plan
-      )
-    );
+  // Update a plan via API
+  const updatePlan = async (id, partialData) => {
+    setError(null);
+
+    try {
+      // Convert frontend keys to backend keys
+      const backendData = {};
+      if (partialData.name !== undefined) backendData.name = partialData.name;
+      if (partialData.price !== undefined) backendData.price = Number(partialData.price);
+      if (partialData.currency !== undefined) backendData.currency = partialData.currency;
+      if (partialData.interval !== undefined) backendData.billing_cycle = partialData.interval;
+      if (partialData.stripePriceId !== undefined) backendData.stripe_price_id = partialData.stripePriceId;
+
+      const { data } = await plansApi.update(id, backendData);
+      
+      // Update the plan in state
+      const updatedPlan = {
+        id: data.id,
+        name: data.name,
+        price: data.price,
+        currency: data.currency || 'USD',
+        interval: data.billing_cycle || 'monthly',
+        description: '',
+        stripePriceId: data.stripe_price_id || '',
+        createdAt: data.created_at
+      };
+
+      setPlans(prev =>
+        prev.map(plan =>
+          plan.id === id ? updatedPlan : plan
+        )
+      );
+      return { success: true, plan: updatedPlan };
+    } catch (err) {
+      console.error('Failed to update plan:', err);
+      setError(err.message || 'Failed to update plan');
+      return { success: false, error: err.message };
+    }
   };
 
   // Clear all plans locally (for reset demo data feature)

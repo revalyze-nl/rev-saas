@@ -114,4 +114,58 @@ func (r *PlanRepository) DeleteByIDAndUser(ctx context.Context, id primitive.Obj
 	return nil
 }
 
+// UpdateByIDAndUser updates a plan by ID, ensuring it belongs to the specified user.
+func (r *PlanRepository) UpdateByIDAndUser(ctx context.Context, id primitive.ObjectID, userID primitive.ObjectID, update bson.M) error {
+	filter := bson.M{
+		"_id":     id,
+		"user_id": userID,
+	}
+
+	res, err := r.collection.UpdateOne(ctx, filter, bson.M{"$set": update})
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+
+	return nil
+}
+
+// Update updates a plan document in the database.
+func (r *PlanRepository) Update(ctx context.Context, plan *model.Plan) error {
+	filter := bson.M{
+		"_id":     plan.ID,
+		"user_id": plan.UserID,
+	}
+
+	updateFields := bson.M{
+		"name":              plan.Name,
+		"price":             plan.Price,
+		"currency":          plan.Currency,
+		"billing_cycle":     plan.BillingCycle,
+		"stripe_price_id":   plan.StripePriceID,
+		"stripe_product_id": plan.StripeProductID,
+	}
+
+	// Only set stripe_price_lookup if it's not nil
+	if plan.StripePriceLookup != nil {
+		updateFields["stripe_price_lookup"] = plan.StripePriceLookup
+	}
+
+	update := bson.M{"$set": updateFields}
+
+	res, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+
+	return nil
+}
+
 

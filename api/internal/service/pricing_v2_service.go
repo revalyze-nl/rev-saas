@@ -1406,8 +1406,9 @@ func (s *PricingV2Service) extractWithLLM(ctx context.Context, content, rawHTML,
 		return nil, nil, fmt.Errorf("OpenAI API key not configured")
 	}
 
-	if len(content) > 30000 {
-		content = content[:30000] + "\n...[truncated]"
+	// Limit content size for faster LLM processing
+	if len(content) > 15000 {
+		content = content[:15000] + "\n...[truncated]"
 	}
 
 	userPrompt := fmt.Sprintf(`Extract pricing information from this page. You may receive multiple snapshots for different billing modes.

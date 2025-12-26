@@ -47,15 +47,6 @@ const Reports = () => {
     }).format(date);
   };
 
-  const formatDateShort = (isoString) => {
-    const date = new Date(isoString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-    }).format(date);
-  };
-
   const formatTime = (isoString) => {
     const date = new Date(isoString);
     return new Intl.DateTimeFormat('en-US', {
@@ -77,9 +68,17 @@ const Reports = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center py-20">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
+            <div className="absolute inset-2 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
           <p className="text-slate-400">Loading reports...</p>
         </div>
       </div>
@@ -89,36 +88,57 @@ const Reports = () => {
   // Empty state
   if (!analyses || analyses.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Reports</h1>
-          <p className="text-slate-400">Download and manage your pricing analysis reports</p>
+      <div className="min-h-screen">
+        {/* Hero Header */}
+        <div className="relative mb-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/10 to-transparent rounded-3xl blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                  Reports
+                </h1>
+                <p className="text-slate-400 text-lg">
+                  Download and manage your pricing analysis reports
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-12 border border-slate-800 text-center">
-          <div className="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+        <div className="max-w-2xl mx-auto">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-3xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
+            <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-12 border border-slate-700/50 text-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-violet-500/20">
+                <svg className="w-12 h-12 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">No Reports Yet</h2>
+              <p className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
+                Run your first pricing analysis to generate a report. Once you have analysis data, you can download professional PDF reports from here.
+              </p>
+              <button
+                onClick={() => navigate('/app/overview')}
+                className="px-8 py-4 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white rounded-xl font-bold text-lg hover:from-violet-600 hover:to-fuchsia-700 hover:scale-[1.02] hover:shadow-xl hover:shadow-violet-500/25 transition-all"
+              >
+                Go to Overview
+              </button>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">No reports yet</h2>
-          <p className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
-            Run your first pricing analysis to generate a report. Once you have analysis data, you can download professional PDF reports from here.
-          </p>
-          <button
-            onClick={() => navigate('/app/overview')}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 hover:scale-105 transition-all shadow-lg shadow-blue-500/20"
-          >
-            Go to Overview
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen">
       {/* Error Toast */}
       {exportError && (
         <div className="fixed bottom-6 right-6 z-50 animate-fade-in-up">
@@ -139,32 +159,48 @@ const Reports = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-2">Reports</h1>
-          <p className="text-slate-400">Download and manage your pricing analysis reports</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-400 bg-slate-800 px-4 py-2 rounded-lg">
-            {analyses.length} report{analyses.length !== 1 ? 's' : ''} available
-          </span>
-          <button
-            onClick={() => navigate('/app/analyses')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg font-medium hover:bg-blue-500/20 transition-all border border-blue-500/20"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Run New Analysis
-          </button>
+      {/* Hero Header */}
+      <div className="relative mb-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/10 to-transparent rounded-3xl blur-3xl" />
+        <div className="relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                  Reports
+                </h1>
+                <p className="text-slate-400 text-lg">
+                  Download and manage your pricing analysis reports
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400 bg-slate-800 px-4 py-2 rounded-lg">
+                {analyses.length} report{analyses.length !== 1 ? 's' : ''} available
+              </span>
+              <button
+                onClick={() => navigate('/app/analyses')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-400 rounded-xl font-medium hover:from-violet-500/30 hover:to-fuchsia-500/30 transition-all border border-violet-500/20"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Run New Analysis
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Info Card */}
-      <div className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/20 rounded-xl p-4 flex items-start gap-4">
-        <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 border border-violet-500/20 rounded-xl p-4 flex items-start gap-4 mb-8">
+        <div className="w-10 h-10 bg-violet-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -177,178 +213,134 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Reports Table */}
-      <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden">
-        {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-800/50 border-b border-slate-800">
-          <div className="col-span-4">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Report Date</span>
-          </div>
-          <div className="col-span-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Data</span>
-          </div>
-          <div className="col-span-3">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Insights</span>
-          </div>
-          <div className="col-span-3 text-right">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</span>
-          </div>
-        </div>
+      {/* Reports Grid */}
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {analyses.map((analysis, index) => {
+          const { criticalCount, warningCount, recommendationCount } = getInsightCounts(analysis);
+          const isExporting = exportingId === analysis.id;
+          const justExported = exportSuccess === analysis.id;
+          const isLatest = index === 0;
+          const numPlans = analysis.ruleResult?.numPlans || 0;
+          const numCompetitors = analysis.ruleResult?.numCompetitors || 0;
 
-        {/* Table Body */}
-        <div className="divide-y divide-slate-800/50">
-          {analyses.map((analysis, index) => {
-            const { criticalCount, warningCount, infoCount, recommendationCount } = getInsightCounts(analysis);
-            const isExporting = exportingId === analysis.id;
-            const justExported = exportSuccess === analysis.id;
-            const isLatest = index === 0;
-            const numPlans = analysis.ruleResult?.numPlans || 0;
-            const numCompetitors = analysis.ruleResult?.numCompetitors || 0;
-
-            return (
-              <div
-                key={analysis.id}
-                className="grid grid-cols-12 gap-4 px-6 py-5 items-center hover:bg-slate-800/20 transition-colors group"
-              >
-                {/* Report Date */}
-                <div className="col-span-4">
+          return (
+            <div
+              key={analysis.id}
+              className="group relative bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800 hover:border-violet-500/30 transition-all hover:shadow-lg hover:shadow-violet-500/5 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="relative p-6">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      isLatest ? 'bg-blue-500/10' : 'bg-slate-800'
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                      isLatest ? 'bg-violet-500/10' : 'bg-slate-800'
                     }`}>
-                      <svg className={`w-5 h-5 ${isLatest ? 'text-blue-400' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-6 h-6 ${isLatest ? 'text-violet-400' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">
-                          {formatDate(analysis.createdAt)}
-                        </span>
-                        {isLatest && (
-                          <span className="text-xs font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                            Latest
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-slate-500">
-                        {formatTime(analysis.createdAt)}
-                      </span>
+                      <p className="text-white font-semibold">{formatDate(analysis.createdAt)}</p>
+                      <p className="text-xs text-slate-500">{formatTime(analysis.createdAt)}</p>
                     </div>
                   </div>
+                  {isLatest && (
+                    <span className="text-xs font-medium text-violet-400 bg-violet-500/10 px-2 py-1 rounded-full">
+                      Latest
+                    </span>
+                  )}
                 </div>
 
-                {/* Data (Plans & Competitors) */}
-                <div className="col-span-2">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-white">{numPlans}</div>
-                      <div className="text-xs text-slate-500">Plans</div>
-                    </div>
-                    <div className="w-px h-8 bg-slate-700"></div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-white">{numCompetitors}</div>
-                      <div className="text-xs text-slate-500">Competitors</div>
-                    </div>
-                  </div>
+                {/* Stats */}
+                <div className="flex items-center gap-4 mb-4 text-sm text-slate-400">
+                  <span>{numPlans} plans</span>
+                  <span className="w-1 h-1 bg-slate-600 rounded-full" />
+                  <span>{numCompetitors} competitors</span>
                 </div>
 
                 {/* Insights */}
-                <div className="col-span-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {criticalCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        {criticalCount} Critical
-                      </span>
-                    )}
-                    {warningCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {warningCount} Warning
-                      </span>
-                    )}
-                    {recommendationCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {recommendationCount} Recommendations
-                      </span>
-                    )}
-                    {criticalCount === 0 && warningCount === 0 && recommendationCount === 0 && (
-                      <span className="text-xs text-slate-500">No insights</span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 flex-wrap mb-4">
+                  {criticalCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {criticalCount}
+                    </span>
+                  )}
+                  {warningCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {warningCount}
+                    </span>
+                  )}
+                  {recommendationCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {recommendationCount}
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}
-                <div className="col-span-3">
-                  <div className="flex items-center justify-end gap-2">
-                    {/* View Details */}
-                    <button
-                      onClick={() => navigate('/app/analyses')}
-                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      View
-                    </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate('/app/analyses')}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    View
+                  </button>
 
-                    {/* Download PDF */}
-                    <button
-                      onClick={() => handleExportPdf(analysis.id, analysis.createdAt)}
-                      disabled={isExporting}
-                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                        justExported
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                          : isExporting
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20'
-                      }`}
-                    >
-                      {isExporting ? (
-                        <>
-                          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          Exporting...
-                        </>
-                      ) : justExported ? (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Downloaded!
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download PDF
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleExportPdf(analysis.id, analysis.createdAt)}
+                    disabled={isExporting}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                      justExported
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                        : isExporting
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-400 hover:from-violet-500/30 hover:to-fuchsia-500/30 border border-violet-500/20'
+                    }`}
+                  >
+                    {isExporting ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        ...
+                      </>
+                    ) : justExported ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Done!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PDF
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Footer Info */}
-      <div className="flex items-center justify-between text-xs text-slate-500 px-2">
-        <span>Reports are generated from your pricing analysis data</span>
-        <span>PDF files include full recommendations and rationale</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

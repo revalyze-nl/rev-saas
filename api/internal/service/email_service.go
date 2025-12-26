@@ -189,71 +189,70 @@ func (s *EmailService) sendWithDirectTLS(addr string, auth smtp.Auth, from, to s
 func (s *EmailService) SendVerificationEmail(ctx context.Context, toEmail, token string) error {
 	verifyURL := fmt.Sprintf("%s/auth/verify-email?token=%s", s.appPublicURL, token)
 
-	subject := "Verify your email - Revalyze"
+	subject := "Verify your email address - Revalyze"
 
 	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f172a 0%%, #1e293b 100%%);">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background: linear-gradient(135deg, #0f172a 0%%, #1e293b 100%%);">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background-color: #f8fafc;">
     <tr>
-      <td style="padding: 40px 20px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="max-width: 520px; margin: 0 auto;">
+      <td style="padding: 48px 24px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="max-width: 480px; margin: 0 auto;">
           
           <!-- Logo -->
           <tr>
-            <td style="text-align: center; padding-bottom: 32px;">
-              <div style="display: inline-block; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%%, rgba(6, 182, 212, 0.1) 100%%); padding: 16px 24px; border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                <span style="font-size: 28px; font-weight: 700; color: #10b981;">✦ Revalyze</span>
-              </div>
+            <td style="text-align: center; padding-bottom: 40px;">
+              <img src="https://revalyze.com/logo.png" alt="Revalyze" width="160" height="auto" style="display: block; margin: 0 auto;" />
             </td>
           </tr>
           
           <!-- Main Card -->
           <tr>
             <td>
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background: linear-gradient(145deg, #1e293b 0%%, #0f172a 100%%); border-radius: 20px; border: 1px solid rgba(148, 163, 184, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);">
                 <tr>
-                  <td style="padding: 48px 40px;">
-                    
-                    <!-- Icon -->
-                    <div style="text-align: center; margin-bottom: 24px;">
-                      <div style="display: inline-block; width: 72px; height: 72px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%%, rgba(6, 182, 212, 0.15) 100%%); border-radius: 50%%; line-height: 72px; font-size: 32px; border: 2px solid rgba(16, 185, 129, 0.3);">
-                        ✉️
-                      </div>
-                    </div>
+                  <td style="padding: 40px 32px;">
                     
                     <!-- Title -->
-                    <h1 style="margin: 0 0 16px 0; font-size: 26px; font-weight: 700; color: #f1f5f9; text-align: center; letter-spacing: -0.5px;">
-                      Verify Your Email
+                    <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1e293b; text-align: left; line-height: 1.3;">
+                      Verify your email address
                     </h1>
                     
                     <!-- Description -->
-                    <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 1.7; color: #94a3b8; text-align: center;">
-                      Thanks for signing up! Click the button below to verify your email address and start optimizing your pricing strategy.
+                    <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #64748b;">
+                      Thank you for signing up for Revalyze. Please click the button below to verify your email address and activate your account.
                     </p>
                     
                     <!-- CTA Button -->
-                    <div style="text-align: center; margin-bottom: 32px;">
-                      <a href="%s" style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #10b981 0%%, #059669 100%%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.5);">
-                        Verify Email Address
-                      </a>
-                    </div>
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%">
+                      <tr>
+                        <td style="padding-bottom: 28px;">
+                          <a href="%s" style="display: inline-block; padding: 14px 28px; background-color: #0f172a; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 8px; letter-spacing: 0.025em;">
+                            Verify Email Address
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                     
-                    <!-- Expiry Note -->
-                    <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-                      <p style="margin: 0; font-size: 14px; color: #fbbf24; text-align: center;">
-                        ⏱️ This link expires in <strong>30 minutes</strong>
-                      </p>
-                    </div>
+                    <!-- Security Note -->
+                    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #64748b;">
+                      This link will expire in <strong style="color: #1e293b;">30 minutes</strong> for security reasons.
+                    </p>
+                    
+                    <!-- Divider -->
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
                     
                     <!-- Alternative Link -->
-                    <p style="margin: 0; font-size: 13px; color: #64748b; text-align: center; word-break: break-all;">
-                      If the button doesn't work, copy and paste this link:<br>
-                      <a href="%s" style="color: #10b981; text-decoration: none;">%s</a>
+                    <p style="margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.6;">
+                      If the button doesn't work, copy and paste this link into your browser:
+                    </p>
+                    <p style="margin: 8px 0 0 0; font-size: 12px; color: #0f172a; word-break: break-all; background-color: #f8fafc; padding: 12px; border-radius: 6px; font-family: monospace;">
+                      %s
                     </p>
                     
                   </td>
@@ -265,11 +264,14 @@ func (s *EmailService) SendVerificationEmail(ctx context.Context, toEmail, token
           <!-- Footer -->
           <tr>
             <td style="padding-top: 32px; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
-                Didn't sign up for Revalyze? You can safely ignore this email.
+              <p style="margin: 0 0 8px 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">
+                If you didn't create an account with Revalyze, you can safely ignore this email.
               </p>
-              <p style="margin: 0; font-size: 12px; color: #475569;">
-                © 2025 Revalyze. All rights reserved.
+              <p style="margin: 16px 0 0 0; font-size: 12px; color: #cbd5e1;">
+                © 2025 Revalyze B.V. All rights reserved.
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: #cbd5e1;">
+                Amsterdam, Netherlands
               </p>
             </td>
           </tr>
@@ -279,7 +281,7 @@ func (s *EmailService) SendVerificationEmail(ctx context.Context, toEmail, token
     </tr>
   </table>
 </body>
-</html>`, verifyURL, verifyURL, verifyURL)
+</html>`, verifyURL, verifyURL)
 
 	log.Printf("[email] Sending verification email to %s", toEmail)
 	return s.sendEmail(ctx, toEmail, subject, htmlBody)
@@ -289,93 +291,104 @@ func (s *EmailService) SendVerificationEmail(ctx context.Context, toEmail, token
 func (s *EmailService) SendWelcomeEmail(ctx context.Context, toEmail string) error {
 	dashboardURL := fmt.Sprintf("%s/app/overview", s.appPublicURL)
 
-	subject := "Welcome to Revalyze! 🎉"
+	subject := "Welcome to Revalyze"
 
 	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Revalyze</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f172a 0%%, #1e293b 100%%);">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background: linear-gradient(135deg, #0f172a 0%%, #1e293b 100%%);">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background-color: #f8fafc;">
     <tr>
-      <td style="padding: 40px 20px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="max-width: 520px; margin: 0 auto;">
+      <td style="padding: 48px 24px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="max-width: 480px; margin: 0 auto;">
           
           <!-- Logo -->
           <tr>
-            <td style="text-align: center; padding-bottom: 32px;">
-              <div style="display: inline-block; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%%, rgba(6, 182, 212, 0.1) 100%%); padding: 16px 24px; border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                <span style="font-size: 28px; font-weight: 700; color: #10b981;">✦ Revalyze</span>
-              </div>
+            <td style="text-align: center; padding-bottom: 40px;">
+              <img src="https://revalyze.com/logo.png" alt="Revalyze" width="160" height="auto" style="display: block; margin: 0 auto;" />
             </td>
           </tr>
           
           <!-- Main Card -->
           <tr>
             <td>
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background: linear-gradient(145deg, #1e293b 0%%, #0f172a 100%%); border-radius: 20px; border: 1px solid rgba(148, 163, 184, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);">
                 <tr>
-                  <td style="padding: 48px 40px;">
-                    
-                    <!-- Celebration Icon -->
-                    <div style="text-align: center; margin-bottom: 24px;">
-                      <div style="display: inline-block; width: 72px; height: 72px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%%, rgba(6, 182, 212, 0.15) 100%%); border-radius: 50%%; line-height: 72px; font-size: 32px; border: 2px solid rgba(16, 185, 129, 0.3);">
-                        🎉
-                      </div>
-                    </div>
+                  <td style="padding: 40px 32px;">
                     
                     <!-- Title -->
-                    <h1 style="margin: 0 0 16px 0; font-size: 26px; font-weight: 700; color: #f1f5f9; text-align: center; letter-spacing: -0.5px;">
-                      Welcome to Revalyze!
+                    <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1e293b; text-align: left; line-height: 1.3;">
+                      Welcome to Revalyze
                     </h1>
                     
-                    <!-- Subtitle -->
-                    <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 1.7; color: #94a3b8; text-align: center;">
-                      Your email is verified and your account is ready. Let's start optimizing your pricing strategy!
+                    <!-- Description -->
+                    <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #64748b;">
+                      Your email has been verified and your account is now active. You're ready to start optimizing your SaaS pricing strategy with AI-powered insights.
                     </p>
                     
-                    <!-- Features List -->
-                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 16px; padding: 24px; margin-bottom: 32px;">
-                      <p style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; color: #f1f5f9;">
-                        Here's what you can do:
-                      </p>
-                      
-                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%">
-                        <tr>
-                          <td style="padding-bottom: 12px;">
-                            <span style="color: #10b981; margin-right: 12px; font-size: 18px;">✓</span>
-                            <span style="color: #cbd5e1; font-size: 14px;">
-                              <strong style="color: #f1f5f9;">Analyze competitors</strong> — Discover and track your market rivals
-                            </span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding-bottom: 12px;">
-                            <span style="color: #10b981; margin-right: 12px; font-size: 18px;">✓</span>
-                            <span style="color: #cbd5e1; font-size: 14px;">
-                              <strong style="color: #f1f5f9;">AI-powered insights</strong> — Get smart recommendations for your pricing
-                            </span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>
-                            <span style="color: #10b981; margin-right: 12px; font-size: 18px;">✓</span>
-                            <span style="color: #cbd5e1; font-size: 14px;">
-                              <strong style="color: #f1f5f9;">Optimize conversions</strong> — Make data-driven pricing decisions
-                            </span>
-                          </td>
-                        </tr>
-                      </table>
-                    </div>
+                    <!-- Features -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%" style="margin-bottom: 28px;">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="width: 24px; vertical-align: top; padding-right: 12px;">
+                                <span style="color: #10b981; font-size: 16px;">&#10003;</span>
+                              </td>
+                              <td style="font-size: 14px; color: #475569; line-height: 1.5;">
+                                <strong style="color: #1e293b;">Competitive Analysis</strong><br/>
+                                Discover and track competitor pricing strategies
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="width: 24px; vertical-align: top; padding-right: 12px;">
+                                <span style="color: #10b981; font-size: 16px;">&#10003;</span>
+                              </td>
+                              <td style="font-size: 14px; color: #475569; line-height: 1.5;">
+                                <strong style="color: #1e293b;">AI-Powered Insights</strong><br/>
+                                Get smart recommendations for your pricing
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="width: 24px; vertical-align: top; padding-right: 12px;">
+                                <span style="color: #10b981; font-size: 16px;">&#10003;</span>
+                              </td>
+                              <td style="font-size: 14px; color: #475569; line-height: 1.5;">
+                                <strong style="color: #1e293b;">Pricing Simulations</strong><br/>
+                                Test scenarios before making changes
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
                     
                     <!-- CTA Button -->
-                    <div style="text-align: center;">
-                      <a href="%s" style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #10b981 0%%, #059669 100%%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.5);">
-                        Go to Dashboard →
-                      </a>
-                    </div>
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%%">
+                      <tr>
+                        <td>
+                          <a href="%s" style="display: inline-block; padding: 14px 28px; background-color: #0f172a; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 8px; letter-spacing: 0.025em;">
+                            Go to Dashboard
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                     
                   </td>
                 </tr>
@@ -386,11 +399,14 @@ func (s *EmailService) SendWelcomeEmail(ctx context.Context, toEmail string) err
           <!-- Footer -->
           <tr>
             <td style="padding-top: 32px; text-align: center;">
-              <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b;">
-                Need help? Reply to this email and we'll get back to you.
+              <p style="margin: 0 0 8px 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">
+                Need help getting started? Reply to this email and we'll assist you.
               </p>
-              <p style="margin: 0; font-size: 12px; color: #475569;">
-                © 2025 Revalyze. All rights reserved.
+              <p style="margin: 16px 0 0 0; font-size: 12px; color: #cbd5e1;">
+                © 2025 Revalyze B.V. All rights reserved.
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: #cbd5e1;">
+                Amsterdam, Netherlands
               </p>
             </td>
           </tr>

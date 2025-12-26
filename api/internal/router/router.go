@@ -28,6 +28,7 @@ func NewRouter(
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
+	r.StrictSlash(true)
 
 	// Health check endpoint
 	r.HandleFunc("/health", healthHandler.Health).Methods(http.MethodGet)
@@ -47,7 +48,9 @@ func NewRouter(
 
 	// API v1 (protected)
 	api := r.PathPrefix("/api").Subrouter()
+	api.StrictSlash(true)
 	api.Use(authMiddleware.RequireAuth)
+
 
 	// Usage stats
 	api.HandleFunc("/usage", limitsHandler.GetUsageStats).Methods(http.MethodGet)
@@ -67,11 +70,13 @@ func NewRouter(
 	api.HandleFunc("/competitors/{id}", competitorHandler.Update).Methods(http.MethodPut)
 	api.HandleFunc("/competitors/{id}", competitorHandler.Delete).Methods(http.MethodDelete)
 
-	// Competitors V2 (AI discovery)
-	api.HandleFunc("/v2/competitors/discover", competitorV2Handler.Discover).Methods(http.MethodPost)
-	api.HandleFunc("/v2/competitors/save", competitorV2Handler.Save).Methods(http.MethodPost)
-	api.HandleFunc("/v2/competitors", competitorV2Handler.List).Methods(http.MethodGet)
-	api.HandleFunc("/v2/competitors/{id}", competitorV2Handler.Delete).Methods(http.MethodDelete)
+	// Competitors V2 (AI discovery) - use separate subrouter for v2
+	apiv2 := r.PathPrefix("/api/v2").Subrouter()
+	apiv2.Use(authMiddleware.RequireAuth)
+	apiv2.HandleFunc("/competitors/discover", competitorV2Handler.Discover).Methods(http.MethodPost)
+	apiv2.HandleFunc("/competitors/save", competitorV2Handler.Save).Methods(http.MethodPost)
+	apiv2.HandleFunc("/competitors", competitorV2Handler.List).Methods(http.MethodGet)
+	apiv2.HandleFunc("/competitors/{id}", competitorV2Handler.Delete).Methods(http.MethodDelete)
 
 	// Analysis (V1 - legacy)
 	api.HandleFunc("/analysis/run", analysisHandler.RunAnalysis).Methods(http.MethodPost)

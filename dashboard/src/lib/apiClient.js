@@ -346,6 +346,15 @@ export const competitorsV2Api = {
   delete: (id) => deleteJson(`/api/v2/competitors/${id}`),
 };
 
+// Pricing V2 API calls (auto-import from website)
+export const pricingV2Api = {
+  discover: (data) => postJson('/api/pricing-v2/discover', data),
+  extract: (data) => postJson('/api/pricing-v2/extract', data),
+  save: (data) => postJson('/api/pricing-v2/save', data),
+  list: () => getJson('/api/pricing-v2'),
+  delete: (id) => deleteJson(`/api/pricing-v2/${id}`),
+};
+
 export default {
   postJson,
   getJson,
@@ -360,6 +369,7 @@ export default {
   plansApi,
   competitorsApi,
   competitorsV2Api,
+  pricingV2Api,
   analysisApi,
   analysisV2Api,
   businessMetricsApi,

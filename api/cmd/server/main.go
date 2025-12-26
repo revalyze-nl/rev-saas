@@ -74,6 +74,7 @@ func main() {
 	billingSubRepo := mongorepo.NewBillingSubscriptionRepository(db)
 	webhookEventRepo := mongorepo.NewWebhookEventRepository(db)
 	competitorV2Repo := mongorepo.NewCompetitorV2Repository(db)
+	pricingV2Repo := mongorepo.NewPricingV2Repository(db)
 
 	// Initialize services
 	jwtService := service.NewJWTService(cfg.JWTSecret)
@@ -86,6 +87,7 @@ func main() {
 	businessMetricsService := service.NewBusinessMetricsService(businessMetricsRepo)
 	limitsService := service.NewLimitsService(userRepo, planRepo, competitorRepo, analysisRepo)
 	competitorV2Service := service.NewCompetitorV2Service(competitorV2Repo, userRepo, cfg.OpenAIAPIKey, limitsService)
+	pricingV2Service := service.NewPricingV2Service(pricingV2Repo, cfg.OpenAIAPIKey)
 	aiPricingService := service.NewAIPricingService(cfg.OpenAIAPIKey)
 	aiCreditsService := service.NewAICreditsService(aiUsageRepo)
 	simulationService := service.NewSimulationService(elasticityCfg, simulationRepo, planRepo, aiPricingService)
@@ -121,6 +123,7 @@ func main() {
 	planHandler := handler.NewPlanHandler(planService, limitsService)
 	competitorHandler := handler.NewCompetitorHandler(competitorService, limitsService)
 	competitorV2Handler := handler.NewCompetitorV2Handler(competitorV2Service)
+	pricingV2Handler := handler.NewPricingV2Handler(pricingV2Service)
 	analysisHandler := handler.NewAnalysisHandler(analysisService, limitsService, aiPricingService, aiCreditsService)
 	analysisPDFHandler := handler.NewAnalysisPDFHandler(analysisService, businessMetricsRepo)
 	analysisV2Handler := handler.NewAnalysisV2Handler(analysisServiceV2, aiCreditsService)
@@ -132,7 +135,7 @@ func main() {
 	billingHandler := handler.NewBillingHandler(billingService, cfg)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

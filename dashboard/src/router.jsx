@@ -14,6 +14,7 @@ import Overview from './pages/dashboard/Overview';
 import Analyses from './pages/dashboard/AnalysesV2';
 import Competitors from './pages/dashboard/CompetitorsV2';
 import Plans from './pages/dashboard/Plans';
+import PlansV2 from './pages/dashboard/PlansV2';
 import PricingSimulation from './pages/dashboard/PricingSimulation';
 import Reports from './pages/dashboard/Reports';
 import Settings from './pages/dashboard/Settings';
@@ -100,6 +101,10 @@ export const router = createBrowserRouter([
       {
         path: 'plans',
         element: <Plans />
+      },
+      {
+        path: 'plans-v2',
+        element: <PlansV2 />
       },
       {
         path: 'simulation',

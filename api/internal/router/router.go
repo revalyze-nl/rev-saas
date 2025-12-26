@@ -16,6 +16,7 @@ func NewRouter(
 	planHandler *handler.PlanHandler,
 	competitorHandler *handler.CompetitorHandler,
 	competitorV2Handler *handler.CompetitorV2Handler,
+	pricingV2Handler *handler.PricingV2Handler,
 	analysisHandler *handler.AnalysisHandler,
 	analysisPDFHandler *handler.AnalysisPDFHandler,
 	analysisV2Handler *handler.AnalysisV2Handler,
@@ -77,6 +78,13 @@ func NewRouter(
 	apiv2.HandleFunc("/competitors/save", competitorV2Handler.Save).Methods(http.MethodPost)
 	apiv2.HandleFunc("/competitors", competitorV2Handler.List).Methods(http.MethodGet)
 	apiv2.HandleFunc("/competitors/{id}", competitorV2Handler.Delete).Methods(http.MethodDelete)
+
+	// Pricing V2 (auto-import from website)
+	api.HandleFunc("/pricing-v2/discover", pricingV2Handler.Discover).Methods(http.MethodPost)
+	api.HandleFunc("/pricing-v2/extract", pricingV2Handler.Extract).Methods(http.MethodPost)
+	api.HandleFunc("/pricing-v2/save", pricingV2Handler.Save).Methods(http.MethodPost)
+	api.HandleFunc("/pricing-v2", pricingV2Handler.List).Methods(http.MethodGet)
+	api.HandleFunc("/pricing-v2/{id}", pricingV2Handler.Delete).Methods(http.MethodDelete)
 
 	// Analysis (V1 - legacy)
 	api.HandleFunc("/analysis/run", analysisHandler.RunAnalysis).Methods(http.MethodPost)

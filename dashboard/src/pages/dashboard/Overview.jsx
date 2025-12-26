@@ -354,25 +354,61 @@ const Overview = () => {
           Quick Stats
         </h2>
         <div className="grid md:grid-cols-4 gap-4">
-          {[
-            { label: 'Plans Defined', value: plans.length, color: 'violet', icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z' },
-            { label: 'Competitors', value: competitors.length, color: 'emerald', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
-            { label: 'Analyses Run', value: analyses.length, color: 'blue', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-            { label: 'Reports', value: analyses.length, color: 'fuchsia', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' }
-          ].map((stat, i) => (
-            <div key={i} className="group relative">
-              <div className={`absolute inset-0 bg-${stat.color}-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50`} />
-              <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all group-hover:scale-[1.02]">
-                <div className={`w-10 h-10 bg-${stat.color}-500/10 rounded-xl flex items-center justify-center mb-4`}>
-                  <svg className={`w-5 h-5 text-${stat.color}-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
-                  </svg>
-                </div>
-                <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                <div className="text-sm text-slate-400">{stat.label}</div>
+          {/* Plans Defined */}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-violet-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50" />
+            <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all group-hover:scale-[1.02]">
+              <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center mb-4">
+                <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                </svg>
               </div>
+              <div className="text-3xl font-bold text-white mb-1">{plans.length}</div>
+              <div className="text-sm text-slate-400">Plans Defined</div>
             </div>
-          ))}
+          </div>
+
+          {/* Competitors */}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-emerald-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50" />
+            <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all group-hover:scale-[1.02]">
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">{competitors.length}</div>
+              <div className="text-sm text-slate-400">Competitors</div>
+            </div>
+          </div>
+
+          {/* Analyses Run */}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-blue-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50" />
+            <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all group-hover:scale-[1.02]">
+              <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4">
+                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">{analyses.length}</div>
+              <div className="text-sm text-slate-400">Analyses Run</div>
+            </div>
+          </div>
+
+          {/* Reports */}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-fuchsia-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50" />
+            <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all group-hover:scale-[1.02]">
+              <div className="w-10 h-10 bg-fuchsia-500/10 rounded-xl flex items-center justify-center mb-4">
+                <svg className="w-5 h-5 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">{analyses.length}</div>
+              <div className="text-sm text-slate-400">Reports</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -395,24 +431,47 @@ const Overview = () => {
           </div>
         ) : hasMetrics && metrics ? (
           <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { label: 'Monthly Recurring Revenue', value: formatCurrency(metrics.mrr, metrics.currency), sub: metrics.currency, color: 'emerald', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-              { label: 'Active Customers', value: metrics.customers.toLocaleString(), sub: 'Active subscribers', color: 'blue', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
-              { label: 'Monthly Churn Rate', value: `${metrics.monthly_churn_rate.toFixed(1)}%`, sub: metrics.monthly_churn_rate < 3 ? 'Healthy' : metrics.monthly_churn_rate < 5 ? 'Moderate' : 'High', color: 'amber', icon: 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' }
-            ].map((stat, i) => (
-              <div key={i} className={`bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-${stat.color}-500/30 transition-colors`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 bg-${stat.color}-500/10 rounded-xl flex items-center justify-center`}>
-                    <svg className={`w-5 h-5 text-${stat.color}-500`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
-                    </svg>
-                  </div>
-                  <div className="text-sm text-slate-400">{stat.label}</div>
+            {/* MRR */}
+            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-emerald-500/30 transition-colors">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <div className="text-3xl font-bold text-white">{stat.value}</div>
-                <div className="text-xs text-slate-500 mt-1">{stat.sub}</div>
+                <div className="text-sm text-slate-400">Monthly Recurring Revenue</div>
               </div>
-            ))}
+              <div className="text-3xl font-bold text-white">{formatCurrency(metrics.mrr, metrics.currency)}</div>
+              <div className="text-xs text-slate-500 mt-1">{metrics.currency}</div>
+            </div>
+
+            {/* Active Customers */}
+            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-blue-500/30 transition-colors">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div className="text-sm text-slate-400">Active Customers</div>
+              </div>
+              <div className="text-3xl font-bold text-white">{metrics.customers.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 mt-1">Active subscribers</div>
+            </div>
+
+            {/* Monthly Churn Rate */}
+            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-amber-500/30 transition-colors">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                  </svg>
+                </div>
+                <div className="text-sm text-slate-400">Monthly Churn Rate</div>
+              </div>
+              <div className="text-3xl font-bold text-white">{metrics.monthly_churn_rate.toFixed(1)}%</div>
+              <div className="text-xs text-slate-500 mt-1">{metrics.monthly_churn_rate < 3 ? 'Healthy' : metrics.monthly_churn_rate < 5 ? 'Moderate' : 'High'}</div>
+            </div>
           </div>
         ) : (
           <div className="relative group">
@@ -451,42 +510,47 @@ const Overview = () => {
           Pricing Insights
         </h2>
         <div className="grid md:grid-cols-2 gap-6">
-          {[
-            {
-              icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
-              iconColor: 'amber',
-              title: 'Potential underpricing detected',
-              description: 'Your current plans are likely underpriced compared to the market. Based on similar SaaS products, you may be leaving revenue on the table.',
-              footer: 'Connect Stripe to get personalized insights'
-            },
-            {
-              icon: 'M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z',
-              iconColor: 'blue',
-              title: 'Price increase opportunity',
-              description: 'Increasing your Pro plan by 10–15% could increase MRR without a major churn risk. Industry benchmarks show similar products at higher price points.',
-              footer: 'Add competitors for detailed comparison'
-            }
-          ].map((insight, i) => (
-            <div key={i} className="group relative">
-              <div className={`absolute inset-0 bg-${insight.iconColor}-500/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50`} />
-              <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className={`w-12 h-12 bg-${insight.iconColor}-500/10 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <svg className={`w-6 h-6 text-${insight.iconColor}-500`} fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d={insight.icon} clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">{insight.title}</h3>
-                    <p className="text-slate-400 leading-relaxed">{insight.description}</p>
-                  </div>
+          {/* Underpricing Insight */}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-amber-500/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50" />
+            <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 </div>
-                <div className="pt-4 border-t border-slate-800">
-                  <p className="text-sm text-slate-500">{insight.footer}</p>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Potential underpricing detected</h3>
+                  <p className="text-slate-400 leading-relaxed">Your current plans are likely underpriced compared to the market. Based on similar SaaS products, you may be leaving revenue on the table.</p>
                 </div>
               </div>
+              <div className="pt-4 border-t border-slate-800">
+                <p className="text-sm text-slate-500">Connect Stripe to get personalized insights</p>
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Price Increase Opportunity */}
+          <div className="group relative">
+            <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-50" />
+            <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Price increase opportunity</h3>
+                  <p className="text-slate-400 leading-relaxed">Increasing your Pro plan by 10–15% could increase MRR without a major churn risk. Industry benchmarks show similar products at higher price points.</p>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-800">
+                <p className="text-sm text-slate-500">Add competitors for detailed comparison</p>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Analysis Progress Insight */}

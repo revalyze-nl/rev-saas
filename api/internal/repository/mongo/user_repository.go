@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -99,6 +100,35 @@ func (r *UserRepository) UpdatePlan(ctx context.Context, userID primitive.Object
 		},
 	}
 
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
+}
+
+// GetByEmailVerifyTokenHash finds a user by their email verification token hash.
+func (r *UserRepository) GetByEmailVerifyTokenHash(ctx context.Context, tokenHash string) (*model.User, error) {
+	var user model.User
+	err := r.collection.FindOne(ctx, bson.M{"email_verify_token_hash": tokenHash}).Decode(&user)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// UpdateEmailVerificationFields updates only the email verification related fields for a user.
+func (r *UserRepository) UpdateEmailVerificationFields(ctx context.Context, userID primitive.ObjectID,
+	emailVerified bool, tokenHash string, expiresAt *time.Time, sentAt *time.Time) error {
+	filter := bson.M{"_id": userID}
+	update := bson.M{
+		"$set": bson.M{
+			"email_verified":          emailVerified,
+			"email_verify_token_hash": tokenHash,
+			"email_verify_expires_at": expiresAt,
+			"email_verify_sent_at":    sentAt,
+		},
+	}
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
 }

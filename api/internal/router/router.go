@@ -15,6 +15,7 @@ func NewRouter(
 	authHandler *handler.AuthHandler,
 	planHandler *handler.PlanHandler,
 	competitorHandler *handler.CompetitorHandler,
+	competitorV2Handler *handler.CompetitorV2Handler,
 	analysisHandler *handler.AnalysisHandler,
 	analysisPDFHandler *handler.AnalysisPDFHandler,
 	analysisV2Handler *handler.AnalysisV2Handler,
@@ -34,6 +35,8 @@ func NewRouter(
 	// Auth endpoints (public)
 	r.HandleFunc("/auth/signup", authHandler.Signup).Methods(http.MethodPost)
 	r.HandleFunc("/auth/login", authHandler.Login).Methods(http.MethodPost)
+	r.HandleFunc("/auth/verify-email", authHandler.VerifyEmail).Methods(http.MethodGet)
+	r.HandleFunc("/auth/resend-verification", authHandler.ResendVerification).Methods(http.MethodPost)
 
 	// Public plan limits (no auth required)
 	r.HandleFunc("/api/plans/limits", limitsHandler.GetPlanLimits).Methods(http.MethodGet)
@@ -58,11 +61,17 @@ func NewRouter(
 	api.HandleFunc("/plans/{id}", planHandler.Update).Methods(http.MethodPut)
 	api.HandleFunc("/plans/{id}", planHandler.Delete).Methods(http.MethodDelete)
 
-	// Competitors
+	// Competitors (V1 - legacy)
 	api.HandleFunc("/competitors", competitorHandler.Create).Methods(http.MethodPost)
 	api.HandleFunc("/competitors", competitorHandler.List).Methods(http.MethodGet)
 	api.HandleFunc("/competitors/{id}", competitorHandler.Update).Methods(http.MethodPut)
 	api.HandleFunc("/competitors/{id}", competitorHandler.Delete).Methods(http.MethodDelete)
+
+	// Competitors V2 (AI discovery)
+	api.HandleFunc("/v2/competitors/discover", competitorV2Handler.Discover).Methods(http.MethodPost)
+	api.HandleFunc("/v2/competitors/save", competitorV2Handler.Save).Methods(http.MethodPost)
+	api.HandleFunc("/v2/competitors", competitorV2Handler.List).Methods(http.MethodGet)
+	api.HandleFunc("/v2/competitors/{id}", competitorV2Handler.Delete).Methods(http.MethodDelete)
 
 	// Analysis (V1 - legacy)
 	api.HandleFunc("/analysis/run", analysisHandler.RunAnalysis).Methods(http.MethodPost)

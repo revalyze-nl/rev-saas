@@ -338,6 +338,14 @@ export const billingApi = {
   createPortalSession: () => postJson('/api/billing/portal'),
 };
 
+// Competitors V2 API calls (AI discovery)
+export const competitorsV2Api = {
+  discover: (websiteUrl) => postJson('/api/v2/competitors/discover', { website_url: websiteUrl }),
+  save: (competitors) => postJson('/api/v2/competitors/save', { competitors }),
+  list: () => getJson('/api/v2/competitors'),
+  delete: (id) => deleteJson(`/api/v2/competitors/${id}`),
+};
+
 export default {
   postJson,
   getJson,
@@ -351,6 +359,7 @@ export default {
   authApi,
   plansApi,
   competitorsApi,
+  competitorsV2Api,
   analysisApi,
   analysisV2Api,
   businessMetricsApi,

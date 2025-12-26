@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthCard from '../components/AuthCard';
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
+  const [showCheckInbox, setShowCheckInbox] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -83,8 +85,9 @@ const SignUp = () => {
       const result = await signup(formData);
       
       if (result.success) {
-        // Redirect to onboarding flow (user is auto-logged in)
-        navigate('/onboarding');
+        // Show check inbox screen instead of redirecting
+        setRegisteredEmail(formData.email);
+        setShowCheckInbox(true);
       } else {
         setApiError(result.error);
       }
@@ -98,6 +101,63 @@ const SignUp = () => {
   const handleSignInClick = () => {
     navigate('/login');
   };
+
+  // Check Inbox Screen
+  if (showCheckInbox) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          {/* Card */}
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 shadow-xl text-center">
+            {/* Email Icon */}
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+              <svg className="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-3">Check your inbox</h2>
+            
+            <p className="text-slate-400 mb-6">
+              We've sent a verification link to<br />
+              <span className="text-white font-medium">{registeredEmail}</span>
+            </p>
+
+            <div className="bg-slate-700/30 rounded-xl p-4 mb-6">
+              <p className="text-sm text-slate-400">
+                Click the link in the email to verify your account and complete your signup.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Link 
+                to="/login" 
+                className="block w-full px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-colors text-center"
+              >
+                Go to Login
+              </Link>
+              <p className="text-sm text-slate-500">
+                Didn't receive the email? Check your spam folder or{' '}
+                <button 
+                  onClick={() => {
+                    setShowCheckInbox(false);
+                  }}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  try again
+                </button>
+              </p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-slate-500 text-sm mt-6">
+            © 2025 Revalyze. All rights reserved.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center px-4 py-12">

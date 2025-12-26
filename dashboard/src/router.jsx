@@ -12,12 +12,13 @@ import OnboardingLayout from './pages/onboarding/OnboardingLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
 import Analyses from './pages/dashboard/AnalysesV2';
-import Competitors from './pages/dashboard/Competitors';
+import Competitors from './pages/dashboard/CompetitorsV2';
 import Plans from './pages/dashboard/Plans';
 import PricingSimulation from './pages/dashboard/PricingSimulation';
 import Reports from './pages/dashboard/Reports';
 import Settings from './pages/dashboard/Settings';
 import Billing from './pages/dashboard/Billing';
+import VerifyEmail from './pages/VerifyEmail';
 
 // Wrapper component to provide all contexts for dashboard
 const DashboardWithProviders = () => (
@@ -61,6 +62,10 @@ export const router = createBrowserRouter([
   {
     path: '/signup',
     element: <RootLayout><SignUp /></RootLayout>
+  },
+  {
+    path: '/auth/verify-email',
+    element: <RootLayout><VerifyEmail /></RootLayout>
   },
   {
     path: '/onboarding',

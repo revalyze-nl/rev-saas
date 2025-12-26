@@ -36,6 +36,12 @@ type User struct {
 	AnalysisMonthCount int       `bson:"analysis_month_count,omitempty" json:"analysis_month_count,omitempty"` // Monthly count
 	AnalysisMonthStart time.Time `bson:"analysis_month_start,omitempty" json:"analysis_month_start,omitempty"` // When current month started
 	TrialExpiresAt     time.Time `bson:"trial_expires_at,omitempty" json:"trial_expires_at,omitempty"`         // Trial expiry for free plan
+
+	// Email verification fields
+	EmailVerified        bool       `bson:"email_verified" json:"email_verified"`
+	EmailVerifyTokenHash string     `bson:"email_verify_token_hash,omitempty" json:"-"`
+	EmailVerifyExpiresAt *time.Time `bson:"email_verify_expires_at,omitempty" json:"-"`
+	EmailVerifySentAt    *time.Time `bson:"email_verify_sent_at,omitempty" json:"email_verify_sent_at,omitempty"`
 }
 
 // IsAdmin returns true if the user has admin role

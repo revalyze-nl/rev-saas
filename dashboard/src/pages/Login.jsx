@@ -1,17 +1,32 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthCard from '../components/AuthCard';
+import { postJson } from '../lib/apiClient';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showVerifiedBanner, setShowVerifiedBanner] = useState(false);
+  const [showUnverifiedBanner, setShowUnverifiedBanner] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  // Check for verified=1 in URL
+  useEffect(() => {
+    if (searchParams.get('verified') === '1') {
+      setShowVerifiedBanner(true);
+      const timer = setTimeout(() => setShowVerifiedBanner(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -42,8 +57,14 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        const from = location.state?.from?.pathname || '/app/overview';
-        navigate(from, { replace: true });
+        // Check if email is verified
+        if (result.user && result.user.email_verified === false) {
+          setShowUnverifiedBanner(true);
+          setLocalError('Please verify your email before signing in.');
+        } else {
+          const from = location.state?.from?.pathname || '/app/overview';
+          navigate(from, { replace: true });
+        }
       } else {
         setLocalError(result.error);
       }
@@ -51,6 +72,33 @@ const Login = () => {
       setLocalError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setLocalError('Please enter your email address first.');
+      return;
+    }
+
+    setResendCooldown(60);
+    setResendSuccess(false);
+    
+    const timer = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    try {
+      await postJson('/auth/resend-verification', { email });
+      setResendSuccess(true);
+    } catch (err) {
+      setLocalError('Failed to resend verification email. Please try again later.');
     }
   };
 
@@ -74,8 +122,34 @@ const Login = () => {
             subtitle="Access your SaaS pricing intelligence dashboard"
           >
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Verified Success Banner */}
+              {showVerifiedBanner && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                  <p className="text-sm text-emerald-400">✅ Email verified successfully! You can now sign in.</p>
+                </div>
+              )}
+
+              {/* Unverified Banner */}
+              {showUnverifiedBanner && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-sm text-amber-400 mb-2">⚠️ Your email is not verified. Please check your inbox.</p>
+                  {resendSuccess ? (
+                    <p className="text-sm text-emerald-400">✅ Verification email sent! Check your inbox.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendCooldown > 0}
+                      className="text-sm text-blue-400 hover:text-blue-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend verification link'}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Error Message */}
-              {displayError && (
+              {displayError && !showUnverifiedBanner && (
                 <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                   <p className="text-sm text-red-400">{displayError}</p>
                 </div>

@@ -2,7 +2,12 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -17,6 +22,12 @@ var (
 	ErrEmailAlreadyInUse = errors.New("email is already in use")
 	// ErrInvalidCredentials is returned when email or password is wrong.
 	ErrInvalidCredentials = errors.New("invalid email or password")
+	// ErrInvalidVerificationToken is returned when the verification token is invalid.
+	ErrInvalidVerificationToken = errors.New("invalid verification token")
+	// ErrVerificationTokenExpired is returned when the verification token has expired.
+	ErrVerificationTokenExpired = errors.New("verification token has expired")
+	// ErrResendCooldown is returned when trying to resend verification email too soon.
+	ErrResendCooldown = errors.New("please wait before requesting another verification email")
 )
 
 // SignupInput contains all the data needed to register a new user.
@@ -43,6 +54,8 @@ type AuthService struct {
 	companies    *mongorepo.CompanyRepository
 	userMetadata *mongorepo.UserMetadataRepository
 	jwt          *JWTService
+	emailService *EmailService
+	appPublicURL string
 }
 
 // NewAuthService creates a new AuthService.
@@ -51,13 +64,22 @@ func NewAuthService(
 	companies *mongorepo.CompanyRepository,
 	userMetadata *mongorepo.UserMetadataRepository,
 	jwt *JWTService,
+	emailService *EmailService,
+	appPublicURL string,
 ) *AuthService {
 	return &AuthService{
 		users:        users,
 		companies:    companies,
 		userMetadata: userMetadata,
 		jwt:          jwt,
+		emailService: emailService,
+		appPublicURL: appPublicURL,
 	}
+}
+
+// GetAppPublicURL returns the public URL for the app.
+func (s *AuthService) GetAppPublicURL() string {
+	return s.appPublicURL
 }
 
 // normalizeEmail lowercases and trims the email.
@@ -89,15 +111,25 @@ func (s *AuthService) Register(ctx context.Context, input SignupInput) (*SignupR
 		return nil, err
 	}
 
+	// Generate verification token
+	token, tokenHash, expiresAt, err := s.generateVerificationToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate verification token: %w", err)
+	}
+
 	// Create user
 	now := time.Now().UTC()
 	user := &model.User{
-		Email:     input.Email,
-		Password:  string(hashed),
-		FullName:  strings.TrimSpace(input.FullName),
-		Role:      strings.TrimSpace(input.Role),
-		Plan:      model.PlanFree, // Default to free plan
-		CreatedAt: now,
+		Email:                input.Email,
+		Password:             string(hashed),
+		FullName:             strings.TrimSpace(input.FullName),
+		Role:                 strings.TrimSpace(input.Role),
+		Plan:                 model.PlanFree, // Default to free plan
+		CreatedAt:            now,
+		EmailVerified:        false,
+		EmailVerifyTokenHash: tokenHash,
+		EmailVerifyExpiresAt: &expiresAt,
+		EmailVerifySentAt:    &now,
 	}
 
 	// Set trial expiry for free plan
@@ -108,6 +140,14 @@ func (s *AuthService) Register(ctx context.Context, input SignupInput) (*SignupR
 
 	if err := s.users.Create(ctx, user); err != nil {
 		return nil, err
+	}
+
+	// Send verification email
+	if s.emailService != nil {
+		if err := s.emailService.SendVerificationEmail(ctx, user.Email, token); err != nil {
+			log.Printf("[auth] Failed to send verification email to %s: %v", user.Email, err)
+			// Continue with signup - user can request resend later
+		}
 	}
 
 	// Create company if company name is provided
@@ -210,4 +250,123 @@ func (s *AuthService) GetUserWithCompany(ctx context.Context, userID string) (*m
 // GenerateTokenForUser generates a JWT token for a user ID.
 func (s *AuthService) GenerateTokenForUser(userID string) (string, error) {
 	return s.jwt.GenerateToken(userID)
+}
+
+// generateVerificationToken creates a new verification token and returns the raw token, hash, and expiry.
+func (s *AuthService) generateVerificationToken() (token string, hash string, expiresAt time.Time, err error) {
+	// Generate 32 random bytes
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", "", time.Time{}, err
+	}
+
+	// Encode to hex for URL-safe token
+	token = hex.EncodeToString(tokenBytes)
+
+	// Hash the token for storage
+	hashBytes := sha256.Sum256([]byte(token))
+	hash = hex.EncodeToString(hashBytes[:])
+
+	// Set expiry to 30 minutes from now
+	expiresAt = time.Now().UTC().Add(30 * time.Minute)
+
+	return token, hash, expiresAt, nil
+}
+
+// hashToken hashes a token using SHA256.
+func hashToken(token string) string {
+	hashBytes := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hashBytes[:])
+}
+
+// VerifyEmail verifies a user's email using the provided token.
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	if token == "" {
+		return ErrInvalidVerificationToken
+	}
+
+	// Hash the provided token
+	tokenHash := hashToken(token)
+
+	// Find user with matching token hash
+	user, err := s.users.GetByEmailVerifyTokenHash(ctx, tokenHash)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrInvalidVerificationToken
+	}
+
+	// Check if token has expired
+	if user.EmailVerifyExpiresAt != nil && time.Now().After(*user.EmailVerifyExpiresAt) {
+		return ErrVerificationTokenExpired
+	}
+
+	// Update user as verified
+	user.EmailVerified = true
+	user.EmailVerifyTokenHash = ""
+	user.EmailVerifyExpiresAt = nil
+
+	if err := s.users.UpdateEmailVerificationFields(ctx, user.ID, true, "", nil, nil); err != nil {
+		return err
+	}
+
+	// Send welcome email
+	if s.emailService != nil {
+		if err := s.emailService.SendWelcomeEmail(ctx, user.Email); err != nil {
+			log.Printf("[auth] Failed to send welcome email to %s: %v", user.Email, err)
+			// Don't fail verification if welcome email fails
+		}
+	}
+
+	return nil
+}
+
+// ResendVerificationEmail resends the verification email to a user.
+func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string) error {
+	email = normalizeEmail(email)
+
+	user, err := s.users.GetByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		// Don't reveal if email exists
+		return nil
+	}
+
+	// Already verified
+	if user.EmailVerified {
+		return nil
+	}
+
+	// Check cooldown (60 seconds)
+	if user.EmailVerifySentAt != nil {
+		cooldownEnd := user.EmailVerifySentAt.Add(60 * time.Second)
+		if time.Now().Before(cooldownEnd) {
+			return ErrResendCooldown
+		}
+	}
+
+	// Generate new token
+	token, tokenHash, expiresAt, err := s.generateVerificationToken()
+	if err != nil {
+		return err
+	}
+
+	// Update user with new token
+	now := time.Now().UTC()
+	if err := s.users.UpdateEmailVerificationFields(ctx, user.ID, false, tokenHash, &expiresAt, &now); err != nil {
+		return err
+	}
+
+	// Send verification email
+	if s.emailService != nil {
+		if err := s.emailService.SendVerificationEmail(ctx, user.Email, token); err != nil {
+			log.Printf("[auth] Failed to resend verification email to %s: %v", user.Email, err)
+			return fmt.Errorf("failed to send verification email")
+		}
+	}
+
+	return nil
 }

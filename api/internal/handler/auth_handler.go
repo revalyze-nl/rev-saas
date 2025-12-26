@@ -2,6 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -45,13 +47,14 @@ type companyResponse struct {
 }
 
 type authUserResponse struct {
-	ID        string           `json:"id"`
-	Email     string           `json:"email"`
-	FullName  string           `json:"full_name,omitempty"`
-	Role      string           `json:"role,omitempty"`
-	Plan      string           `json:"plan,omitempty"`
-	CreatedAt string           `json:"created_at"`
-	Company   *companyResponse `json:"company,omitempty"`
+	ID            string           `json:"id"`
+	Email         string           `json:"email"`
+	FullName      string           `json:"full_name,omitempty"`
+	Role          string           `json:"role,omitempty"`
+	Plan          string           `json:"plan,omitempty"`
+	CreatedAt     string           `json:"created_at"`
+	EmailVerified bool             `json:"email_verified"`
+	Company       *companyResponse `json:"company,omitempty"`
 }
 
 type signupResponse struct {
@@ -119,12 +122,13 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	resp := signupResponse{
 		Token: token,
 		User: authUserResponse{
-			ID:        result.User.ID.Hex(),
-			Email:     result.User.Email,
-			FullName:  result.User.FullName,
-			Role:      result.User.Role,
-			Plan:      result.User.Plan,
-			CreatedAt: result.User.CreatedAt.Format(time.RFC3339),
+			ID:            result.User.ID.Hex(),
+			Email:         result.User.Email,
+			FullName:      result.User.FullName,
+			Role:          result.User.Role,
+			Plan:          result.User.Plan,
+			CreatedAt:     result.User.CreatedAt.Format(time.RFC3339),
+			EmailVerified: result.User.EmailVerified,
 		},
 	}
 
@@ -168,12 +172,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	resp := loginResponse{
 		Token: token,
 		User: authUserResponse{
-			ID:        user.ID.Hex(),
-			Email:     user.Email,
-			FullName:  user.FullName,
-			Role:      user.Role,
-			Plan:      user.Plan,
-			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			ID:            user.ID.Hex(),
+			Email:         user.Email,
+			FullName:      user.FullName,
+			Role:          user.Role,
+			Plan:          user.Plan,
+			CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+			EmailVerified: user.EmailVerified,
 		},
 	}
 
@@ -206,12 +211,13 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := authUserResponse{
-		ID:        user.ID.Hex(),
-		Email:     user.Email,
-		FullName:  user.FullName,
-		Role:      user.Role,
-		Plan:      user.Plan,
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		ID:            user.ID.Hex(),
+		Email:         user.Email,
+		FullName:      user.FullName,
+		Role:          user.Role,
+		Plan:          user.Plan,
+		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		EmailVerified: user.EmailVerified,
 	}
 
 	if company != nil {
@@ -226,4 +232,58 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+// VerifyEmail handles GET /auth/verify-email?token=...
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		writeJSONError(w, "verification token is missing", http.StatusBadRequest)
+		return
+	}
+
+	err := h.auth.VerifyEmail(r.Context(), token)
+	if err != nil {
+		if err == service.ErrInvalidVerificationToken || err == service.ErrVerificationTokenExpired {
+			writeJSONError(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		log.Printf("[auth-handler] email verification error: %v", err)
+		writeJSONError(w, "failed to verify email", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect to frontend login page with success parameter
+	http.Redirect(w, r, fmt.Sprintf("%s/login?verified=1", h.auth.GetAppPublicURL()), http.StatusFound)
+}
+
+// ResendVerification handles POST /auth/resend-verification
+func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" {
+		writeJSONError(w, "email is required", http.StatusBadRequest)
+		return
+	}
+
+	err := h.auth.ResendVerificationEmail(r.Context(), req.Email)
+	if err != nil {
+		if err == service.ErrResendCooldown {
+			writeJSONError(w, err.Error(), http.StatusTooManyRequests)
+			return
+		}
+		log.Printf("[auth-handler] resend verification error: %v", err)
+		// Don't reveal if email exists - always return success
+	}
+
+	// Always return success to prevent email enumeration
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "If this email is registered, a verification link has been sent."})
 }

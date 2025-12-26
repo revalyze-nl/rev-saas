@@ -39,6 +39,13 @@ type Config struct {
 
 	// Encryption key for sensitive data (32 bytes for AES-256)
 	EncryptionKey []byte
+
+	// SMTP Email Configuration
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
 }
 
 // Load reads configuration from environment variables with sensible defaults.
@@ -98,6 +105,13 @@ func Load() *Config {
 		StripePriceEnterpriseID:       getEnv("STRIPE_PRICE_ENTERPRISE_ID", ""),
 
 		EncryptionKey: encKey,
+
+		// SMTP
+		SMTPHost:     getEnv("SMTP_HOST", ""),
+		SMTPPort:     getEnv("SMTP_PORT", ""),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", "Revalyze <noreply@revalyze.com>"),
 	}
 
 	stripeEnabled := cfg.StripeSecretKey != "" && cfg.StripeConnectClientID != ""

@@ -68,7 +68,7 @@ const AICreditsIndicator = ({ credits, loading, onClick }) => {
 const Topbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin } = useAuth();
   const { credits, loading } = useAiCredits();
 
   const getPageInfo = () => {
@@ -82,21 +82,6 @@ const Topbar = () => {
     if (path.includes('settings')) return { title: 'Settings', subtitle: 'Configure your workspace' };
     if (path.includes('billing')) return { title: 'Billing', subtitle: 'Manage subscription' };
     return { title: 'Dashboard', subtitle: 'Welcome back' };
-  };
-
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    if (user?.full_name) {
-      const names = user.full_name.split(' ');
-      if (names.length >= 2) {
-        return (names[0][0] + names[1][0]).toUpperCase();
-      }
-      return names[0].substring(0, 2).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return 'U';
   };
 
   const pageInfo = getPageInfo();
@@ -113,6 +98,16 @@ const Topbar = () => {
 
       {/* Right side */}
       <div className="flex items-center gap-4">
+        {/* Upgrade Button - hidden for admin users */}
+        {!isAdmin && (
+          <button 
+            onClick={() => navigate('/app/billing')}
+            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 hover:scale-[1.02] text-sm shadow-lg shadow-emerald-500/25"
+          >
+            Upgrade Plan
+          </button>
+        )}
+
         {/* AI Credits Indicator */}
         {!isAdmin && (
           <AICreditsIndicator 
@@ -121,26 +116,6 @@ const Topbar = () => {
             onClick={() => navigate('/app/billing')}
           />
         )}
-
-        {/* Upgrade Button - hidden for admin users */}
-        {!isAdmin && (
-          <button 
-            onClick={() => navigate('/app/billing')}
-            className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-fuchsia-700 transition-all duration-200 hover:scale-[1.02] text-sm shadow-lg shadow-violet-500/25"
-          >
-            Upgrade Plan
-          </button>
-        )}
-
-        {/* Divider */}
-        <div className="h-10 w-px bg-slate-800" />
-
-        {/* User Avatar */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 ring-2 ring-slate-800">
-            {getUserInitials()}
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -62,31 +62,42 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (user?.full_name) return user.full_name;
+    if (user?.name) return user.name;
+    return user?.email || 'User';
+  };
+
+  // Get user initials
+  const getUserInitials = () => {
+    const name = getUserDisplayName();
+    if (name && name !== user?.email) {
+      const parts = name.split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <div className="w-64 bg-slate-950 border-r border-slate-800/50 flex flex-col h-screen sticky top-0">
       {/* Logo */}
       <div className="p-6 border-b border-slate-800/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
-            <img 
-              src="/revalyze-logo.png" 
-              alt="Revalyze" 
-              className="h-6 w-auto"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block';
-              }}
-            />
-            <span className="text-white font-bold text-lg hidden">R</span>
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            Revalyze
-          </span>
-        </div>
+        <img 
+          src="/revalyze-logo.png" 
+          alt="Revalyze" 
+          className="h-10 w-auto"
+        />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -101,15 +112,9 @@ const Sidebar = () => {
           >
             {({ isActive }) => (
               <>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                  isActive 
-                    ? 'bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-md shadow-violet-500/30' 
-                    : 'bg-slate-800/50 group-hover:bg-slate-700/50'
-                }`}>
-                  <svg className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {item.icon}
-                  </svg>
-                </div>
+                <svg className={`w-5 h-5 ${isActive ? 'text-violet-400' : 'text-slate-400 group-hover:text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {item.icon}
+                </svg>
                 <span className="text-sm">{item.name}</span>
                 {item.badge && (
                   <span className="ml-auto text-[10px] font-semibold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white px-2 py-0.5 rounded-full">
@@ -127,12 +132,12 @@ const Sidebar = () => {
         {user && (
           <div className="px-3 py-3 bg-slate-900/50 rounded-xl border border-slate-800/50">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm shadow-md">
-                {user.email ? user.email.substring(0, 2).toUpperCase() : 'U'}
+              <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                {getUserInitials()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-slate-500">Signed in as</p>
-                <p className="text-sm text-slate-300 truncate">{user.email}</p>
+                <p className="text-sm text-slate-300 truncate">{getUserDisplayName()}</p>
               </div>
             </div>
           </div>
@@ -142,11 +147,9 @@ const Sidebar = () => {
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
         >
-          <div className="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center group-hover:bg-red-500/10 transition-all">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </div>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
           <span className="text-sm">Sign Out</span>
         </button>
 

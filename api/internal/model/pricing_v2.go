@@ -8,19 +8,22 @@ import (
 
 // PricingV2Plan represents a plan extracted from a website
 type PricingV2Plan struct {
-	ID            primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	UserID        primitive.ObjectID `json:"user_id" bson:"user_id"`
-	WebsiteURL    string             `json:"website_url" bson:"website_url"`
-	SourceURL     string             `json:"source_url" bson:"source_url"`
-	ExtractedAt   time.Time          `json:"extracted_at" bson:"extracted_at"`
-	PlanName      string             `json:"plan_name" bson:"plan_name"`
-	PriceAmount   float64            `json:"price_amount" bson:"price_amount"`
-	PriceString   string             `json:"price_string" bson:"price_string"`
-	Currency      string             `json:"currency" bson:"currency"`
-	BillingPeriod string             `json:"billing_period" bson:"billing_period"` // monthly, yearly, unknown
-	IncludedUnits []IncludedUnit     `json:"included_units" bson:"included_units"`
-	Features      []string           `json:"features" bson:"features"`
-	Evidence      PlanEvidence       `json:"evidence" bson:"evidence"`
+	ID                      primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	UserID                  primitive.ObjectID `json:"user_id" bson:"user_id"`
+	WebsiteURL              string             `json:"website_url" bson:"website_url"`
+	SourceURL               string             `json:"source_url" bson:"source_url"`
+	ExtractedAt             time.Time          `json:"extracted_at" bson:"extracted_at"`
+	PlanName                string             `json:"plan_name" bson:"plan_name"`
+	PriceAmount             float64            `json:"price_amount" bson:"price_amount"`
+	PriceString             string             `json:"price_string" bson:"price_string"`
+	Currency                string             `json:"currency" bson:"currency"`
+	PriceFrequency          string             `json:"price_frequency" bson:"price_frequency"`                     // per_month, per_year
+	BillingPeriod           string             `json:"billing_period" bson:"billing_period"`                       // monthly, yearly, unknown
+	MonthlyEquivalentAmount float64            `json:"monthly_equivalent_amount" bson:"monthly_equivalent_amount"` // for yearly plans
+	AnnualBilledAmount      float64            `json:"annual_billed_amount" bson:"annual_billed_amount"`           // total yearly amount
+	IncludedUnits           []IncludedUnit     `json:"included_units" bson:"included_units"`
+	Features                []string           `json:"features" bson:"features"`
+	Evidence                PlanEvidence       `json:"evidence" bson:"evidence"`
 }
 
 // IncludedUnit represents quantifiable included items like "7,500 credits/seat/month"
@@ -57,23 +60,28 @@ type PricingExtractRequest struct {
 
 // ExtractedPlan represents a plan extracted by LLM
 type ExtractedPlan struct {
-	Name          string         `json:"name"`
-	PriceAmount   float64        `json:"price_amount"`
-	PriceString   string         `json:"price_string"`
-	Currency      string         `json:"currency"`
-	BillingPeriod string         `json:"billing_period"`
-	IncludedUnits []IncludedUnit `json:"included_units"`
-	Features      []string       `json:"features"`
-	Evidence      PlanEvidence   `json:"evidence"`
+	Name                    string         `json:"name"`
+	PriceAmount             float64        `json:"price_amount"`
+	PriceString             string         `json:"price_string"`
+	Currency                string         `json:"currency"`
+	PriceFrequency          string         `json:"price_frequency"`           // per_month, per_year
+	BillingPeriod           string         `json:"billing_period"`            // monthly, yearly
+	MonthlyEquivalentAmount float64        `json:"monthly_equivalent_amount"` // for yearly plans showing "equivalent monthly"
+	AnnualBilledAmount      float64        `json:"annual_billed_amount"`      // total yearly amount
+	IncludedUnits           []IncludedUnit `json:"included_units"`
+	Features                []string       `json:"features"`
+	Evidence                PlanEvidence   `json:"evidence"`
 }
 
 // PricingExtractResponse is the response from extract endpoint
 type PricingExtractResponse struct {
-	Plans         []ExtractedPlan `json:"plans"`
-	SourceURL     string          `json:"source_url"`
-	DetectedPeriods []string      `json:"detected_periods"` // e.g., ["monthly", "yearly"]
-	Warnings      []string        `json:"warnings,omitempty"`
-	Error         string          `json:"error,omitempty"`
+	Plans           []ExtractedPlan `json:"plans"`
+	SourceURL       string          `json:"source_url"`
+	DetectedPeriods []string        `json:"detected_periods"` // e.g., ["monthly", "yearly"]
+	NeedsRender     bool            `json:"needs_render"`     // true if browser render needed for toggle
+	RenderUsed      bool            `json:"render_used"`      // true if browser was used
+	Warnings        []string        `json:"warnings,omitempty"`
+	Error           string          `json:"error,omitempty"`
 }
 
 // PricingSaveRequest is the request for save endpoint

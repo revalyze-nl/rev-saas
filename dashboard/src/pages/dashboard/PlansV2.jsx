@@ -357,6 +357,20 @@ const PlansV2 = () => {
             )}
           </div>
 
+          {/* Render Status Badge */}
+          {extractedPlans.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              {detectedPeriods.length > 1 && (
+                <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Both monthly & yearly detected
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Warnings */}
           {warnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4">
@@ -445,8 +459,22 @@ const PlansV2 = () => {
                     </div>
 
                     {/* Price */}
-                    <div className="text-2xl font-bold text-blue-400 mb-3">
-                      {plan.price_string || formatPrice(plan.price_amount, plan.currency)}
+                    <div className="mb-3">
+                      <div className="text-2xl font-bold text-blue-400">
+                        {plan.price_string || formatPrice(plan.price_amount, plan.currency)}
+                      </div>
+                      {/* Monthly equivalent for yearly plans */}
+                      {plan.billing_period === 'yearly' && plan.monthly_equivalent_amount > 0 && (
+                        <div className="text-sm text-slate-400 mt-1">
+                          {formatPrice(plan.monthly_equivalent_amount, plan.currency)}/mo equivalent
+                        </div>
+                      )}
+                      {/* Annual total for yearly plans */}
+                      {plan.billing_period === 'yearly' && plan.annual_billed_amount > 0 && (
+                        <div className="text-xs text-slate-500">
+                          {formatPrice(plan.annual_billed_amount, plan.currency)}/year billed
+                        </div>
+                      )}
                     </div>
 
                     {/* Included Units */}
@@ -574,8 +602,16 @@ const PlansV2 = () => {
                   </span>
                 </div>
 
-                <div className="text-2xl font-bold text-blue-400 mb-2">
-                  {plan.price_string || formatPrice(plan.price_amount, plan.currency)}
+                <div className="mb-2">
+                  <div className="text-2xl font-bold text-blue-400">
+                    {plan.price_string || formatPrice(plan.price_amount, plan.currency)}
+                  </div>
+                  {/* Monthly equivalent for yearly plans */}
+                  {plan.billing_period === 'yearly' && plan.monthly_equivalent_amount > 0 && (
+                    <div className="text-sm text-slate-400">
+                      {formatPrice(plan.monthly_equivalent_amount, plan.currency)}/mo equivalent
+                    </div>
+                  )}
                 </div>
 
                 {plan.source_url && (

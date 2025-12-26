@@ -130,13 +130,17 @@ func NewPricingV2Service(repo *mongorepo.PricingV2Repository, openAIKey string) 
 
 // DiscoverPricingPage finds potential pricing page URLs for a website
 func (s *PricingV2Service) DiscoverPricingPage(ctx context.Context, websiteURL string) (*model.PricingDiscoverResponse, error) {
+	log.Printf("[pricing-v2] DiscoverPricingPage called with: %s", websiteURL)
+	
 	// Normalize and validate URL
 	websiteURL = s.normalizeURL(websiteURL)
 	if websiteURL == "" {
 		websiteURL = defaultWebsite
 	}
+	log.Printf("[pricing-v2] normalized URL: %s", websiteURL)
 
 	if err := s.validateURL(websiteURL); err != nil {
+		log.Printf("[pricing-v2] URL validation failed: %v", err)
 		return &model.PricingDiscoverResponse{
 			Error: fmt.Sprintf("invalid URL: %v", err),
 		}, nil
@@ -153,17 +157,23 @@ func (s *PricingV2Service) DiscoverPricingPage(ctx context.Context, websiteURL s
 	candidateScores := make(map[string]int)
 
 	// Try common pricing paths
+	log.Printf("[pricing-v2] trying common pricing paths for %s", baseURL.Host)
 	for i, path := range commonPricingPaths {
 		testURL := fmt.Sprintf("%s://%s%s", baseURL.Scheme, baseURL.Host, path)
 		if s.urlExists(ctx, testURL) {
 			candidates = append(candidates, testURL)
 			candidateScores[testURL] = 100 - i*10 // Higher score for earlier paths
+			log.Printf("[pricing-v2] found candidate: %s (score=%d)", testURL, candidateScores[testURL])
 		}
 	}
 
 	// Fetch homepage and extract links
+	log.Printf("[pricing-v2] extracting links from homepage: %s", websiteURL)
 	homepageLinks, err := s.extractLinksFromPage(ctx, websiteURL)
-	if err == nil {
+	if err != nil {
+		log.Printf("[pricing-v2] failed to extract links from homepage: %v", err)
+	} else {
+		log.Printf("[pricing-v2] found %d links on homepage", len(homepageLinks))
 		for _, link := range homepageLinks {
 			// Check if link contains pricing keywords
 			linkLower := strings.ToLower(link)
@@ -174,6 +184,7 @@ func (s *PricingV2Service) DiscoverPricingPage(ctx context.Context, websiteURL s
 					if fullURL != "" && !s.containsURL(candidates, fullURL) {
 						candidates = append(candidates, fullURL)
 						candidateScores[fullURL] = 50
+						log.Printf("[pricing-v2] found candidate from link: %s (keyword=%s)", fullURL, keyword)
 					}
 					break
 				}
@@ -196,6 +207,8 @@ func (s *PricingV2Service) DiscoverPricingPage(ctx context.Context, websiteURL s
 	if len(candidates) > 0 {
 		selected = &candidates[0]
 	}
+
+	log.Printf("[pricing-v2] discovery complete: %d candidates found, selected=%v", len(candidates), selected != nil)
 
 	return &model.PricingDiscoverResponse{
 		PricingCandidates:  candidates,
@@ -1667,19 +1680,32 @@ func (s *PricingV2Service) validateURL(rawURL string) error {
 }
 
 func (s *PricingV2Service) urlExists(ctx context.Context, testURL string) bool {
-	req, err := http.NewRequestWithContext(ctx, "HEAD", testURL, nil)
+	// Use GET instead of HEAD - many sites block HEAD requests
+	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
 	if err != nil {
+		log.Printf("[pricing-v2] urlExists failed to create request for %s: %v", testURL, err)
 		return false
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Revalyze/1.0)")
+	
+	// Use a realistic browser User-Agent
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
+		log.Printf("[pricing-v2] urlExists request failed for %s: %v", testURL, err)
 		return false
 	}
 	defer resp.Body.Close()
+	
+	// Read a small amount to not hang the connection, then close
+	io.CopyN(io.Discard, resp.Body, 1024)
 
-	return resp.StatusCode == http.StatusOK
+	// Accept 200, 301, 302, 303, 307, 308 as "exists"
+	exists := resp.StatusCode >= 200 && resp.StatusCode < 400
+	log.Printf("[pricing-v2] urlExists %s -> %d (exists=%v)", testURL, resp.StatusCode, exists)
+	return exists
 }
 
 func (s *PricingV2Service) fetchPageContent(ctx context.Context, pageURL string) (string, string, error) {

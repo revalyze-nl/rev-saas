@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/smtp"
 	"strings"
 )
@@ -39,28 +40,117 @@ func NewEmailService(host, port, user, password, from, appPublicURL string) *Ema
 }
 
 // sendEmail sends an email using the configured SMTP server.
+// Supports both STARTTLS (port 587) and direct TLS (port 465)
 func (s *EmailService) sendEmail(ctx context.Context, to, subject, htmlBody string) error {
 	if s.config.Host == "" || s.config.Port == "" {
 		return fmt.Errorf("SMTP not configured")
 	}
 
+	addr := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
+
+	// Build the email message with headers
+	// Extract email address from "Name <email>" format if present
+	fromEmail := s.config.From
+	if idx := strings.Index(fromEmail, "<"); idx != -1 {
+		fromEmail = strings.TrimSuffix(fromEmail[idx+1:], ">")
+	}
+
+	msg := fmt.Sprintf("From: %s\r\n", s.config.From)
+	msg += fmt.Sprintf("To: %s\r\n", to)
+	msg += fmt.Sprintf("Subject: %s\r\n", subject)
+	msg += "MIME-Version: 1.0\r\n"
+	msg += "Content-Type: text/html; charset=\"UTF-8\"\r\n"
+	msg += "\r\n"
+	msg += htmlBody
+
 	// Set up authentication
 	auth := smtp.PlainAuth("", s.config.User, s.config.Password, s.config.Host)
 
-	// TLS config
-	tlsconfig := &tls.Config{
-		InsecureSkipVerify: false,
-		ServerName:         s.config.Host,
+	// Use different connection method based on port
+	if s.config.Port == "465" {
+		// Direct TLS connection (SSL)
+		return s.sendWithDirectTLS(addr, auth, fromEmail, to, []byte(msg))
 	}
 
-	// Connect to the SMTP server
-	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", s.config.Host, s.config.Port), tlsconfig)
+	// STARTTLS connection (port 587 or 25)
+	return s.sendWithSTARTTLS(addr, auth, fromEmail, to, []byte(msg))
+}
+
+// sendWithSTARTTLS connects using STARTTLS (for port 587)
+func (s *EmailService) sendWithSTARTTLS(addr string, auth smtp.Auth, from, to string, msg []byte) error {
+	// Connect to the server
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to connect to SMTP server: %w", err)
 	}
 
 	c, err := smtp.NewClient(conn, s.config.Host)
 	if err != nil {
+		conn.Close()
+		return fmt.Errorf("failed to create SMTP client: %w", err)
+	}
+	defer c.Close()
+
+	// Say EHLO
+	if err = c.Hello("localhost"); err != nil {
+		return fmt.Errorf("EHLO failed: %w", err)
+	}
+
+	// Start TLS
+	tlsconfig := &tls.Config{
+		ServerName: s.config.Host,
+	}
+	if err = c.StartTLS(tlsconfig); err != nil {
+		return fmt.Errorf("STARTTLS failed: %w", err)
+	}
+
+	// Authenticate
+	if err = c.Auth(auth); err != nil {
+		return fmt.Errorf("SMTP auth failed: %w", err)
+	}
+
+	// Set sender and recipient
+	if err = c.Mail(from); err != nil {
+		return fmt.Errorf("MAIL FROM failed: %w", err)
+	}
+
+	if err = c.Rcpt(to); err != nil {
+		return fmt.Errorf("RCPT TO failed: %w", err)
+	}
+
+	// Send the message body
+	w, err := c.Data()
+	if err != nil {
+		return fmt.Errorf("DATA failed: %w", err)
+	}
+
+	_, err = w.Write(msg)
+	if err != nil {
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+
+	err = w.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	return c.Quit()
+}
+
+// sendWithDirectTLS connects using direct TLS (for port 465)
+func (s *EmailService) sendWithDirectTLS(addr string, auth smtp.Auth, from, to string, msg []byte) error {
+	tlsconfig := &tls.Config{
+		ServerName: s.config.Host,
+	}
+
+	conn, err := tls.Dial("tcp", addr, tlsconfig)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
+	}
+
+	c, err := smtp.NewClient(conn, s.config.Host)
+	if err != nil {
+		conn.Close()
 		return fmt.Errorf("failed to create SMTP client: %w", err)
 	}
 	defer c.Close()
@@ -69,13 +159,7 @@ func (s *EmailService) sendEmail(ctx context.Context, to, subject, htmlBody stri
 		return fmt.Errorf("SMTP auth failed: %w", err)
 	}
 
-	// Extract email address from "Name <email>" format if present
-	fromEmail := s.config.From
-	if idx := strings.Index(fromEmail, "<"); idx != -1 {
-		fromEmail = strings.TrimSuffix(fromEmail[idx+1:], ">")
-	}
-
-	if err = c.Mail(fromEmail); err != nil {
+	if err = c.Mail(from); err != nil {
 		return fmt.Errorf("MAIL FROM failed: %w", err)
 	}
 
@@ -88,16 +172,7 @@ func (s *EmailService) sendEmail(ctx context.Context, to, subject, htmlBody stri
 		return fmt.Errorf("DATA failed: %w", err)
 	}
 
-	// Build the email message with headers
-	msg := fmt.Sprintf("From: %s\r\n", s.config.From)
-	msg += fmt.Sprintf("To: %s\r\n", to)
-	msg += fmt.Sprintf("Subject: %s\r\n", subject)
-	msg += "MIME-Version: 1.0\r\n"
-	msg += "Content-Type: text/html; charset=\"UTF-8\"\r\n"
-	msg += "\r\n"
-	msg += htmlBody
-
-	_, err = w.Write([]byte(msg))
+	_, err = w.Write(msg)
 	if err != nil {
 		return fmt.Errorf("failed to write message: %w", err)
 	}

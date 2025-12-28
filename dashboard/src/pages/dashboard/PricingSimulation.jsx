@@ -816,6 +816,9 @@ const PricingSimulation = () => {
                     </span>
                   )}
                 </button>
+                <p className="text-xs text-slate-500 mt-3 text-center">
+                  Estimates based on your inputs. Actual results may vary.
+                </p>
               </form>
             </div>
           </div>

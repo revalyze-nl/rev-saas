@@ -392,7 +392,8 @@ const Billing = () => {
                     </span>
                     <span className="text-slate-400">/ {monthlyCredits}</span>
                   </div>
-                  <p className="text-xs text-slate-500 mb-4">Credits remaining</p>
+                  <p className="text-xs text-slate-500 mb-2">Credits remaining</p>
+                  <p className="text-xs text-slate-600 mb-2">Consumed per analysis or simulation run.</p>
 
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden mb-3">
                     <div 
@@ -420,6 +421,9 @@ const Billing = () => {
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white mb-2">Choose Your Plan</h2>
             <p className="text-slate-400">Scale your pricing intelligence as your business grows</p>
+            <p className="text-xs text-slate-500 mt-2">
+              No refunds for unused time or credits, unless required by law. Cancel anytime from your dashboard.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

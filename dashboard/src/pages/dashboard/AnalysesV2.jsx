@@ -367,6 +367,9 @@ const AnalysesV2 = () => {
                   </span>
                 )}
               </button>
+              <p className="text-xs text-slate-500 mt-3 max-w-sm mx-auto">
+                AI insights are advisory. Verify recommendations before implementing pricing changes.
+              </p>
             </div>
           </div>
         </div>

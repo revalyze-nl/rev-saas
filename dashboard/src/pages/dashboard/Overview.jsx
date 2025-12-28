@@ -1,17 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCompetitors } from '../../context/CompetitorsContext';
 import { usePlans } from '../../context/PlansContext';
 import { useAnalysis } from '../../context/AnalysisV2Context';
 import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
+import { competitorsV2Api } from '../../lib/apiClient';
 
 const Overview = () => {
   const navigate = useNavigate();
-  const { competitors } = useCompetitors();
   const { plans } = usePlans();
   const { analyses, runAnalysis, isRunning, error: analysisError, limitError, clearLimitError } = useAnalysis();
   const { metrics, hasMetrics, isLoading: metricsLoading } = useBusinessMetrics();
   const [runError, setRunError] = useState(null);
+  
+  // Fetch V2 competitors
+  const [competitors, setCompetitors] = useState([]);
+  const [competitorsLoading, setCompetitorsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchCompetitors = async () => {
+      try {
+        const { data } = await competitorsV2Api.list();
+        setCompetitors(data || []);
+      } catch (err) {
+        console.error('Failed to fetch V2 competitors:', err);
+        setCompetitors([]);
+      } finally {
+        setCompetitorsLoading(false);
+      }
+    };
+    fetchCompetitors();
+  }, []);
 
   // Get user-friendly error title
   const getLimitErrorTitle = (errorCode) => {

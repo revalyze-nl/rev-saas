@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 
-const PricingCard = ({ plan, price, description, features, creditNote, isPopular, delay }) => {
+const PricingCard = ({ plan, price, description, features, creditNote, isPopular, isEnterprise, delay }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -35,7 +36,7 @@ const PricingCard = ({ plan, price, description, features, creditNote, isPopular
         <p className="text-slate-400">{description}</p>
       </div>
 
-      <div className="flex-grow mb-8">
+      <div className="flex-grow mb-6">
         <ul className="space-y-4">
           {features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
@@ -46,14 +47,33 @@ const PricingCard = ({ plan, price, description, features, creditNote, isPopular
               </div>
               <div className="flex flex-col">
                 <span className="text-slate-300 leading-relaxed">{feature}</span>
-                {feature.includes('AI Insight Credits') && creditNote && (
-                  <span className="text-sm font-medium text-blue-400 mt-1">({creditNote})</span>
+                {feature.includes('AI Insight Credits') && (
+                  <>
+                    {creditNote && (
+                      <span className="text-sm font-medium text-blue-400 mt-1">({creditNote})</span>
+                    )}
+                    <span className="text-xs text-slate-500 mt-1">
+                      AI Insight Credits are consumed per analysis or simulation run.
+                    </span>
+                  </>
                 )}
               </div>
             </li>
           ))}
         </ul>
       </div>
+
+      {/* Enterprise-specific copy */}
+      {isEnterprise && (
+        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+          Custom terms, invoicing, and onboarding support available upon request.
+        </p>
+      )}
+
+      {/* Usage limits disclaimer */}
+      <p className="text-xs text-slate-500 mb-4">
+        Usage limits apply per billing period. Unused credits do not roll over.
+      </p>
 
       <a
         href="https://app.revalyze.co/register"
@@ -65,6 +85,11 @@ const PricingCard = ({ plan, price, description, features, creditNote, isPopular
       >
         Get Started
       </a>
+
+      {/* Billing note under CTA */}
+      <p className="text-xs text-slate-500 text-center mt-3">
+        Billed monthly. Cancel anytime from your dashboard.
+      </p>
     </motion.div>
   );
 };
@@ -83,7 +108,8 @@ const PricingSection = () => {
         "PDF export of pricing reports"
       ],
       creditNote: "AI analyses only",
-      isPopular: false
+      isPopular: false,
+      isEnterprise: false
     },
     {
       plan: "Growth",
@@ -98,7 +124,8 @@ const PricingSection = () => {
         "PDF export of analyses & simulations"
       ],
       creditNote: "AI analyses + simulations",
-      isPopular: true
+      isPopular: true,
+      isEnterprise: false
     },
     {
       plan: "Enterprise",
@@ -114,7 +141,8 @@ const PricingSection = () => {
         "3 team seats (multi-user access)"
       ],
       creditNote: "AI analyses + simulations",
-      isPopular: false
+      isPopular: false,
+      isEnterprise: true
     }
   ];
 
@@ -126,7 +154,7 @@ const PricingSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <div className="inline-block px-4 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm font-medium text-blue-400 mb-4">
             Pricing
@@ -136,6 +164,19 @@ const PricingSection = () => {
           </h2>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
             Choose the plan that fits your stage. Scale as you grow.
+          </p>
+        </motion.div>
+
+        {/* AI Disclaimer - Top */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          viewport={{ once: true }}
+          className="max-w-3xl mx-auto mb-12"
+        >
+          <p className="text-xs text-slate-500 text-center leading-relaxed">
+            AI-powered insights are advisory. All analyses and simulations are based on the data you provide and should not be considered guaranteed outcomes. Final pricing decisions remain your responsibility.
           </p>
         </motion.div>
 
@@ -149,20 +190,48 @@ const PricingSection = () => {
               features={plan.features}
               creditNote={plan.creditNote}
               isPopular={plan.isPopular}
+              isEnterprise={plan.isEnterprise}
               delay={index * 0.1}
             />
           ))}
         </div>
 
+        {/* Trial info */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           viewport={{ once: true }}
-          className="text-center"
+          className="text-center mb-8"
         >
           <p className="text-slate-400">
             All plans include a 14-day free trial. No credit card required to start.
+          </p>
+        </motion.div>
+
+        {/* Legal disclaimers */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          viewport={{ once: true }}
+          className="max-w-2xl mx-auto space-y-4"
+        >
+          {/* Refund disclaimer */}
+          <p className="text-xs text-slate-500 text-center">
+            No refunds for unused time or credits, unless required by law.
+          </p>
+
+          {/* Legal binding */}
+          <p className="text-xs text-slate-500 text-center">
+            By subscribing, you agree to our{' '}
+            <Link to="/terms" className="text-slate-400 hover:text-blue-400 underline transition-colors">
+              Terms of Service
+            </Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="text-slate-400 hover:text-blue-400 underline transition-colors">
+              Privacy Policy
+            </Link>.
           </p>
         </motion.div>
       </div>

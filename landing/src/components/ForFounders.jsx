@@ -71,7 +71,7 @@ const ForFounders = () => {
   ];
 
   return (
-    <section id="for-founders" className="py-24 md:py-32 bg-slate-800">
+    <section id="for-founders" className="py-24 md:py-32 relative">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

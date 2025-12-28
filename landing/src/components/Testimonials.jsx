@@ -40,12 +40,6 @@ const stats = [
 const Testimonials = () => {
   return (
     <section id="testimonials" className="py-24 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900" />
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-      </div>
 
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Header */}

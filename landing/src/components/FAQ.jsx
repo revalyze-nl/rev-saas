@@ -80,9 +80,6 @@ const FAQ = () => {
 
   return (
     <section id="faq" className="py-24 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.08),transparent_70%)]" />
       
       <div className="relative max-w-4xl mx-auto px-6">
         {/* Header */}

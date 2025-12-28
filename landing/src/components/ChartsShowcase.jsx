@@ -26,11 +26,6 @@ const ChartsShowcase = () => {
 
   return (
     <section id="charts" className="py-24 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900" />
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-violet-500/10 to-transparent rounded-full blur-3xl" />
-      </div>
 
       <div className="relative max-w-7xl mx-auto px-6">
         {/* Header */}

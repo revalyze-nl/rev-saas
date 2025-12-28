@@ -2,11 +2,7 @@ import { motion } from 'framer-motion';
 
 const Hero = () => {
   return (
-    <section id="hero" className="relative bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white pt-24 pb-32 md:pt-32 md:pb-48 overflow-hidden">
-      {/* Decorative blobs - more vibrant */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-500/30 to-sky-500/30 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute top-40 right-10 w-96 h-96 bg-gradient-to-br from-indigo-500/25 to-blue-500/25 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      <div className="absolute bottom-20 left-1/3 w-64 h-64 bg-gradient-to-br from-sky-500/30 to-blue-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+    <section id="hero" className="relative text-white pt-24 pb-32 md:pt-32 md:pb-48 overflow-hidden">
       
       <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto">

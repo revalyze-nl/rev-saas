@@ -48,8 +48,6 @@ const comparisonData = [
 const Comparison = () => {
   return (
     <section id="comparison" className="py-24 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900" />
       
       <div className="relative max-w-6xl mx-auto px-6">
         {/* Header */}

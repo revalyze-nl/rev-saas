@@ -40,6 +40,7 @@ type SignupInput struct {
 	CompanyWebsite string
 	MRRRange       string
 	HeardFrom      string
+	AcceptedTerms  bool
 }
 
 // SignupResult contains the results of a successful signup.
@@ -130,6 +131,8 @@ func (s *AuthService) Register(ctx context.Context, input SignupInput) (*SignupR
 		EmailVerifyTokenHash: tokenHash,
 		EmailVerifyExpiresAt: &expiresAt,
 		EmailVerifySentAt:    &now,
+		AcceptedTerms:        input.AcceptedTerms,
+		AcceptedTermsAt:      &now,
 	}
 
 	// Set trial expiry for free plan

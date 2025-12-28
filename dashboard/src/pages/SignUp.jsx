@@ -17,7 +17,8 @@ const SignUp = () => {
     companyWebsite: '',
     role: '',
     mrrRange: '',
-    heardFrom: ''
+    heardFrom: '',
+    acceptedTerms: false
   });
 
   const [errors, setErrors] = useState({});
@@ -25,12 +26,12 @@ const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error when user starts typing
+    // Clear error when user interacts
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -65,6 +66,10 @@ const SignUp = () => {
 
     if (!formData.companyWebsite.trim()) {
       newErrors.companyWebsite = 'Company website is required';
+    }
+
+    if (!formData.acceptedTerms) {
+      newErrors.acceptedTerms = 'You must accept the Terms of Service and Privacy Policy to continue.';
     }
 
     setErrors(newErrors);
@@ -397,6 +402,48 @@ const SignUp = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Terms Acceptance Checkbox */}
+              <div className="pt-4 border-t border-slate-700">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative flex-shrink-0 mt-0.5">
+                    <input
+                      type="checkbox"
+                      name="acceptedTerms"
+                      checked={formData.acceptedTerms}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                      className="peer sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded-md border-2 transition-all ${
+                      errors.acceptedTerms 
+                        ? 'border-red-500 bg-red-500/10' 
+                        : formData.acceptedTerms 
+                        ? 'border-blue-500 bg-blue-500' 
+                        : 'border-slate-600 bg-slate-800 group-hover:border-slate-500'
+                    }`}>
+                      {formData.acceptedTerms && (
+                        <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm text-slate-300">
+                    I agree to the{' '}
+                    <Link to="/terms" className="text-blue-400 hover:text-blue-300 underline">
+                      Terms of Service
+                    </Link>
+                    {' '}and{' '}
+                    <Link to="/privacy" className="text-blue-400 hover:text-blue-300 underline">
+                      Privacy Policy
+                    </Link>
+                  </span>
+                </label>
+                {errors.acceptedTerms && (
+                  <p className="mt-2 text-sm text-red-400">{errors.acceptedTerms}</p>
+                )}
               </div>
 
               {/* Submit Button */}

@@ -42,6 +42,10 @@ type User struct {
 	EmailVerifyTokenHash string     `bson:"email_verify_token_hash,omitempty" json:"-"`
 	EmailVerifyExpiresAt *time.Time `bson:"email_verify_expires_at,omitempty" json:"-"`
 	EmailVerifySentAt    *time.Time `bson:"email_verify_sent_at,omitempty" json:"email_verify_sent_at,omitempty"`
+
+	// Terms acceptance fields
+	AcceptedTerms   bool       `bson:"accepted_terms" json:"accepted_terms"`
+	AcceptedTermsAt *time.Time `bson:"accepted_terms_at,omitempty" json:"accepted_terms_at,omitempty"`
 }
 
 // IsAdmin returns true if the user has admin role

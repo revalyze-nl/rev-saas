@@ -32,6 +32,7 @@ type signupRequest struct {
 	CompanyWebsite string `json:"company_website"`
 	MRRRange       string `json:"mrr_range"`
 	HeardFrom      string `json:"heard_from"`
+	AcceptedTerms  bool   `json:"acceptedTerms"`
 }
 
 type loginRequest struct {
@@ -87,6 +88,11 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !req.AcceptedTerms {
+		writeJSONError(w, "Terms and Privacy Policy must be accepted.", http.StatusBadRequest)
+		return
+	}
+
 	input := service.SignupInput{
 		Email:          req.Email,
 		Password:       req.Password,
@@ -96,6 +102,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		CompanyWebsite: req.CompanyWebsite,
 		MRRRange:       req.MRRRange,
 		HeardFrom:      req.HeardFrom,
+		AcceptedTerms:  req.AcceptedTerms,
 	}
 
 	result, err := h.auth.Register(r.Context(), input)

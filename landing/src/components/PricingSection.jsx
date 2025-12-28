@@ -55,15 +55,16 @@ const PricingCard = ({ plan, price, description, features, creditNote, isPopular
         </ul>
       </div>
 
-      <button
-        className={`w-full py-3.5 rounded-2xl font-semibold transition-all duration-300 ${
+      <a
+        href="https://app.revalyze.co/register"
+        className={`w-full py-3.5 rounded-2xl font-semibold transition-all duration-300 block text-center ${
           isPopular
             ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/60 hover:scale-105'
             : 'bg-slate-700 text-white hover:bg-slate-600 shadow-sm hover:shadow-md hover:scale-105'
         }`}
       >
         Get Started
-      </button>
+      </a>
     </motion.div>
   );
 };

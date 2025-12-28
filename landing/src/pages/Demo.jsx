@@ -2,6 +2,20 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  ComposedChart,
+  Bar,
+  Line,
+  Legend
+} from 'recharts';
+import {
   DEMO_COMPANY,
   DEMO_PLANS,
   DEMO_COMPETITORS,
@@ -420,31 +434,27 @@ function AnalysisResults() {
 
       {/* Charts */}
       <div className="grid grid-cols-2 gap-6">
-        <ChartPlaceholder
-          title="Price Positioning"
-          description="Your plans compared to competitors on price"
-          data={analysis.pricePositioningData}
-        />
-        <ChartPlaceholder
-          title="Value vs Price"
-          description="Feature value relative to pricing"
-          data={analysis.valueVsPriceData}
-        />
+        <PricePositioningChart data={analysis.pricePositioningData} />
+        <ValueVsPriceChart data={analysis.valueVsPriceData} />
       </div>
 
-      {/* PDF Preview Notice */}
+      {/* PDF Download */}
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-white">Export Report</h3>
-            <p className="text-sm text-slate-400">Download this analysis as a PDF</p>
+            <p className="text-sm text-slate-400">Download a sample analysis report to see the PDF quality</p>
           </div>
-          <button
-            disabled
-            className="px-4 py-2 bg-slate-700 text-slate-400 rounded-lg cursor-not-allowed"
+          <a
+            href="/samples/sample-analysis-report.pdf"
+            download
+            className="px-4 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-lg hover:opacity-90 transition-opacity inline-flex items-center gap-2"
           >
-            Download PDF (Demo)
-          </button>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Sample PDF
+          </a>
         </div>
       </div>
 
@@ -582,6 +592,9 @@ function SimulationResults() {
         </div>
       </div>
 
+      {/* Impact Overview Chart */}
+      <ImpactOverviewChart scenarios={sim.scenarios} />
+
       {/* Scenarios */}
       <div className="grid grid-cols-3 gap-4">
         {sim.scenarios.map((scenario, i) => (
@@ -656,19 +669,23 @@ function SimulationResults() {
         </div>
       </div>
 
-      {/* PDF Notice */}
+      {/* PDF Download */}
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-white">Export Report</h3>
-            <p className="text-sm text-slate-400">Download this simulation as a PDF</p>
+            <p className="text-sm text-slate-400">Download a sample simulation report to see the PDF quality</p>
           </div>
-          <button
-            disabled
-            className="px-4 py-2 bg-slate-700 text-slate-400 rounded-lg cursor-not-allowed"
+          <a
+            href="/samples/sample-simulation-report.pdf"
+            download
+            className="px-4 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-lg hover:opacity-90 transition-opacity inline-flex items-center gap-2"
           >
-            Download PDF (Demo)
-          </button>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Sample PDF
+          </a>
         </div>
       </div>
 
@@ -727,37 +744,244 @@ function InsightCard({ title, items, color }) {
   );
 }
 
-function ChartPlaceholder({ title, description, data }) {
-  // Simple visual representation of data
-  const maxPrice = Math.max(...data.map(d => d.price));
+// Price Positioning Chart - Scatter chart showing price distribution
+function PricePositioningChart({ data }) {
+  const userPlans = data.filter(d => d.isUser).map(d => ({ ...d, y: 1 }));
+  const competitorPlans = data.filter(d => !d.isUser).map(d => ({ ...d, y: 1 }));
+  const medianPrice = data.map(d => d.price).sort((a, b) => a - b)[Math.floor(data.length / 2)];
+  
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const d = payload[0].payload;
+      return (
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-xl">
+          <p className="font-medium text-white text-sm">{d.name}</p>
+          <p className="text-slate-400 text-xs">${d.price}/month</p>
+          <p className={`text-xs ${d.isUser ? 'text-violet-400' : 'text-slate-500'}`}>
+            {d.isUser ? 'Your Plan' : 'Competitor'}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
   
   return (
     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
-      <h4 className="font-medium text-white mb-1">{title}</h4>
-      <p className="text-xs text-slate-400 mb-4">{description}</p>
+      <h4 className="font-medium text-white mb-1">Price Positioning</h4>
+      <p className="text-xs text-slate-400 mb-4">Your plans compared to competitors on price</p>
       
-      <div className="h-40 flex items-end gap-1">
-        {data.slice(0, 10).map((item, i) => (
-          <div
-            key={i}
-            className="flex-1 flex flex-col items-center gap-1"
-          >
-            <div
-              className={`w-full rounded-t ${item.isUser ? 'bg-violet-500' : 'bg-slate-600'}`}
-              style={{ height: `${(item.price / maxPrice) * 100}%` }}
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis 
+              type="number" 
+              dataKey="price" 
+              name="Price" 
+              unit="$"
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              domain={[0, 'dataMax + 20']}
             />
-          </div>
-        ))}
+            <YAxis 
+              type="number" 
+              dataKey="y" 
+              hide 
+              domain={[0, 2]}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine 
+              x={medianPrice} 
+              stroke="#f59e0b" 
+              strokeDasharray="5 5" 
+              label={{ value: 'Median', fill: '#f59e0b', fontSize: 10 }}
+            />
+            <Scatter 
+              name="Competitors" 
+              data={competitorPlans} 
+              fill="#64748b"
+              fillOpacity={0.7}
+            />
+            <Scatter 
+              name="Your Plans" 
+              data={userPlans} 
+              fill="#8b5cf6"
+              fillOpacity={1}
+            />
+          </ScatterChart>
+        </ResponsiveContainer>
       </div>
       
-      <div className="flex items-center gap-4 mt-4 text-xs">
+      <div className="flex items-center gap-4 mt-2 text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-violet-500" />
+          <div className="w-3 h-3 rounded-full bg-violet-500" />
           <span className="text-slate-400">Your Plans</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-slate-600" />
+          <div className="w-3 h-3 rounded-full bg-slate-500" />
           <span className="text-slate-400">Competitors</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-0.5 bg-amber-500" />
+          <span className="text-slate-400">Market Median</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Value vs Price Chart - Scatter chart showing value score vs price
+function ValueVsPriceChart({ data }) {
+  const userPlans = data.filter(d => d.isUser);
+  const competitorPlans = data.filter(d => !d.isUser);
+  
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const d = payload[0].payload;
+      return (
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-xl">
+          <p className="font-medium text-white text-sm">{d.name}</p>
+          <p className="text-slate-400 text-xs">${d.price}/month</p>
+          <p className="text-emerald-400 text-xs">Value Score: {d.valueScore}</p>
+          <p className={`text-xs ${d.isUser ? 'text-violet-400' : 'text-slate-500'}`}>
+            {d.isUser ? 'Your Plan' : 'Competitor'}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+  
+  return (
+    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+      <h4 className="font-medium text-white mb-1">Value vs Price</h4>
+      <p className="text-xs text-slate-400 mb-4">Feature value relative to pricing</p>
+      
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis 
+              type="number" 
+              dataKey="price" 
+              name="Price" 
+              unit="$"
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              domain={[0, 'dataMax + 20']}
+            />
+            <YAxis 
+              type="number" 
+              dataKey="valueScore" 
+              name="Value"
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              domain={[0, 100]}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Scatter 
+              name="Competitors" 
+              data={competitorPlans} 
+              fill="#64748b"
+              fillOpacity={0.7}
+            />
+            <Scatter 
+              name="Your Plans" 
+              data={userPlans} 
+              fill="#8b5cf6"
+              fillOpacity={1}
+            />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+      
+      <div className="flex items-center gap-4 mt-2 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-violet-500" />
+          <span className="text-slate-400">Your Plans</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-slate-500" />
+          <span className="text-slate-400">Competitors</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Impact Overview Chart - Shows scenarios with ARR and customer impact
+function ImpactOverviewChart({ scenarios }) {
+  const chartData = scenarios.map(s => ({
+    name: s.name,
+    projectedARR: Math.round(s.projectedARR / 1000),
+    customerLoss: s.customerLoss,
+    recommended: s.recommended
+  }));
+  
+  return (
+    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+      <h4 className="font-medium text-white mb-1">Impact Overview</h4>
+      <p className="text-xs text-slate-400 mb-4">Projected ARR and customer impact by scenario</p>
+      
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis 
+              dataKey="name" 
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+            />
+            <YAxis 
+              yAxisId="left"
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              tickFormatter={(v) => `$${v}k`}
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              tickFormatter={(v) => `${v}%`}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#1e293b',
+                border: '1px solid #475569',
+                borderRadius: '8px'
+              }}
+              labelStyle={{ color: '#f1f5f9' }}
+            />
+            <Bar 
+              yAxisId="left"
+              dataKey="projectedARR" 
+              fill="#8b5cf6" 
+              name="Projected ARR ($k)"
+              radius={[4, 4, 0, 0]}
+            />
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="customerLoss" 
+              stroke="#ef4444" 
+              name="Customer Loss (%)"
+              strokeWidth={2}
+              dot={{ fill: '#ef4444', strokeWidth: 2 }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      
+      <div className="flex items-center gap-4 mt-2 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-violet-500" />
+          <span className="text-slate-400">Projected ARR</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-0.5 bg-red-500" />
+          <span className="text-slate-400">Customer Loss %</span>
         </div>
       </div>
     </div>

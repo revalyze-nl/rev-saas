@@ -5,6 +5,7 @@ import App from './App.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
 import Company from './pages/Company.jsx'
+import Demo from './pages/Demo.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/company" element={<Company />} />
+        <Route path="/demo" element={<Demo />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

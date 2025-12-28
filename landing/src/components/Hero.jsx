@@ -60,7 +60,7 @@ const Hero = () => {
               Get Started
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
             </a>
-            <a href="#product" className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-semibold hover:bg-slate-700 transition-all border border-slate-700 hover:border-blue-500/50 hover:scale-105 inline-flex items-center justify-center">
+            <a href="/demo" className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-semibold hover:bg-slate-700 transition-all border border-slate-700 hover:border-blue-500/50 hover:scale-105 inline-flex items-center justify-center">
               View Demo
             </a>
           </motion.div>

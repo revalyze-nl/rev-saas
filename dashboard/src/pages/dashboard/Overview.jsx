@@ -20,7 +20,8 @@ const Overview = () => {
     const fetchCompetitors = async () => {
       try {
         const { data } = await competitorsV2Api.list();
-        setCompetitors(data || []);
+        // API returns {competitors: [], count: N, limit: N}
+        setCompetitors(data?.competitors || []);
       } catch (err) {
         console.error('Failed to fetch V2 competitors:', err);
         setCompetitors([]);

@@ -31,6 +31,11 @@ const Footer = () => {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link to="/company" className="text-slate-400 hover:text-blue-400 transition-colors">
+                  Company Info
+                </Link>
+              </li>
             </ul>
           </div>
 

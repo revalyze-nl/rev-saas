@@ -5,12 +5,14 @@ import { PlansProvider } from './context/PlansContext';
 import { AnalysisProvider } from './context/AnalysisV2Context';
 import { SettingsProvider } from './context/SettingsContext';
 import { BusinessMetricsProvider } from './context/BusinessMetricsContext';
+import { AiCreditsProvider } from './context/AiCreditsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import OnboardingLayout from './pages/onboarding/OnboardingLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
+import MyCompany from './pages/dashboard/MyCompany';
 import Analyses from './pages/dashboard/AnalysesV2';
 import Competitors from './pages/dashboard/CompetitorsV2';
 import Plans from './pages/dashboard/PlansV2'; // Using V2 as the main Plans page
@@ -22,17 +24,19 @@ import VerifyEmail from './pages/VerifyEmail';
 
 // Wrapper component to provide all contexts for dashboard
 const DashboardWithProviders = () => (
-  <CompetitorsProvider>
-    <PlansProvider>
-      <AnalysisProvider>
-        <SettingsProvider>
-          <BusinessMetricsProvider>
-            <DashboardLayout />
-          </BusinessMetricsProvider>
-        </SettingsProvider>
-      </AnalysisProvider>
-    </PlansProvider>
-  </CompetitorsProvider>
+  <AiCreditsProvider>
+    <CompetitorsProvider>
+      <PlansProvider>
+        <AnalysisProvider>
+          <SettingsProvider>
+            <BusinessMetricsProvider>
+              <DashboardLayout />
+            </BusinessMetricsProvider>
+          </SettingsProvider>
+        </AnalysisProvider>
+      </PlansProvider>
+    </CompetitorsProvider>
+  </AiCreditsProvider>
 );
 
 // Protected dashboard wrapper
@@ -88,6 +92,10 @@ export const router = createBrowserRouter([
       {
         path: 'overview',
         element: <Overview />
+      },
+      {
+        path: 'company',
+        element: <MyCompany />
       },
       {
         path: 'analyses',

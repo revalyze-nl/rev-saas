@@ -1,32 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext';
 import { usePlans } from '../../context/PlansContext';
 import { useCompetitors } from '../../context/CompetitorsContext';
 import { useAnalysis } from '../../context/AnalysisV2Context';
-import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
-import { toPlanKey, computeTotalFromPlanCounts, hasPlanCounts } from '../../lib/planUtils';
 import { stripeApi } from '../../lib/apiClient';
 
 const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { profile, updateProfile } = useSettings();
-  const { plans, clearPlans } = usePlans();
+  const { clearPlans } = usePlans();
   const { clearCompetitors } = useCompetitors();
   const { clearAnalyses } = useAnalysis();
-  const { metrics, saveMetrics, isSaving, error: metricsError, clearError, refetch: refetchMetrics } = useBusinessMetrics();
 
   const [showSavedMessage, setShowSavedMessage] = useState(false);
-  const [metricsForm, setMetricsForm] = useState({
-    currency: 'USD',
-    mrr: '',
-    customers: '',
-    monthly_churn_rate: '',
-    total_active_customers: '',
-    plan_customer_counts: {}
-  });
-  const [metricsSaved, setMetricsSaved] = useState(false);
-  const [showPlanCounts, setShowPlanCounts] = useState(false);
 
   // Stripe state
   const [stripeStatus, setStripeStatus] = useState({ connected: false, loading: true });
@@ -91,7 +78,6 @@ const Settings = () => {
       if (data.ok) {
         setStripeToast({ type: 'success', message: 'Metrics synced from Stripe!' });
         setTimeout(() => setStripeToast(null), 5000);
-        if (refetchMetrics) refetchMetrics();
         fetchStripeStatus();
         if (data.warnings?.length > 0) setStripeSyncWarnings(data.warnings);
       }
@@ -118,77 +104,10 @@ const Settings = () => {
     }
   };
 
-  // Initialize form with existing metrics
-  useEffect(() => {
-    if (metrics) {
-      const planCounts = metrics.plan_customer_counts || {};
-      setMetricsForm({
-        currency: metrics.currency || 'USD',
-        mrr: metrics.mrr?.toString() || '',
-        customers: metrics.customers?.toString() || '',
-        monthly_churn_rate: metrics.monthly_churn_rate?.toString() || '',
-        total_active_customers: metrics.total_active_customers?.toString() || '',
-        plan_customer_counts: planCounts
-      });
-      if (hasPlanCounts(planCounts)) setShowPlanCounts(true);
-    }
-  }, [metrics]);
-
   const handleInputChange = (field, value) => {
     updateProfile({ [field]: value });
     setShowSavedMessage(true);
     setTimeout(() => setShowSavedMessage(false), 2000);
-  };
-
-  const handleMetricsChange = (field, value) => {
-    setMetricsForm(prev => ({ ...prev, [field]: value }));
-    if (metricsError) clearError();
-    if (metricsSaved) setMetricsSaved(false);
-  };
-
-  const handlePlanCountChange = (planKey, value) => {
-    const numValue = value === '' ? '' : parseInt(value) || 0;
-    setMetricsForm(prev => {
-      const updatedCounts = { ...prev.plan_customer_counts, [planKey]: numValue };
-      let newTotal = prev.total_active_customers;
-      if (hasPlanCounts(updatedCounts)) {
-        newTotal = computeTotalFromPlanCounts(updatedCounts).toString();
-      }
-      return { ...prev, plan_customer_counts: updatedCounts, total_active_customers: newTotal };
-    });
-    if (metricsError) clearError();
-    if (metricsSaved) setMetricsSaved(false);
-  };
-
-  const isAutoTotal = hasPlanCounts(metricsForm.plan_customer_counts);
-  const computedTotal = isAutoTotal ? computeTotalFromPlanCounts(metricsForm.plan_customer_counts) : null;
-
-  const handleMetricsSubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-      currency: metricsForm.currency,
-      mrr: parseFloat(metricsForm.mrr) || 0,
-      customers: parseInt(metricsForm.customers) || 0,
-      monthly_churn_rate: parseFloat(metricsForm.monthly_churn_rate) || 0
-    };
-
-    const totalValue = isAutoTotal ? computedTotal : parseInt(metricsForm.total_active_customers);
-    if (!isNaN(totalValue) && totalValue >= 0) payload.total_active_customers = totalValue;
-
-    if (metricsForm.plan_customer_counts && Object.keys(metricsForm.plan_customer_counts).length > 0) {
-      const cleanedCounts = {};
-      for (const [key, value] of Object.entries(metricsForm.plan_customer_counts)) {
-        const numValue = parseInt(value);
-        if (!isNaN(numValue) && numValue >= 0) cleanedCounts[key] = numValue;
-      }
-      if (Object.keys(cleanedCounts).length > 0) payload.plan_customer_counts = cleanedCounts;
-    }
-
-    const result = await saveMetrics(payload);
-    if (result.success) {
-      setMetricsSaved(true);
-      setTimeout(() => setMetricsSaved(false), 3000);
-    }
   };
 
   const handleResetDemoData = () => {
@@ -241,7 +160,7 @@ const Settings = () => {
                 Settings
               </h1>
               <p className="text-slate-400 text-lg">
-                Manage your profile, integrations, and business metrics
+                Manage your account and integrations
               </p>
             </div>
           </div>
@@ -249,7 +168,7 @@ const Settings = () => {
       </div>
 
       <div className="space-y-8">
-        {/* Profile & Workspace Section */}
+        {/* User Profile Section */}
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
           <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50">
@@ -260,8 +179,8 @@ const Settings = () => {
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Profile & Workspace</h2>
-                <p className="text-sm text-slate-400">Your personal information and company details</p>
+                <h2 className="text-xl font-bold text-white">User Profile</h2>
+                <p className="text-sm text-slate-400">Your personal account information</p>
               </div>
             </div>
 
@@ -270,13 +189,10 @@ const Settings = () => {
                 { id: 'fullName', label: 'Full Name', placeholder: 'John Doe', type: 'text' },
                 { id: 'email', label: 'Email', placeholder: 'john@example.com', type: 'email' },
                 { id: 'role', label: 'Role', placeholder: 'Founder, Head of Product...', type: 'text' },
-                { id: 'companyName', label: 'Company Name', placeholder: 'Acme Inc.', type: 'text' },
-                { id: 'companyWebsite', label: 'Company Website', placeholder: 'https://acme.com', type: 'url', optional: true },
               ].map((field) => (
                 <div key={field.id}>
                   <label className="block text-sm font-semibold text-slate-300 mb-2">
                     {field.label}
-                    {field.optional && <span className="text-slate-500 font-normal"> (optional)</span>}
                   </label>
                   <input
                     type={field.type}
@@ -312,6 +228,32 @@ const Settings = () => {
                 </p>
               </div>
             )}
+            
+            {/* Company Settings Link */}
+            <div className="mt-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-fuchsia-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">Company & Metrics</p>
+                    <p className="text-xs text-slate-500">Company profile and business metrics</p>
+                  </div>
+                </div>
+                <Link 
+                  to="/app/company"
+                  className="px-4 py-2 bg-fuchsia-500/10 text-fuchsia-400 rounded-lg hover:bg-fuchsia-500/20 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  Manage
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -433,164 +375,6 @@ const Settings = () => {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Business Metrics Section */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
-          <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Business Metrics</h2>
-                <p className="text-sm text-slate-400">Your current SaaS metrics for accurate pricing recommendations</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleMetricsSubmit}>
-              {metricsError && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center justify-between">
-                  <p className="text-sm text-red-400">{metricsError}</p>
-                  <button type="button" onClick={clearError} className="text-red-400 hover:text-red-300 p-1">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Revenue Currency</label>
-                  <select
-                    value={metricsForm.currency}
-                    onChange={(e) => handleMetricsChange('currency', e.target.value)}
-                    disabled={isSaving}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all disabled:opacity-50 appearance-none"
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Monthly Recurring Revenue (MRR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={metricsForm.mrr}
-                    onChange={(e) => handleMetricsChange('mrr', e.target.value)}
-                    disabled={isSaving}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all disabled:opacity-50"
-                    placeholder="e.g., 15000"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Number of Customers</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={metricsForm.customers}
-                    onChange={(e) => handleMetricsChange('customers', e.target.value)}
-                    disabled={isSaving}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all disabled:opacity-50"
-                    placeholder="e.g., 120"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Monthly Churn Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={metricsForm.monthly_churn_rate}
-                    onChange={(e) => handleMetricsChange('monthly_churn_rate', e.target.value)}
-                    disabled={isSaving}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all disabled:opacity-50"
-                    placeholder="e.g., 2.5"
-                  />
-                </div>
-              </div>
-
-              {/* Customers by Plan */}
-              {plans && plans.length > 0 && (
-                <div className="mt-6 border border-slate-700 rounded-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setShowPlanCounts(!showPlanCounts)}
-                    className="w-full px-4 py-3 flex items-center justify-between bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-slate-300">
-                      Customers by Plan <span className="text-slate-500 font-normal">(optional)</span>
-                    </span>
-                    <svg className={`w-5 h-5 text-slate-400 transition-transform ${showPlanCounts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {showPlanCounts && (
-                    <div className="p-4 space-y-4 bg-slate-900/30">
-                      <p className="text-xs text-slate-500 mb-3">Enter the number of active customers on each plan.</p>
-                      {plans.map((plan) => {
-                        const planKey = toPlanKey(plan);
-                        const count = metricsForm.plan_customer_counts?.[planKey] ?? '';
-                        return (
-                          <div key={planKey} className="flex items-center gap-4">
-                            <label className="flex-1 text-sm text-slate-300">{plan.name} customers</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={count}
-                              onChange={(e) => handlePlanCountChange(planKey, e.target.value)}
-                              disabled={isSaving}
-                              className="w-32 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all text-right disabled:opacity-50"
-                              placeholder="0"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-6 flex items-center gap-4">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-700 hover:scale-[1.02] transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {isSaving ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Saving...
-                    </span>
-                  ) : 'Save Metrics'}
-                </button>
-
-                {metricsSaved && (
-                  <span className="text-sm text-emerald-400 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Metrics saved successfully
-                  </span>
-                )}
-              </div>
-            </form>
           </div>
         </div>
 

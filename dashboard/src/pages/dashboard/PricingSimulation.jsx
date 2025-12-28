@@ -2,13 +2,15 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlans } from '../../context/PlansContext';
 import { businessMetricsApi, simulationApi, downloadBlob, AICreditsError } from '../../lib/apiClient';
-import { useAiCredits } from '../../hooks/useAiCredits';
+import { useAiCreditsContext } from '../../context/AiCreditsContext';
 import { 
   toPlanKey, 
   getActionConfig, 
   getCustomerCountForPlan,
   getTwoHighestPricedPlans,
 } from '../../lib/planUtils';
+import ImpactOverviewChart from '../../components/simulation/ImpactOverviewChart';
+import BeforeAfterSummary from '../../components/simulation/BeforeAfterSummary';
 
 // Helper function to humanize action codes
 const humanizeActionCode = (code) => {
@@ -58,23 +60,29 @@ const PricePresetChips = ({ presets, currentPrice, onSelect, disabled }) => {
   );
 };
 
-// Risk level badge component
-const RiskBadge = ({ level }) => {
+// Sensitivity level badge component (renamed from Risk for better UX)
+const SensitivityBadge = ({ level }) => {
   const styles = {
     low: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     medium: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     high: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
 
+  const labels = {
+    low: 'Low Sensitivity',
+    medium: 'Moderate Sensitivity',
+    high: 'High Sensitivity',
+  };
+
   return (
     <span className={`px-2 py-1 text-xs font-medium rounded-full border ${styles[level] || styles.medium}`}>
-      {level?.charAt(0).toUpperCase() + level?.slice(1)} Risk
+      {labels[level] || 'Moderate Sensitivity'}
     </span>
   );
 };
 
 // Scenario card component
-const ScenarioCard = ({ scenario, currency, isPriceIncrease }) => {
+const ScenarioCard = ({ scenario, currency, isPriceIncrease, isRecommended }) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -91,11 +99,23 @@ const ScenarioCard = ({ scenario, currency, isPriceIncrease }) => {
   };
 
   return (
-    <div className={`rounded-2xl p-5 border ${scenarioColors[scenario.name] || 'border-slate-700'} backdrop-blur-sm`}>
+    <div className={`rounded-2xl p-5 border ${scenarioColors[scenario.name] || 'border-slate-700'} backdrop-blur-sm relative`}>
+      {isRecommended && (
+        <div className="absolute -top-2 left-4">
+          <span className="px-2 py-0.5 text-xs font-medium bg-violet-500 text-white rounded-full">
+            Recommended
+          </span>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-bold text-white">{scenario.name}</h4>
-        <RiskBadge level={scenario.risk_level} />
+        <SensitivityBadge level={scenario.risk_level} />
       </div>
+      {isRecommended && (
+        <p className="text-xs text-slate-400 mb-3 -mt-2">
+          Balanced trade-off between revenue lift and churn impact.
+        </p>
+      )}
 
       <div className="space-y-3">
         <div className="p-3 rounded-xl bg-slate-800/50">
@@ -182,7 +202,7 @@ const SimulationResult = ({ result, onDownloadPdf, isPdfLoading }) => {
               <div className={`text-2xl font-bold ${isPriceIncrease ? 'text-emerald-400' : 'text-blue-400'}`}>
                 {changeSign}{result.price_change_pct?.toFixed(1)}%
               </div>
-              <RiskBadge level={overallRisk} />
+              <SensitivityBadge level={overallRisk} />
             </div>
           </div>
 
@@ -228,6 +248,16 @@ const SimulationResult = ({ result, onDownloadPdf, isPdfLoading }) => {
         </div>
       </div>
 
+      {/* Data Visualization Charts */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <BeforeAfterSummary result={result} />
+        <ImpactOverviewChart 
+          scenarios={result.scenarios} 
+          currency={result.currency}
+          isPriceIncrease={isPriceIncrease}
+        />
+      </div>
+
       {/* Scenario Cards */}
       <div className="grid lg:grid-cols-3 gap-4">
         {result.scenarios?.map((scenario) => (
@@ -236,6 +266,7 @@ const SimulationResult = ({ result, onDownloadPdf, isPdfLoading }) => {
             scenario={scenario}
             currency={result.currency}
             isPriceIncrease={isPriceIncrease}
+            isRecommended={scenario.name === 'Base'}
           />
         ))}
       </div>
@@ -301,7 +332,7 @@ const PricingSimulation = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { plans, isLoading: plansLoading, addPlan } = usePlans();
-  const { credits, loading: creditsLoading, refetch: refetchCredits } = useAiCredits();
+  const { credits, loading: creditsLoading, refetch: refetchCredits } = useAiCreditsContext();
 
   const actionCode = searchParams.get('action');
   const [showActionBanner, setShowActionBanner] = useState(true);
@@ -677,9 +708,14 @@ const PricingSimulation = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-slate-400">Current Price</span>
                         <span className="text-white font-medium">
-                          {formatPrice(selectedPlan.price, selectedPlan.currency)} / {selectedPlan.interval || 'month'}
+                          {formatPrice(selectedPlan.price, selectedPlan.currency)} / month
                         </span>
                       </div>
+                      {selectedPlan.interval && selectedPlan.interval !== 'month' && selectedPlan.interval !== 'monthly' && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Displayed as monthly equivalent. Billed {selectedPlan.interval}.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

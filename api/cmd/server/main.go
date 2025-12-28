@@ -90,7 +90,7 @@ func main() {
 	pricingV2Service := service.NewPricingV2Service(pricingV2Repo, cfg.OpenAIAPIKey)
 	aiPricingService := service.NewAIPricingService(cfg.OpenAIAPIKey)
 	aiCreditsService := service.NewAICreditsService(aiUsageRepo)
-	simulationService := service.NewSimulationService(elasticityCfg, simulationRepo, planRepo, aiPricingService)
+	simulationService := service.NewSimulationService(elasticityCfg, simulationRepo, planRepo, pricingV2Repo, aiPricingService)
 
 	// Stripe Connect service
 	stripeService := service.NewStripeService(

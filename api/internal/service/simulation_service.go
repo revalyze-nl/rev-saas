@@ -28,6 +28,7 @@ type SimulationService struct {
 	elasticityConfig *config.ElasticityConfig
 	simulationRepo   *mongorepo.SimulationRepository
 	planRepo         *mongorepo.PlanRepository
+	pricingV2Repo    *mongorepo.PricingV2Repository
 	aiService        *AIPricingService
 }
 
@@ -36,12 +37,14 @@ func NewSimulationService(
 	elasticityConfig *config.ElasticityConfig,
 	simulationRepo *mongorepo.SimulationRepository,
 	planRepo *mongorepo.PlanRepository,
+	pricingV2Repo *mongorepo.PricingV2Repository,
 	aiService *AIPricingService,
 ) *SimulationService {
 	return &SimulationService{
 		elasticityConfig: elasticityConfig,
 		simulationRepo:   simulationRepo,
 		planRepo:         planRepo,
+		pricingV2Repo:    pricingV2Repo,
 		aiService:        aiService,
 	}
 }
@@ -72,11 +75,31 @@ func (s *SimulationService) RunPricingSimulation(ctx context.Context, userID str
 	}
 
 	// Look up plan to get the name and verify ownership
-	plan, err := s.planRepo.GetByIDAndUser(ctx, planID, uid)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch plan: %w", err)
+	// First try V2 plans, then fall back to legacy plans
+	var planName string
+	
+	if s.pricingV2Repo != nil {
+		v2Plan, err := s.pricingV2Repo.GetByIDAndUser(ctx, planID, uid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch v2 plan: %w", err)
+		}
+		if v2Plan != nil {
+			planName = v2Plan.PlanName
+		}
 	}
-	if plan == nil {
+	
+	// If not found in V2, try legacy plans
+	if planName == "" {
+		plan, err := s.planRepo.GetByIDAndUser(ctx, planID, uid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch plan: %w", err)
+		}
+		if plan != nil {
+			planName = plan.Name
+		}
+	}
+	
+	if planName == "" {
 		return nil, errors.New("plan not found or access denied")
 	}
 
@@ -118,7 +141,7 @@ func (s *SimulationService) RunPricingSimulation(ctx context.Context, userID str
 	result := &model.SimulationResult{
 		UserID:                uid,
 		PlanID:                planID,
-		PlanName:              plan.Name,
+		PlanName:              planName,
 		CurrentPrice:          req.CurrentPrice,
 		NewPrice:              req.NewPrice,
 		Currency:              req.Currency,
@@ -265,6 +288,7 @@ func (s *SimulationService) GetSimulationByID(ctx context.Context, userID, simul
 
 	return s.simulationRepo.GetByIDAndUser(ctx, sid, uid)
 }
+
 
 
 

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useAiCredits } from '../../hooks/useAiCredits';
+import { useAiCreditsContext } from '../../context/AiCreditsContext';
 
 // AI Credits Indicator Component
 const AICreditsIndicator = ({ credits, loading, onClick }) => {
@@ -69,7 +69,7 @@ const Topbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { credits, loading } = useAiCredits();
+  const { credits, loading } = useAiCreditsContext();
 
   const getPageInfo = () => {
     const path = location.pathname;

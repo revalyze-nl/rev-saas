@@ -48,15 +48,31 @@ func GenerateSimulationPDF(data SimulationPDFData) (*bytes.Buffer, error) {
 	builder.drawSimulationSummary(sim)
 
 	// ═══════════════════════════════════════════════════════════════
-	// SECTION 3: SCENARIO COMPARISON
+	// SECTION 3: BEFORE VS AFTER
 	// ═══════════════════════════════════════════════════════════════
+	builder.checkPageBreakSim(reportDate, 60) // Check if enough space for table
+	builder.drawSectionTitleWithDivider("Before vs After", colorDark)
+	builder.drawBeforeAfterTable(sim)
+
+	// ═══════════════════════════════════════════════════════════════
+	// SECTION 4: IMPACT OVERVIEW CHART
+	// ═══════════════════════════════════════════════════════════════
+	builder.checkPageBreakSim(reportDate, 75) // Check if enough space for chart
+	builder.drawSectionTitleWithDivider("Impact Overview", colorDark)
+	builder.drawImpactOverviewChart(sim)
+
+	// ═══════════════════════════════════════════════════════════════
+	// SECTION 5: SCENARIO COMPARISON
+	// ═══════════════════════════════════════════════════════════════
+	builder.checkPageBreakSim(reportDate, 90) // Check if enough space for table
 	builder.drawSectionTitleWithDivider("Scenario Comparison", colorDark)
 	builder.drawScenarioTable(sim)
 
 	// ═══════════════════════════════════════════════════════════════
-	// SECTION 4: AI PRICING INSIGHTS
+	// SECTION 6: AI PRICING INSIGHTS
 	// ═══════════════════════════════════════════════════════════════
 	if sim.AINarrative != "" {
+		builder.checkPageBreakSim(reportDate, 50) // Check if enough space for insights
 		builder.drawSimulationAIInsights(sim.AINarrative)
 	}
 
@@ -73,6 +89,19 @@ func GenerateSimulationPDF(data SimulationPDFData) (*bytes.Buffer, error) {
 	}
 
 	return &buf, nil
+}
+
+// checkPageBreakSim checks if a page break is needed and adds one if necessary
+func (b *pdfBuilder) checkPageBreakSim(reportDate string, requiredHeight float64) {
+	_, pageHeight := b.pdf.GetPageSize()
+	currentY := b.pdf.GetY()
+	bottomMargin := 30.0 // Space for footer
+	
+	if currentY+requiredHeight > pageHeight-bottomMargin {
+		b.pdf.AddPage()
+		b.drawHeader(reportDate)
+		b.pdf.Ln(5)
+	}
 }
 
 // drawSimulationTitleBlock draws the main title section for simulation PDF
@@ -331,9 +360,17 @@ func (b *pdfBuilder) drawScenarioTable(sim *model.SimulationResult) {
 			},
 		},
 		{
-			Label: "Risk Level",
+			Label: "Sensitivity",
 			GetValue: func(sc model.SimulationScenario) string {
-				return strings.Title(sc.RiskLevel)
+				sensitivityLabels := map[string]string{
+					"low":    "Low",
+					"medium": "Moderate",
+					"high":   "High",
+				}
+				if label, ok := sensitivityLabels[sc.RiskLevel]; ok {
+					return label
+				}
+				return "Moderate"
 			},
 		},
 	}
@@ -355,8 +392,8 @@ func (b *pdfBuilder) drawScenarioTable(sim *model.SimulationResult) {
 		for i, sc := range sim.Scenarios {
 			b.pdf.SetXY(tableX+colW*(float64(i)+1), currentY+2)
 			
-			// Special coloring for risk level
-			if row.Label == "Risk Level" {
+			// Special coloring for sensitivity level
+			if row.Label == "Sensitivity" {
 				switch sc.RiskLevel {
 				case "low":
 					b.setColor(colorEmerald)
@@ -400,25 +437,310 @@ func (b *pdfBuilder) drawScenarioTable(sim *model.SimulationResult) {
 	// Move cursor below table
 	b.pdf.SetY(currentY + 8)
 
-	// Scenario descriptions
+	// Scenario descriptions with Recommended tag for Base
 	b.pdf.Ln(2)
 	b.setColor(colorMedium)
 	b.pdf.SetFont("Arial", "I", 9)
 
-	descriptions := []string{
-		"Conservative: Most cautious estimate with minimal risk assumptions.",
-		"Base: Balanced projection using typical market responses.",
-		"Aggressive: Optimistic estimate assuming strong market acceptance.",
+	descriptions := []struct {
+		text          string
+		isRecommended bool
+	}{
+		{"Conservative: Most cautious estimate with minimal sensitivity assumptions.", false},
+		{"Base: Balanced projection using typical market responses.", true},
+		{"Aggressive: Optimistic estimate assuming strong market acceptance.", false},
 	}
 
 	for i, desc := range descriptions {
 		b.setFillColor(scenarioColors[i])
 		b.pdf.Circle(b.leftMargin+2, b.pdf.GetY()+2, 1.5, "F")
 		b.pdf.SetX(b.leftMargin + 8)
-		b.pdf.CellFormat(b.contentWidth-8, 5, desc, "", 1, "L", false, 0, "")
+		
+		if desc.isRecommended {
+			// Draw "Recommended" badge inline with text
+			b.setColor(colorMedium)
+			b.pdf.SetFont("Arial", "I", 9)
+			b.pdf.CellFormat(b.contentWidth-8, 5, desc.text+" (Recommended)", "", 1, "L", false, 0, "")
+		} else {
+			b.pdf.CellFormat(b.contentWidth-8, 5, desc.text, "", 1, "L", false, 0, "")
+		}
 	}
 
 	b.pdf.Ln(pdfSectionSpaceBefore)
+}
+
+// drawBeforeAfterTable draws the before vs after comparison table
+func (b *pdfBuilder) drawBeforeAfterTable(sim *model.SimulationResult) {
+	// Get base scenario for projections
+	var baseScenario *model.SimulationScenario
+	for i := range sim.Scenarios {
+		if sim.Scenarios[i].Name == "Base" {
+			baseScenario = &sim.Scenarios[i]
+			break
+		}
+	}
+	if baseScenario == nil && len(sim.Scenarios) > 0 {
+		baseScenario = &sim.Scenarios[0]
+	}
+	if baseScenario == nil {
+		return
+	}
+
+	// Calculate values
+	currentMRR := float64(sim.ActiveCustomersOnPlan) * sim.CurrentPrice
+	currentARR := currentMRR * 12
+	avgNewCustomers := (baseScenario.NewCustomerCountMin + baseScenario.NewCustomerCountMax) / 2
+	avgNewMRR := (baseScenario.NewMRRMin + baseScenario.NewMRRMax) / 2
+	avgNewARR := (baseScenario.NewARRMin + baseScenario.NewARRMax) / 2
+
+	// Calculate deltas
+	priceDelta := sim.PriceChangePct
+	customerDelta := avgNewCustomers - sim.ActiveCustomersOnPlan
+	mrrDeltaPct := (avgNewMRR - currentMRR) / currentMRR * 100
+	arrDeltaPct := (avgNewARR - currentARR) / currentARR * 100
+
+	// Table dimensions
+	tableX := b.leftMargin
+	tableW := b.contentWidth
+	colWidths := []float64{tableW * 0.25, tableW * 0.25, tableW * 0.25, tableW * 0.25}
+	rowH := 10.0
+	headerH := 8.0
+
+	startY := b.pdf.GetY()
+
+	// Table header
+	b.setFillColor(pdfColor{241, 245, 249}) // slate-100
+	b.pdf.Rect(tableX, startY, tableW, headerH, "F")
+
+	headers := []string{"Metric", "Before", "After", "Change"}
+	b.setColor(colorMedium)
+	b.pdf.SetFont("Arial", "B", 9)
+	xPos := tableX
+	for i, header := range headers {
+		b.pdf.SetXY(xPos+2, startY+2)
+		b.pdf.CellFormat(colWidths[i]-4, headerH-4, header, "", 0, "C", false, 0, "")
+		xPos += colWidths[i]
+	}
+
+	currentY := startY + headerH
+
+	// Rows data
+	rows := []struct {
+		Label     string
+		Before    string
+		After     string
+		Delta     float64
+		IsCurrency bool
+		IsCount   bool
+	}{
+		{"Price / month", formatCurrency(sim.CurrentPrice, sim.Currency), formatCurrency(sim.NewPrice, sim.Currency), priceDelta, false, false},
+		{"Active Customers", fmt.Sprintf("%d", sim.ActiveCustomersOnPlan), fmt.Sprintf("%d", avgNewCustomers), float64(customerDelta), false, true},
+		{"Monthly Revenue", formatCurrency(currentMRR, sim.Currency), formatCurrency(avgNewMRR, sim.Currency), mrrDeltaPct, false, false},
+		{"Annual Revenue", formatCurrency(currentARR, sim.Currency), formatCurrency(avgNewARR, sim.Currency), arrDeltaPct, false, false},
+	}
+
+	for rowIdx, row := range rows {
+		// Alternate row background
+		if rowIdx%2 == 1 {
+			b.setFillColor(pdfColor{248, 250, 252}) // slate-50
+			b.pdf.Rect(tableX, currentY, tableW, rowH, "F")
+		}
+
+		xPos := tableX
+
+		// Metric label
+		b.pdf.SetXY(xPos+4, currentY+3)
+		b.setColor(colorMedium)
+		b.pdf.SetFont("Arial", "", 9)
+		b.pdf.CellFormat(colWidths[0]-8, rowH-6, row.Label, "", 0, "L", false, 0, "")
+		xPos += colWidths[0]
+
+		// Before value
+		b.pdf.SetXY(xPos+2, currentY+3)
+		b.setColor(colorDark)
+		b.pdf.SetFont("Arial", "", 9)
+		b.pdf.CellFormat(colWidths[1]-4, rowH-6, row.Before, "", 0, "C", false, 0, "")
+		xPos += colWidths[1]
+
+		// After value
+		b.pdf.SetXY(xPos+2, currentY+3)
+		b.pdf.SetFont("Arial", "B", 9)
+		b.pdf.CellFormat(colWidths[2]-4, rowH-6, row.After, "", 0, "C", false, 0, "")
+		xPos += colWidths[2]
+
+		// Delta
+		b.pdf.SetXY(xPos+2, currentY+3)
+		var deltaText string
+		if row.IsCount {
+			if row.Delta >= 0 {
+				deltaText = fmt.Sprintf("+%d", int(row.Delta))
+				b.setColor(colorEmerald)
+			} else {
+				deltaText = fmt.Sprintf("%d", int(row.Delta))
+				b.setColor(colorRed)
+			}
+		} else {
+			if row.Delta >= 0 {
+				deltaText = fmt.Sprintf("+%.1f%%", row.Delta)
+				b.setColor(colorEmerald)
+			} else {
+				deltaText = fmt.Sprintf("%.1f%%", row.Delta)
+				b.setColor(colorRed)
+			}
+		}
+		b.pdf.SetFont("Arial", "B", 9)
+		b.pdf.CellFormat(colWidths[3]-4, rowH-6, deltaText, "", 0, "C", false, 0, "")
+
+		currentY += rowH
+	}
+
+	// Draw table borders
+	b.setDrawColor(colorLighter)
+	b.pdf.SetLineWidth(0.3)
+	b.pdf.Rect(tableX, startY, tableW, currentY-startY, "D")
+
+	// Column dividers
+	xPos = tableX
+	for i := 0; i < 3; i++ {
+		xPos += colWidths[i]
+		b.pdf.Line(xPos, startY, xPos, currentY)
+	}
+
+	// Row dividers
+	for rowY := startY + headerH; rowY < currentY; rowY += rowH {
+		b.pdf.Line(tableX, rowY, tableX+tableW, rowY)
+	}
+
+	// Caption
+	b.pdf.SetY(currentY + 4)
+	b.setColor(colorLight)
+	b.pdf.SetFont("Arial", "I", 8)
+	b.pdf.CellFormat(b.contentWidth, 4, "Based on Base scenario projections.", "", 1, "C", false, 0, "")
+
+	b.pdf.Ln(8)
+}
+
+// drawImpactOverviewChart draws a bar chart showing ARR and customer change per scenario
+func (b *pdfBuilder) drawImpactOverviewChart(sim *model.SimulationResult) {
+	if len(sim.Scenarios) == 0 {
+		return
+	}
+
+	isPriceIncrease := sim.PriceChangePct >= 0
+
+	// Chart dimensions
+	chartX := b.leftMargin
+	chartY := b.pdf.GetY()
+	chartW := b.contentWidth
+	chartH := 55.0
+	barAreaW := chartW - 40 // Leave space for Y-axis labels
+	barAreaX := chartX + 35
+	barAreaH := chartH - 20
+
+	// Draw chart background
+	b.setFillColor(pdfColor{248, 250, 252})
+	b.setDrawColor(colorLighter)
+	b.pdf.SetLineWidth(0.3)
+	b.pdf.RoundedRect(chartX, chartY, chartW, chartH, 2, "1234", "FD")
+
+	// Find max ARR for scaling
+	maxARR := 0.0
+	for _, sc := range sim.Scenarios {
+		avg := (sc.NewARRMin + sc.NewARRMax) / 2
+		if avg > maxARR {
+			maxARR = avg
+		}
+	}
+	if maxARR == 0 {
+		maxARR = 100000 // Fallback
+	}
+
+	// Draw Y-axis labels for ARR
+	b.setColor(colorMedium)
+	b.pdf.SetFont("Arial", "", 7)
+	for i := 0; i <= 4; i++ {
+		val := maxARR * float64(4-i) / 4
+		y := chartY + 10 + float64(i)*barAreaH/4
+		b.pdf.SetXY(chartX+2, y-2)
+		b.pdf.CellFormat(30, 4, formatCompactCurrency(val, sim.Currency), "", 0, "R", false, 0, "")
+		// Grid line
+		b.setDrawColor(pdfColor{226, 232, 240})
+		b.pdf.Line(barAreaX, y, barAreaX+barAreaW-10, y)
+	}
+
+	// Scenario colors
+	scenarioColors := []pdfColor{colorEmerald, colorPrimary, colorAmber}
+
+	// Draw bars
+	barWidth := (barAreaW - 30) / float64(len(sim.Scenarios)) * 0.6
+	barGap := (barAreaW - 30) / float64(len(sim.Scenarios))
+
+	for i, sc := range sim.Scenarios {
+		avgARR := (sc.NewARRMin + sc.NewARRMax) / 2
+		barH := (avgARR / maxARR) * barAreaH
+		barX := barAreaX + 10 + float64(i)*barGap
+		barY := chartY + 10 + barAreaH - barH
+
+		// Draw bar
+		b.setFillColor(scenarioColors[i])
+		b.pdf.Rect(barX, barY, barWidth, barH, "F")
+
+		// Scenario name below
+		b.pdf.SetXY(barX-5, chartY+chartH-10)
+		b.setColor(colorDark)
+		b.pdf.SetFont("Arial", "", 8)
+		b.pdf.CellFormat(barWidth+10, 4, sc.Name, "", 0, "C", false, 0, "")
+
+		// Customer change indicator (as text above bar)
+		var customerChange float64
+		if isPriceIncrease {
+			customerChange = -(sc.CustomerLossMinPct + sc.CustomerLossMaxPct) / 2
+		} else {
+			customerChange = (sc.CustomerGainMinPct + sc.CustomerGainMaxPct) / 2
+		}
+
+		b.pdf.SetXY(barX-2, barY-6)
+		if customerChange >= 0 {
+			b.setColor(colorEmerald)
+			b.pdf.SetFont("Arial", "B", 7)
+			b.pdf.CellFormat(barWidth+4, 4, fmt.Sprintf("+%.1f%%", customerChange), "", 0, "C", false, 0, "")
+		} else {
+			b.setColor(colorRed)
+			b.pdf.SetFont("Arial", "B", 7)
+			b.pdf.CellFormat(barWidth+4, 4, fmt.Sprintf("%.1f%%", customerChange), "", 0, "C", false, 0, "")
+		}
+	}
+
+	// Chart title/legend
+	b.pdf.SetY(chartY + chartH + 4)
+	b.setColor(colorMedium)
+	b.pdf.SetFont("Arial", "", 8)
+	legendText := "Projected ARR per scenario"
+	if isPriceIncrease {
+		legendText += " (% = customer loss)"
+	} else {
+		legendText += " (% = customer gain)"
+	}
+	b.pdf.CellFormat(b.contentWidth, 4, legendText, "", 1, "C", false, 0, "")
+
+	b.pdf.Ln(8)
+}
+
+// formatCompactCurrency formats currency in compact form (e.g., $150K, $1.2M)
+func formatCompactCurrency(amount float64, currency string) string {
+	symbol := "$"
+	if currency == "EUR" {
+		symbol = "E"
+	} else if currency == "GBP" {
+		symbol = "L"
+	}
+
+	if amount >= 1000000 {
+		return fmt.Sprintf("%s%.1fM", symbol, amount/1000000)
+	} else if amount >= 1000 {
+		return fmt.Sprintf("%s%.0fK", symbol, amount/1000)
+	}
+	return fmt.Sprintf("%s%.0f", symbol, amount)
 }
 
 // drawSimulationAIInsights draws the AI-generated narrative

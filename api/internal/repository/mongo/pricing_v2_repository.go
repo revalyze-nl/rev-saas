@@ -98,3 +98,21 @@ func (r *PricingV2Repository) CountByUserID(ctx context.Context, userID primitiv
 	filter := bson.M{"user_id": userID}
 	return r.collection.CountDocuments(ctx, filter)
 }
+
+// GetByIDAndUser returns a specific plan by ID and user ID
+func (r *PricingV2Repository) GetByIDAndUser(ctx context.Context, planID, userID primitive.ObjectID) (*model.PricingV2Plan, error) {
+	filter := bson.M{
+		"_id":     planID,
+		"user_id": userID,
+	}
+	
+	var plan model.PricingV2Plan
+	err := r.collection.FindOne(ctx, filter).Decode(&plan)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &plan, nil
+}

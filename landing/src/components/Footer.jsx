@@ -35,8 +35,8 @@ const Footer = () => {
           {/* Contact */}
           <div>
             <h4 className="font-semibold text-white mb-4">Contact</h4>
-            <a href="mailto:hello@revalyze.com" className="text-slate-400 hover:text-blue-400 transition-colors">
-              hello@revalyze.com
+            <a href="mailto:info@revalyze.co" className="text-slate-400 hover:text-blue-400 transition-colors">
+              info@revalyze.co
             </a>
           </div>
         </div>
@@ -44,7 +44,7 @@ const Footer = () => {
         <div className="border-t border-slate-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
             <p className="text-slate-400">
-              © {new Date().getFullYear()} Revalyze B.V. All rights reserved.
+              © {new Date().getFullYear()} Revalyze. All rights reserved.
             </p>
             <p className="text-slate-500">
               Built in the Netherlands, for global SaaS

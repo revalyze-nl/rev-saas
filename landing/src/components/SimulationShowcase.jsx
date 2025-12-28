@@ -52,7 +52,7 @@ const SimulationShowcase = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">3 Risk Scenarios</h3>
+                <h3 className="text-lg font-semibold text-white mb-1">3 Sensitivity Scenarios</h3>
                 <p className="text-slate-400">Conservative, Base, and Aggressive projections for every price change.</p>
               </div>
             </div>
@@ -139,7 +139,7 @@ const SimulationShowcase = () => {
                       <div className="text-2xl font-bold text-emerald-400">+34.5%</div>
                       <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-full">
                         <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
-                        <span className="text-sm text-amber-400 font-medium">Medium Risk</span>
+                        <span className="text-sm text-amber-400 font-medium">Medium Sensitivity</span>
                       </div>
                     </div>
                   </div>
@@ -162,7 +162,7 @@ const SimulationShowcase = () => {
                           <div className="text-lg text-white font-bold">$11.2K</div>
                         </div>
                         <div className="pt-2 border-t border-emerald-500/20">
-                          <span className="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full">Low Risk</span>
+                          <span className="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full">Low Sensitivity</span>
                         </div>
                       </div>
                     </div>
@@ -183,7 +183,7 @@ const SimulationShowcase = () => {
                           <div className="text-lg text-white font-bold">$10.8K</div>
                         </div>
                         <div className="pt-2 border-t border-blue-500/20">
-                          <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full">Medium Risk</span>
+                          <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full">Medium Sensitivity</span>
                         </div>
                       </div>
                     </div>
@@ -204,7 +204,7 @@ const SimulationShowcase = () => {
                           <div className="text-lg text-white font-bold">$10.2K</div>
                         </div>
                         <div className="pt-2 border-t border-orange-500/20">
-                          <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full">High Risk</span>
+                          <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full">High Sensitivity</span>
                         </div>
                       </div>
                     </div>
@@ -239,7 +239,7 @@ const SimulationShowcase = () => {
           className="text-center mt-12 md:mt-16"
         >
           <a
-            href="https://app.revalyze.com/register"
+            href="https://app.revalyze.co/register"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-blue-600 transition-all shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30"
           >
             Try Pricing Simulation Free

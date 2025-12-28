@@ -67,13 +67,13 @@ const Navbar = () => {
             
             <div className="flex items-center space-x-2 ml-6">
               <a
-                href="http://localhost:3000"
+                href="https://app.revalyze.co/login"
                 className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
               >
                 Login
               </a>
               <a
-                href="http://localhost:3000/signup"
+                href="https://app.revalyze.co/register"
                 className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all hover:scale-105"
               >
                 Sign Up
@@ -83,13 +83,13 @@ const Navbar = () => {
 
           <div className="md:hidden flex items-center space-x-2">
             <a
-              href="http://localhost:3000"
+              href="https://app.revalyze.co/login"
               className="px-3 py-1.5 text-sm font-medium text-slate-300"
             >
               Login
             </a>
             <a
-              href="http://localhost:3000/signup"
+              href="https://app.revalyze.co/register"
               className="px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg"
             >
               Sign Up

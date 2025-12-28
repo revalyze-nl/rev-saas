@@ -111,7 +111,7 @@ func Load() *Config {
 		SMTPPort:     getEnv("SMTP_PORT", ""),
 		SMTPUser:     getEnv("SMTP_USER", ""),
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
-		SMTPFrom:     getEnv("SMTP_FROM", "Revalyze <noreply@revalyze.com>"),
+		SMTPFrom:     getEnv("SMTP_FROM", "Revalyze <noreply@revalyze.co>"),
 	}
 
 	stripeEnabled := cfg.StripeSecretKey != "" && cfg.StripeConnectClientID != ""

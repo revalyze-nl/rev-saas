@@ -73,7 +73,7 @@ const Navbar = () => {
                 Login
               </a>
               <a
-                href="https://app.revalyze.co/register"
+                href="https://app.revalyze.co/signup"
                 className="px-5 py-2 text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all hover:scale-105"
               >
                 Sign Up
@@ -89,7 +89,7 @@ const Navbar = () => {
               Login
             </a>
             <a
-              href="https://app.revalyze.co/register"
+              href="https://app.revalyze.co/signup"
               className="px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg"
             >
               Sign Up

@@ -171,7 +171,7 @@ const Comparison = () => {
         >
           <p className="text-slate-400 mb-6">Ready to work smarter, not harder?</p>
           <a
-            href="https://app.revalyze.co/register"
+            href="https://app.revalyze.co/signup"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-semibold hover:shadow-lg hover:shadow-amber-500/50 transition-all hover:scale-105"
           >
             Try Revalyze Free

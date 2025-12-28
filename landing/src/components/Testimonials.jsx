@@ -135,7 +135,7 @@ const Testimonials = () => {
           className="mt-16 text-center"
         >
           <a
-            href="https://app.revalyze.co/register"
+            href="https://app.revalyze.co/signup"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all hover:scale-105"
           >
             Start Your Free Trial

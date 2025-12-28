@@ -76,7 +76,7 @@ const PricingCard = ({ plan, price, description, features, creditNote, isPopular
       </p>
 
       <a
-        href="https://app.revalyze.co/register"
+        href="https://app.revalyze.co/signup"
         className={`w-full py-3.5 rounded-2xl font-semibold transition-all duration-300 block text-center ${
           isPopular
             ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/60 hover:scale-105'

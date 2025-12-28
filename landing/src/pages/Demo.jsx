@@ -60,7 +60,7 @@ export default function Demo() {
             <span className="text-sm">{DEMO_MODE_BANNER.text}</span>
           </div>
           <Link
-            to="https://app.revalyze.co/register"
+            to="https://app.revalyze.co/signup"
             className="px-4 py-1.5 bg-white text-violet-700 rounded-lg text-sm font-medium hover:bg-white/90 transition-colors"
           >
             {DEMO_MODE_BANNER.ctaText} &rarr;
@@ -82,7 +82,7 @@ export default function Demo() {
               <span className="text-sm text-slate-300">{DEMO_USER.credits.remaining} credits</span>
             </div>
             <Link
-              to="https://app.revalyze.co/register"
+              to="https://app.revalyze.co/signup"
               className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
             >
               Sign Up Free
@@ -787,7 +787,7 @@ function SignUpCTA() {
       <h3 className="text-xl font-bold text-white mb-2">Ready to optimize your pricing?</h3>
       <p className="text-violet-100 mb-4">Sign up now and run real analysis with your own data</p>
       <Link
-        to="https://app.revalyze.co/register"
+        to="https://app.revalyze.co/signup"
         className="inline-block px-6 py-3 bg-white text-violet-700 font-semibold rounded-lg hover:bg-white/90 transition-colors"
       >
         Start Free Trial

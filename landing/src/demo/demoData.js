@@ -325,6 +325,6 @@ export const DEMO_USER = {
 export const DEMO_MODE_BANNER = {
   text: "Demo mode - sample data only",
   ctaText: "Run real analysis",
-  ctaLink: "/register"
+  ctaLink: "/signup"
 };
 

@@ -56,7 +56,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
           >
-            <a href="https://app.revalyze.co/register" className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/60 hover:scale-105 inline-flex items-center">
+            <a href="https://app.revalyze.co/signup" className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/60 hover:scale-105 inline-flex items-center">
               Get Started
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
             </a>

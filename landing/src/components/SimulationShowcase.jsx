@@ -234,7 +234,7 @@ const SimulationShowcase = () => {
           className="text-center mt-12 md:mt-16"
         >
           <a
-            href="https://app.revalyze.co/register"
+            href="https://app.revalyze.co/signup"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-blue-600 transition-all shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30"
           >
             Try Pricing Simulation Free

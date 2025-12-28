@@ -173,6 +173,8 @@ func (s *CompetitorV2Service) callOpenAI(ctx context.Context, prompt string) (st
 
 // SaveCompetitors saves discovered competitors for a user
 func (s *CompetitorV2Service) SaveCompetitors(ctx context.Context, userID string, competitors []model.DiscoveredCompetitor) ([]model.SavedCompetitor, error) {
+	log.Printf("[competitor-v2] SaveCompetitors called with %d competitors for user %s", len(competitors), userID)
+	
 	uid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID: %w", err)
@@ -193,6 +195,8 @@ func (s *CompetitorV2Service) SaveCompetitors(ctx context.Context, userID string
 	// Get limit based on plan
 	planLimits := GetPlanLimits(user.Plan)
 	limit := planLimits.MaxCompetitors
+	
+	log.Printf("[competitor-v2] User plan: %s, limit: %d, current: %d, trying to add: %d", user.Plan, limit, currentCount, len(competitors))
 
 	// Check if adding these would exceed limit
 	if int(currentCount)+len(competitors) > limit {
@@ -205,7 +209,9 @@ func (s *CompetitorV2Service) SaveCompetitors(ctx context.Context, userID string
 
 	var saved []model.SavedCompetitor
 
-	for _, comp := range competitors {
+	for i, comp := range competitors {
+		log.Printf("[competitor-v2] Saving competitor %d: %s (%s)", i+1, comp.Name, comp.Domain)
+		
 		savedComp := &model.SavedCompetitor{
 			UserID:     uid,
 			Name:       comp.Name,
@@ -219,9 +225,11 @@ func (s *CompetitorV2Service) SaveCompetitors(ctx context.Context, userID string
 			continue
 		}
 
+		log.Printf("[competitor-v2] Successfully saved competitor %s with ID %s", comp.Name, savedComp.ID.Hex())
 		saved = append(saved, *savedComp)
 	}
 
+	log.Printf("[competitor-v2] Total saved: %d out of %d", len(saved), len(competitors))
 	return saved, nil
 }
 

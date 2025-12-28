@@ -46,9 +46,14 @@ const CompetitorsV2 = () => {
 
     try {
       const { data } = await competitorsV2Api.discover(websiteUrl);
-      setDiscoveredCompetitors(data?.competitors || []);
-      // Auto-select all discovered
-      setSelectedCompetitors((data?.competitors || []).map((_, i) => i));
+      const discovered = data?.competitors || [];
+      setDiscoveredCompetitors(discovered);
+      
+      // Auto-select only up to remaining slots based on plan limit
+      // limit and savedCompetitors are current state values
+      const slotsAvailable = limit - savedCompetitors.length;
+      const autoSelectCount = Math.min(discovered.length, Math.max(0, slotsAvailable));
+      setSelectedCompetitors(discovered.slice(0, autoSelectCount).map((_, i) => i));
     } catch (err) {
       console.error('Discovery failed:', err);
       setError(err.message || 'Failed to discover competitors');
@@ -58,11 +63,20 @@ const CompetitorsV2 = () => {
   };
 
   const toggleSelection = (index) => {
-    setSelectedCompetitors(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
+    setSelectedCompetitors(prev => {
+      if (prev.includes(index)) {
+        // Always allow deselection
+        return prev.filter(i => i !== index);
+      } else {
+        // Only allow selection if under limit
+        const slotsAvailable = limit - savedCompetitors.length;
+        if (prev.length >= slotsAvailable) {
+          // Can't select more - at limit
+          return prev;
+        }
+        return [...prev, index];
+      }
+    });
   };
 
   const handleSave = async () => {
@@ -293,14 +307,21 @@ const CompetitorsV2 = () => {
               </div>
 
               <div className="p-6 space-y-4">
-                {discoveredCompetitors.map((comp, index) => (
+                {discoveredCompetitors.map((comp, index) => {
+                  const isSelected = selectedCompetitors.includes(index);
+                  const slotsAvailable = limit - savedCompetitors.length;
+                  const isDisabled = !isSelected && selectedCompetitors.length >= slotsAvailable;
+                  
+                  return (
                   <div
                     key={index}
-                    onClick={() => toggleSelection(index)}
-                    className={`p-5 rounded-2xl border-2 cursor-pointer transition-all hover:scale-[1.01] ${
-                      selectedCompetitors.includes(index)
-                        ? 'bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                        : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600'
+                    onClick={() => !isDisabled && toggleSelection(index)}
+                    className={`p-5 rounded-2xl border-2 transition-all hover:scale-[1.01] ${
+                      isSelected
+                        ? 'bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10 cursor-pointer'
+                        : isDisabled
+                        ? 'bg-slate-800/20 border-slate-700/30 opacity-50 cursor-not-allowed'
+                        : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-start gap-4">
@@ -327,7 +348,8 @@ const CompetitorsV2 = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="p-6 pt-0">

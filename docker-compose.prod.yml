@@ -34,7 +34,12 @@ services:
       - STRIPE_PRICE_STARTER_ID=${STRIPE_PRICE_STARTER_ID}
       - STRIPE_PRICE_GROWTH_ID=${STRIPE_PRICE_GROWTH_ID}
       - STRIPE_PRICE_ENTERPRISE_ID=${STRIPE_PRICE_ENTERPRISE_ID}
-      - APP_PUBLIC_URL=https://revalyze.co
+      - APP_PUBLIC_URL=https://app.revalyze.co
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
       interval: 30s

@@ -22,6 +22,8 @@ var (
 	ErrEmailAlreadyInUse = errors.New("email is already in use")
 	// ErrInvalidCredentials is returned when email or password is wrong.
 	ErrInvalidCredentials = errors.New("invalid email or password")
+	// ErrEmailNotVerified is returned when user tries to login without verifying email.
+	ErrEmailNotVerified = errors.New("please verify your email before logging in")
 	// ErrInvalidVerificationToken is returned when the verification token is invalid.
 	ErrInvalidVerificationToken = errors.New("invalid verification token")
 	// ErrVerificationTokenExpired is returned when the verification token has expired.
@@ -206,6 +208,11 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", nil, nil, ErrInvalidCredentials
+	}
+
+	// Check if email is verified
+	if !user.EmailVerified {
+		return "", nil, nil, ErrEmailNotVerified
 	}
 
 	// Generate JWT token

@@ -119,15 +119,9 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate token for auto-login after signup
-	token, err := h.auth.GenerateTokenForUser(result.User.ID.Hex())
-	if err != nil {
-		writeJSONError(w, "failed to generate auth token", http.StatusInternalServerError)
-		return
-	}
-
+	// Don't generate token - user must verify email first
 	resp := signupResponse{
-		Token: token,
+		Token: "", // No token until email is verified
 		User: authUserResponse{
 			ID:            result.User.ID.Hex(),
 			Email:         result.User.Email,

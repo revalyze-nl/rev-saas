@@ -1,0 +1,82 @@
+# =============================================================================
+# Revalyze Production Docker Compose
+# =============================================================================
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # API Backend (Go)
+  # ===========================================================================
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: revalyze-api-prod
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=production
+      - APP_PORT=8080
+      - MONGO_URI=${MONGO_URI}
+      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_BILLING_SECRET_KEY=${STRIPE_BILLING_SECRET_KEY}
+      - STRIPE_CONNECT_CLIENT_ID=${STRIPE_CONNECT_CLIENT_ID}
+      - STRIPE_CONNECT_REDIRECT_URL=https://api.revalyze.co/api/stripe/connect/callback
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_BILLING_SUCCESS_URL=https://app.revalyze.co/settings/billing?success=1
+      - STRIPE_BILLING_CANCEL_URL=https://app.revalyze.co/settings/billing?canceled=1
+      - STRIPE_CUSTOMER_PORTAL_RETURN_URL=https://app.revalyze.co/settings/billing
+      - STRIPE_PRICE_STARTER_ID=${STRIPE_PRICE_STARTER_ID}
+      - STRIPE_PRICE_GROWTH_ID=${STRIPE_PRICE_GROWTH_ID}
+      - STRIPE_PRICE_ENTERPRISE_ID=${STRIPE_PRICE_ENTERPRISE_ID}
+      - APP_PUBLIC_URL=https://revalyze.co
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - revalyze-network
+
+  # ===========================================================================
+  # Dashboard Frontend (React)
+  # ===========================================================================
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=https://api.revalyze.co
+        - VITE_APP_ENV=production
+    container_name: revalyze-dashboard-prod
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - revalyze-network
+
+  # ===========================================================================
+  # Landing Page (React)
+  # ===========================================================================
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    container_name: revalyze-landing-prod
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    networks:
+      - revalyze-network
+
+networks:
+  revalyze-network:
+    driver: bridge
+

@@ -1,3 +1,115 @@
+# =============================================================================
+# Revalyze CI/CD Pipeline
+# =============================================================================
+name: Deploy to Production
 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
+env:
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+  EC2_USER: ubuntu
 
+jobs:
+  # ===========================================================================
+  # Deploy to Production
+  # ===========================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create .env file on server
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          cat > /opt/revalyze/.env << 'ENVFILE'
+          # MongoDB
+          MONGO_URI=${{ secrets.MONGO_URI }}
+          MONGO_DB_NAME=${{ secrets.MONGO_DB_NAME }}
+          
+          # Auth
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          
+          # OpenAI
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          
+          # Encryption
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+          
+          # Stripe Production
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_BILLING_SECRET_KEY=${{ secrets.STRIPE_BILLING_SECRET_KEY }}
+          STRIPE_CONNECT_CLIENT_ID=${{ secrets.STRIPE_CONNECT_CLIENT_ID }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_STARTER_ID=${{ secrets.STRIPE_PRICE_STARTER_ID }}
+          STRIPE_PRICE_GROWTH_ID=${{ secrets.STRIPE_PRICE_GROWTH_ID }}
+          STRIPE_PRICE_ENTERPRISE_ID=${{ secrets.STRIPE_PRICE_ENTERPRISE_ID }}
+          ENVFILE
+          EOF
+
+      - name: Deploy to EC2
+        run: |
+          # Copy project files to server
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude 'dist' \
+            --exclude '.env*' \
+            --exclude '*.log' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/revalyze/app/
+
+      - name: Build and Start Containers
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          cd /opt/revalyze/app
+          
+          # Copy env file
+          cp /opt/revalyze/.env .env
+          
+          # Build and restart containers
+          docker-compose -f docker-compose.prod.yml down --remove-orphans || true
+          docker-compose -f docker-compose.prod.yml build --no-cache
+          docker-compose -f docker-compose.prod.yml up -d
+          
+          # Cleanup old images
+          docker image prune -f
+          
+          # Show status
+          docker-compose -f docker-compose.prod.yml ps
+          EOF
+
+      - name: Health Check
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          # Check API health
+          curl -f https://api.revalyze.co/health || echo "API health check failed"
+          
+          # Check Landing
+          curl -f https://revalyze.co || echo "Landing check failed"
+          
+          # Check Dashboard
+          curl -f https://app.revalyze.co || echo "Dashboard check failed"
+
+      - name: Notify Success
+        if: success()
+        run: echo "✅ Deployment successful!"
+
+      - name: Notify Failure
+        if: failure()
+        run: echo "❌ Deployment failed!"

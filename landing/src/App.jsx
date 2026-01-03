@@ -14,6 +14,7 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Company from './pages/Company'
 import Demo from './pages/Demo'
+import LaunchPromo from './pages/LaunchPromo'
 
 // Home page with all sections
 function HomePage() {
@@ -37,6 +38,9 @@ function App() {
     <Routes>
       {/* Demo page - standalone without Navbar/Footer */}
       <Route path="/demo" element={<Demo />} />
+      
+      {/* Launch promo page for LinkedIn screenshot */}
+      <Route path="/launch-promo" element={<LaunchPromo />} />
       
       {/* Main site with Navbar/Footer */}
       <Route path="*" element={

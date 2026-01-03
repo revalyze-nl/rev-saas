@@ -37,7 +37,7 @@ func NewEmailService(host, port, user, password, from, appPublicURL string) *Ema
 			From:     from,
 		},
 		appPublicURL: appPublicURL,
-		logoURL:      "https://i.imgur.com/x8SISLw.png", // Revalyze logo hosted on Imgur
+		logoURL:      "https://revalyze.co/revalyze-logo.png", // Revalyze logo on our domain
 	}
 }
 

@@ -172,3 +172,4 @@ const ImpactOverviewChart = ({ scenarios, currency, isPriceIncrease }) => {
 
 export default ImpactOverviewChart;
 
+

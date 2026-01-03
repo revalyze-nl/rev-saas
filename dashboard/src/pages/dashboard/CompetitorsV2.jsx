@@ -20,6 +20,10 @@ const CompetitorsV2 = () => {
   const [extractingPricing, setExtractingPricing] = useState(null); // competitor id being extracted
   const [pricingModal, setPricingModal] = useState(null); // competitor to show in modal
   const [editedPlans, setEditedPlans] = useState([]);
+  
+  // Bulk pricing extraction modal (after adding competitors)
+  const [bulkPricingModal, setBulkPricingModal] = useState(null); // { competitors: [], currentIndex: 0, results: {} }
+  const [bulkExtracting, setBulkExtracting] = useState(false);
 
   // Pre-fill website URL from business metrics
   useEffect(() => {
@@ -105,20 +109,63 @@ const CompetitorsV2 = () => {
     setSaving(true);
 
     try {
-      await competitorsV2Api.save(toSave);
-      setSuccessMessage(`${toSave.length} competitor(s) saved successfully!`);
+      const { data } = await competitorsV2Api.save(toSave);
+      const savedIds = data?.saved || [];
+      
       setDiscoveredCompetitors([]);
       setSelectedCompetitors([]);
       setWebsiteUrl('');
       await fetchSavedCompetitors();
-      setActiveTab('saved');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Open bulk pricing extraction modal for newly added competitors
+      if (savedIds.length > 0) {
+        setBulkPricingModal({
+          competitors: savedIds,
+          currentIndex: 0,
+          results: {}
+        });
+        // Start extracting pricing for all
+        startBulkPricingExtraction(savedIds);
+      } else {
+        setActiveTab('saved');
+        setSuccessMessage(`${toSave.length} competitor(s) saved successfully!`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
     } catch (err) {
       console.error('Save failed:', err);
       setError(err.message || 'Failed to save competitors');
     } finally {
       setSaving(false);
     }
+  };
+
+  // Start bulk pricing extraction for all newly added competitors
+  const startBulkPricingExtraction = async (competitors) => {
+    setBulkExtracting(true);
+    const results = {};
+    
+    for (const comp of competitors) {
+      try {
+        const { data } = await competitorsV2Api.extractPricing(comp.id);
+        results[comp.id] = { success: true, pricing: data };
+      } catch (err) {
+        results[comp.id] = { success: false, error: err.message };
+      }
+      // Update results as we go
+      setBulkPricingModal(prev => prev ? { ...prev, results: { ...prev.results, ...results } } : null);
+    }
+    
+    setBulkExtracting(false);
+    // Refresh saved competitors to get updated pricing
+    await fetchSavedCompetitors();
+  };
+
+  // Close bulk modal and go to saved tab
+  const closeBulkPricingModal = () => {
+    setBulkPricingModal(null);
+    setActiveTab('saved');
+    setSuccessMessage('Competitors added! Review and edit pricing as needed.');
+    setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   const handleDelete = async (id) => {
@@ -652,9 +699,133 @@ const CompetitorsV2 = () => {
         </div>
       )}
 
+      {/* Bulk Pricing Extraction Modal - shown after adding competitors */}
+      {bulkPricingModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                    {bulkExtracting ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-emerald-400" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Extracting Pricing...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Pricing Extraction Complete
+                      </>
+                    )}
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    {bulkExtracting 
+                      ? 'Please wait while we extract pricing from competitor websites...'
+                      : 'Review the extracted pricing below. You can edit or add manually if needed.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {bulkPricingModal.competitors.map((comp) => {
+                const result = bulkPricingModal.results[comp.id];
+                const isExtracting = !result && bulkExtracting;
+                
+                return (
+                  <div key={comp.id} className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                          <span className="text-lg font-bold text-emerald-400">
+                            {comp.name?.charAt(0)?.toUpperCase() || '?'}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-white">{comp.name}</h4>
+                          <p className="text-xs text-slate-400">{comp.domain}</p>
+                        </div>
+                      </div>
+                      
+                      {isExtracting ? (
+                        <span className="text-xs text-slate-400 flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Extracting...
+                        </span>
+                      ) : result?.success ? (
+                        <span className="text-xs text-emerald-400 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          {result.pricing?.plans?.length || 0} plans found
+                        </span>
+                      ) : result ? (
+                        <span className="text-xs text-amber-400 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          Could not extract - add manually
+                        </span>
+                      ) : null}
+                    </div>
+                    
+                    {result?.success && result.pricing?.plans?.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {result.pricing.plans.map((plan, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-sm bg-slate-700/30 rounded-lg px-3 py-2">
+                            <span className="text-slate-300">{plan.name}</span>
+                            <span className="text-emerald-400 font-medium">
+                              ${plan.price_monthly || plan.priceMonthly || 0}/mo
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {!isExtracting && (
+                      <button
+                        onClick={() => {
+                          // Find the updated competitor from savedCompetitors
+                          const updated = savedCompetitors.find(c => c.id === comp.id);
+                          if (updated) {
+                            handleEditPricing(updated);
+                          }
+                        }}
+                        className="mt-3 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                      >
+                        {result?.success ? 'Edit pricing' : 'Add pricing manually'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-6 border-t border-slate-700">
+              <button
+                onClick={closeBulkPricingModal}
+                disabled={bulkExtracting}
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50"
+              >
+                {bulkExtracting ? 'Please wait...' : 'Done - View Saved Competitors'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pricing Edit Modal */}
       {pricingModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-700">
               <div className="flex items-center justify-between">

@@ -178,6 +178,7 @@ export const authApi = {
       company_website: signupData.companyWebsite,
       mrr_range: signupData.mrrRange,
       heard_from: signupData.heardFrom,
+      acceptedTerms: signupData.acceptedTerms,
     }, { includeAuth: false }),
   
   login: (email, password) => 

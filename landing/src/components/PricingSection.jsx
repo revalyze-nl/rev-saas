@@ -135,7 +135,14 @@ const PricingSection = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <span className="text-content-secondary text-sm">{feature}</span>
+                      <span className="text-content-secondary text-sm flex items-center gap-2">
+                        {feature}
+                        {feature.includes('team seats') && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
+                            Coming Soon
+                          </span>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>

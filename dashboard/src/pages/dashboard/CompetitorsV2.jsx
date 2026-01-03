@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { competitorsV2Api } from '../../lib/apiClient';
-import { useBusinessMetricsContext } from '../../context/BusinessMetricsContext';
+import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
 
 const CompetitorsV2 = () => {
-  const { businessMetrics } = useBusinessMetricsContext();
+  const { metrics: businessMetrics } = useBusinessMetrics();
   const [savedCompetitors, setSavedCompetitors] = useState([]);
   const [discoveredCompetitors, setDiscoveredCompetitors] = useState([]);
   const [selectedCompetitors, setSelectedCompetitors] = useState([]);

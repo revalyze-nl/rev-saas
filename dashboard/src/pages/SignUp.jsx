@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { postJson } from '../lib/apiClient';
 import AuthCard from '../components/AuthCard';
 
 const SignUp = () => {
@@ -8,6 +9,8 @@ const SignUp = () => {
   const { signup } = useAuth();
   const [showCheckInbox, setShowCheckInbox] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMessage, setResendMessage] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -107,6 +110,30 @@ const SignUp = () => {
     navigate('/login');
   };
 
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0 || !registeredEmail) return;
+    
+    setResendMessage('');
+    try {
+      await postJson('/auth/resend-verification', { email: registeredEmail });
+      setResendMessage('Verification email sent! Check your inbox.');
+      setResendCooldown(60);
+      
+      // Start countdown
+      const interval = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      setResendMessage('Failed to resend. Please try again later.');
+    }
+  };
+
   // Check Inbox Screen
   if (showCheckInbox) {
     return (
@@ -141,15 +168,21 @@ const SignUp = () => {
               >
                 Go to Login
               </Link>
+              
+              {resendMessage && (
+                <p className={`text-sm text-center ${resendMessage.includes('sent') ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {resendMessage}
+                </p>
+              )}
+              
               <p className="text-sm text-slate-500">
                 Didn't receive the email? Check your spam folder or{' '}
                 <button 
-                  onClick={() => {
-                    setShowCheckInbox(false);
-                  }}
-                  className="text-blue-400 hover:text-blue-300"
+                  onClick={handleResendVerification}
+                  disabled={resendCooldown > 0}
+                  className={`${resendCooldown > 0 ? 'text-slate-500 cursor-not-allowed' : 'text-blue-400 hover:text-blue-300'}`}
                 >
-                  try again
+                  {resendCooldown > 0 ? `resend in ${resendCooldown}s` : 'resend verification email'}
                 </button>
               </p>
             </div>
@@ -301,7 +334,7 @@ const SignUp = () => {
                   <input
                     id="companyWebsite"
                     name="companyWebsite"
-                    type="url"
+                    type="text"
                     value={formData.companyWebsite}
                     onChange={handleChange}
                     disabled={isSubmitting}

@@ -155,6 +155,32 @@ func (r *BillingSubscriptionRepository) Delete(ctx context.Context, userID primi
 	return err
 }
 
+// CountByStatus returns the count of subscriptions with a given status.
+func (r *BillingSubscriptionRepository) CountByStatus(ctx context.Context, status string) (int, error) {
+	count, err := r.collection.CountDocuments(ctx, bson.M{"status": status})
+	return int(count), err
+}
+
+// GetAll returns all subscriptions with optional status filter.
+func (r *BillingSubscriptionRepository) GetAll(ctx context.Context, statusFilter string) ([]*model.BillingSubscription, error) {
+	filter := bson.M{}
+	if statusFilter != "" {
+		filter["status"] = statusFilter
+	}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var subs []*model.BillingSubscription
+	if err := cursor.All(ctx, &subs); err != nil {
+		return nil, err
+	}
+	return subs, nil
+}
+
 // WebhookEventRepository handles webhook event idempotency.
 type WebhookEventRepository struct {
 	collection *mongo.Collection

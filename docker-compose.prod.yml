@@ -81,6 +81,25 @@ services:
     networks:
       - revalyze-network
 
+  # ===========================================================================
+  # Admin Console (React)
+  # ===========================================================================
+  console:
+    build:
+      context: ./console
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=https://api.revalyze.co
+        - VITE_APP_ENV=production
+    container_name: revalyze-console-prod
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    depends_on:
+      - api
+    networks:
+      - revalyze-network
+
 networks:
   revalyze-network:
     driver: bridge

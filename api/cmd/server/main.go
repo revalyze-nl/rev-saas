@@ -114,6 +114,9 @@ func main() {
 	// Stripe Billing service
 	billingService := service.NewBillingService(cfg, billingSubRepo, webhookEventRepo, userRepo, aiUsageRepo)
 
+	// Admin service
+	adminService := service.NewAdminService(userRepo, billingSubRepo, aiUsageRepo)
+
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
 
@@ -133,9 +136,10 @@ func main() {
 	aiCreditsHandler := handler.NewAICreditsHandler(aiCreditsService)
 	stripeHandler := handler.NewStripeHandler(stripeService)
 	billingHandler := handler.NewBillingHandler(billingService, cfg)
+	adminHandler := handler.NewAdminHandler(adminService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

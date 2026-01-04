@@ -120,5 +120,44 @@ func (r *AIUsageRepository) ResetCredits(ctx context.Context, userIDStr string, 
 	return err
 }
 
+// GetTotalUsageForMonth returns the total AI credits used by all users in a month.
+func (r *AIUsageRepository) GetTotalUsageForMonth(ctx context.Context, monthKey string) (int, error) {
+	filter := bson.M{"month_key": monthKey}
 
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	total := 0
+	for cursor.Next(ctx) {
+		var usage model.AIUsage
+		if err := cursor.Decode(&usage); err != nil {
+			continue
+		}
+		total += usage.UsedCredits
+	}
+
+	return total, nil
+}
+
+// GetAllForMonth returns all AI usage records for a specific month.
+func (r *AIUsageRepository) GetAllForMonth(ctx context.Context, monthKey string) ([]*model.AIUsage, error) {
+	filter := bson.M{"month_key": monthKey}
+	opts := options.Find().SetSort(bson.D{{Key: "used_credits", Value: -1}})
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var usages []*model.AIUsage
+	if err := cursor.All(ctx, &usages); err != nil {
+		return nil, err
+	}
+
+	return usages, nil
+}
 

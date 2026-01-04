@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"rev-saas-api/internal/model"
 )
@@ -130,6 +131,78 @@ func (r *UserRepository) UpdateEmailVerificationFields(ctx context.Context, user
 		},
 	}
 	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
+}
+
+// CountAll returns the total number of users.
+func (r *UserRepository) CountAll(ctx context.Context) (int, error) {
+	count, err := r.collection.CountDocuments(ctx, bson.M{})
+	return int(count), err
+}
+
+// GetRecent returns the most recent users.
+func (r *UserRepository) GetRecent(ctx context.Context, limit int) ([]*model.User, error) {
+	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(int64(limit))
+	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*model.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+// GetPaginated returns paginated users with optional search and filter.
+func (r *UserRepository) GetPaginated(ctx context.Context, offset, limit int, search, planFilter string) ([]*model.User, int, error) {
+	filter := bson.M{}
+	if search != "" {
+		filter["email"] = bson.M{"$regex": search, "$options": "i"}
+	}
+	if planFilter != "" {
+		filter["plan"] = planFilter
+	}
+
+	// Get total count
+	total, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get paginated results
+	opts := options.Find().
+		SetSort(bson.D{{Key: "created_at", Value: -1}}).
+		SetSkip(int64(offset)).
+		SetLimit(int64(limit))
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*model.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, 0, err
+	}
+
+	return users, int(total), nil
+}
+
+// UpdateFields updates specific fields for a user.
+func (r *UserRepository) UpdateFields(ctx context.Context, userID primitive.ObjectID, updates map[string]interface{}) error {
+	filter := bson.M{"_id": userID}
+	update := bson.M{"$set": updates}
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
+}
+
+// Delete removes a user from the database.
+func (r *UserRepository) Delete(ctx context.Context, userID primitive.ObjectID) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": userID})
 	return err
 }
 

@@ -26,6 +26,7 @@ func NewRouter(
 	aiCreditsHandler *handler.AICreditsHandler,
 	stripeHandler *handler.StripeHandler,
 	billingHandler *handler.BillingHandler,
+	adminHandler *handler.AdminHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -128,6 +129,20 @@ func NewRouter(
 
 	// Stripe Billing Webhook (public - uses Stripe signature verification, not auth)
 	r.HandleFunc("/api/billing/webhook", billingHandler.HandleWebhook).Methods(http.MethodPost)
+
+	// Admin endpoints (protected + admin only)
+	adminAPI := r.PathPrefix("/api/admin").Subrouter()
+	adminAPI.Use(authMiddleware.RequireAuth)
+	adminAPI.Use(handler.AdminMiddleware)
+	adminAPI.HandleFunc("/stats", adminHandler.GetStats).Methods(http.MethodGet)
+	adminAPI.HandleFunc("/users", adminHandler.GetUsers).Methods(http.MethodGet)
+	adminAPI.HandleFunc("/users/{id}", adminHandler.GetUser).Methods(http.MethodGet)
+	adminAPI.HandleFunc("/users/{id}", adminHandler.UpdateUser).Methods(http.MethodPatch)
+	adminAPI.HandleFunc("/users/{id}", adminHandler.DeleteUser).Methods(http.MethodDelete)
+	adminAPI.HandleFunc("/subscriptions", adminHandler.GetSubscriptions).Methods(http.MethodGet)
+	adminAPI.HandleFunc("/ai-usage", adminHandler.GetAIUsage).Methods(http.MethodGet)
+	adminAPI.HandleFunc("/error-logs", adminHandler.GetErrorLogs).Methods(http.MethodGet)
+	adminAPI.HandleFunc("/health", adminHandler.GetSystemHealth).Methods(http.MethodGet)
 
 	// Apply CORS middleware to all routes
 	return middleware.CORS(r)

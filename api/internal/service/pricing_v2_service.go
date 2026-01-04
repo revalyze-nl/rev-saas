@@ -233,10 +233,33 @@ func (s *PricingV2Service) ExtractPricing(ctx context.Context, pricingURL string
 		}, nil
 	}
 
+	// If static content is too short (SPA sites), try browser render
 	if len(visibleText) < 100 {
+		log.Printf("[pricing-v2] static content too short (%d chars), trying browser render for SPA: %s", len(visibleText), pricingURL)
+		
+		browserPlans, browserPeriods, browserWarnings, err := s.extractWithBrowserRender(ctx, pricingURL)
+		if err != nil {
+			log.Printf("[pricing-v2] browser render failed for SPA: %v", err)
+			return &model.PricingExtractResponse{
+				Error:    "page content too short or empty (SPA site - browser render failed)",
+				Warnings: []string{"page_content_minimal", "browser_render_failed"},
+			}, nil
+		}
+		
+		if len(browserPlans) == 0 {
+			return &model.PricingExtractResponse{
+				Error:    "no pricing plans found on page",
+				Warnings: append(browserWarnings, "no_plans_extracted"),
+			}, nil
+		}
+		
 		return &model.PricingExtractResponse{
-			Error:    "page content too short or empty",
-			Warnings: []string{"page_content_minimal"},
+			Plans:           browserPlans,
+			SourceURL:       pricingURL,
+			DetectedPeriods: browserPeriods,
+			NeedsRender:     false,
+			RenderUsed:      true,
+			Warnings:        browserWarnings,
 		}, nil
 	}
 

@@ -13,9 +13,10 @@ import (
 
 // AdminService handles admin operations.
 type AdminService struct {
-	userRepo    *mongorepo.UserRepository
-	billingRepo *mongorepo.BillingSubscriptionRepository
-	aiUsageRepo *mongorepo.AIUsageRepository
+	userRepo     *mongorepo.UserRepository
+	billingRepo  *mongorepo.BillingSubscriptionRepository
+	aiUsageRepo  *mongorepo.AIUsageRepository
+	errorLogRepo *mongorepo.ErrorLogRepository
 }
 
 // NewAdminService creates a new AdminService.
@@ -23,11 +24,13 @@ func NewAdminService(
 	userRepo *mongorepo.UserRepository,
 	billingRepo *mongorepo.BillingSubscriptionRepository,
 	aiUsageRepo *mongorepo.AIUsageRepository,
+	errorLogRepo *mongorepo.ErrorLogRepository,
 ) *AdminService {
 	return &AdminService{
-		userRepo:    userRepo,
-		billingRepo: billingRepo,
-		aiUsageRepo: aiUsageRepo,
+		userRepo:     userRepo,
+		billingRepo:  billingRepo,
+		aiUsageRepo:  aiUsageRepo,
+		errorLogRepo: errorLogRepo,
 	}
 }
 
@@ -78,11 +81,17 @@ func (s *AdminService) GetDashboardStats(ctx context.Context) (*DashboardStats, 
 		})
 	}
 
+	// Get error count for today
+	errorCount := 0
+	if s.errorLogRepo != nil {
+		errorCount, _ = s.errorLogRepo.CountToday(ctx)
+	}
+
 	return &DashboardStats{
 		TotalUsers:          totalUsers,
 		ActiveSubscriptions: activeSubs,
 		TotalAICreditsUsed:  totalCredits,
-		ErrorCount:          0, // TODO: implement error tracking
+		ErrorCount:          errorCount,
 		RecentUsers:         recentUsersList,
 		UsageChart:          []map[string]interface{}{}, // TODO: implement chart data
 	}, nil
@@ -365,6 +374,12 @@ func (s *AdminService) GetSystemHealth(ctx context.Context) (*SystemHealthResult
 		dbLatency = int(time.Since(start).Milliseconds())
 	}
 
+	// Get errors today
+	errorsToday := 0
+	if s.errorLogRepo != nil {
+		errorsToday, _ = s.errorLogRepo.CountToday(ctx)
+	}
+
 	return &SystemHealthResult{
 		Services: map[string]interface{}{
 			"api":      map[string]interface{}{"status": "operational", "latency": 0},
@@ -376,8 +391,67 @@ func (s *AdminService) GetSystemHealth(ctx context.Context) (*SystemHealthResult
 			"uptime":          "99.9%",
 			"avgResponseTime": "145ms",
 			"requestsToday":   0,
-			"errorsToday":     0,
+			"errorsToday":     errorsToday,
 		},
 	}, nil
 }
 
+// ErrorLogsResult represents error logs response.
+type ErrorLogsResult struct {
+	Logs  []map[string]interface{} `json:"logs"`
+	Stats map[string]interface{}   `json:"stats"`
+}
+
+// GetErrorLogs returns recent error logs.
+func (s *AdminService) GetErrorLogs(ctx context.Context, limit int, category, level string) (*ErrorLogsResult, error) {
+	if s.errorLogRepo == nil {
+		return &ErrorLogsResult{
+			Logs: []map[string]interface{}{},
+			Stats: map[string]interface{}{
+				"totalToday":    0,
+				"errorsToday":   0,
+				"warningsToday": 0,
+			},
+		}, nil
+	}
+
+	logs, err := s.errorLogRepo.GetRecent(ctx, limit, category, level)
+	if err != nil {
+		return nil, err
+	}
+
+	logsList := make([]map[string]interface{}, 0, len(logs))
+	for _, l := range logs {
+		entry := map[string]interface{}{
+			"id":        l.ID.Hex(),
+			"timestamp": l.Timestamp,
+			"level":     l.Level,
+			"category":  l.Category,
+			"message":   l.Message,
+		}
+		if l.Details != "" {
+			entry["details"] = l.Details
+		}
+		if !l.UserID.IsZero() {
+			entry["userId"] = l.UserID.Hex()
+		}
+		if l.UserEmail != "" {
+			entry["userEmail"] = l.UserEmail
+		}
+		logsList = append(logsList, entry)
+	}
+
+	// Get stats
+	today := time.Now().Truncate(24 * time.Hour)
+	errorsToday, _ := s.errorLogRepo.CountByLevel(ctx, "error", today)
+	warningsToday, _ := s.errorLogRepo.CountByLevel(ctx, "warning", today)
+
+	return &ErrorLogsResult{
+		Logs: logsList,
+		Stats: map[string]interface{}{
+			"totalToday":    errorsToday + warningsToday,
+			"errorsToday":   errorsToday,
+			"warningsToday": warningsToday,
+		},
+	}, nil
+}

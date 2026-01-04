@@ -174,11 +174,26 @@ func (h *AdminHandler) GetAIUsage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-// GetErrorLogs returns error logs (placeholder - implement with real logging later).
+// GetErrorLogs returns error logs.
 func (h *AdminHandler) GetErrorLogs(w http.ResponseWriter, r *http.Request) {
-	// For now, return empty - implement with proper logging service later
-	result := map[string]interface{}{
-		"logs": []interface{}{},
+	ctx := r.Context()
+
+	// Parse query params
+	limitStr := r.URL.Query().Get("limit")
+	limit := 100
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	category := r.URL.Query().Get("category")
+	level := r.URL.Query().Get("level")
+
+	result, err := h.adminService.GetErrorLogs(ctx, limit, category, level)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

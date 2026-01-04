@@ -75,6 +75,7 @@ func main() {
 	webhookEventRepo := mongorepo.NewWebhookEventRepository(db)
 	competitorV2Repo := mongorepo.NewCompetitorV2Repository(db)
 	pricingV2Repo := mongorepo.NewPricingV2Repository(db)
+	errorLogRepo := mongorepo.NewErrorLogRepository(db)
 
 	// Initialize services
 	jwtService := service.NewJWTService(cfg.JWTSecret)
@@ -114,8 +115,11 @@ func main() {
 	// Stripe Billing service
 	billingService := service.NewBillingService(cfg, billingSubRepo, webhookEventRepo, userRepo, aiUsageRepo)
 
+	// Initialize error logger
+	service.InitErrorLogger(errorLogRepo)
+
 	// Admin service
-	adminService := service.NewAdminService(userRepo, billingSubRepo, aiUsageRepo)
+	adminService := service.NewAdminService(userRepo, billingSubRepo, aiUsageRepo, errorLogRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)

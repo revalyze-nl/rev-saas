@@ -151,6 +151,7 @@ func (s *AuthService) Register(ctx context.Context, input SignupInput) (*SignupR
 	if s.emailService != nil {
 		if err := s.emailService.SendVerificationEmail(ctx, user.Email, token); err != nil {
 			log.Printf("[auth] Failed to send verification email to %s: %v", user.Email, err)
+			LogEmailError(ctx, "Failed to send verification email", err, user.Email)
 			// Continue with signup - user can request resend later
 		}
 	}
@@ -325,6 +326,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	if s.emailService != nil {
 		if err := s.emailService.SendWelcomeEmail(ctx, user.Email); err != nil {
 			log.Printf("[auth] Failed to send welcome email to %s: %v", user.Email, err)
+			LogEmailError(ctx, "Failed to send welcome email", err, user.Email)
 			// Don't fail verification if welcome email fails
 		}
 	}

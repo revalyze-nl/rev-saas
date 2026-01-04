@@ -12,7 +12,8 @@ export function AuthProvider({ children }) {
     if (token) {
       apiClient.getMe()
         .then(data => {
-          setUser(data.user)
+          // getMe returns user object directly, not wrapped in {user: ...}
+          setUser(data)
         })
         .catch(() => {
           apiClient.clearToken()

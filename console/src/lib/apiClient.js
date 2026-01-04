@@ -51,7 +51,7 @@ class ApiClient {
 
   // Auth
   async login(email, password) {
-    const data = await this.request('/api/auth/login', {
+    const data = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
@@ -62,7 +62,7 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request('/api/auth/me')
+    return this.request('/auth/me')
   }
 
   // Admin endpoints

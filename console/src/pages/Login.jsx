@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Terminal, AlertCircle } from 'lucide-react'
@@ -8,8 +8,15 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const navigate = useNavigate()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      navigate('/', { replace: true })
+    }
+  }, [user, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,12 +27,15 @@ export default function Login() {
       const data = await login(email, password)
       if (data.user?.role !== 'admin') {
         setError('Access denied. Admin privileges required.')
+        setLoading(false)
         return
       }
-      navigate('/')
+      // Small delay to ensure state is propagated
+      setTimeout(() => {
+        navigate('/', { replace: true })
+      }, 100)
     } catch (err) {
       setError(err.message || 'Login failed')
-    } finally {
       setLoading(false)
     }
   }

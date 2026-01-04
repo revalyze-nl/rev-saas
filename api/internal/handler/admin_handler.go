@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"rev-saas-api/internal/middleware"
 	"rev-saas-api/internal/model"
 	"rev-saas-api/internal/service"
 )
@@ -197,8 +198,8 @@ func (h *AdminHandler) GetSystemHealth(w http.ResponseWriter, r *http.Request) {
 // AdminMiddleware checks if user is admin.
 func AdminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, ok := r.Context().Value("user").(*model.User)
-		if !ok || user == nil {
+		user := middleware.UserFromContext(r.Context())
+		if user == nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

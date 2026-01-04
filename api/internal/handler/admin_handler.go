@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"rev-saas-api/internal/middleware"
@@ -69,8 +70,9 @@ func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Get user ID from URL path
-	userID := r.PathValue("id")
+	// Get user ID from URL path using gorilla mux
+	vars := mux.Vars(r)
+	userID := vars["id"]
 	if userID == "" {
 		http.Error(w, "user ID required", http.StatusBadRequest)
 		return
@@ -90,7 +92,8 @@ func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID := r.PathValue("id")
+	vars := mux.Vars(r)
+	userID := vars["id"]
 	if userID == "" {
 		http.Error(w, "user ID required", http.StatusBadRequest)
 		return
@@ -119,7 +122,8 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID := r.PathValue("id")
+	vars := mux.Vars(r)
+	userID := vars["id"]
 	if userID == "" {
 		http.Error(w, "user ID required", http.StatusBadRequest)
 		return

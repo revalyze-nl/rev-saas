@@ -75,7 +75,8 @@ const AnalysesV2 = () => {
   const chartData = useMemo(() => {
     if (!selectedAnalysis?.input) return { priceData: [], valueData: [], median: null, hasData: false };
 
-    const userPlans = selectedAnalysis.input.userPlans || [];
+    // API returns snake_case: user_plans, competitors
+    const userPlans = selectedAnalysis.input.user_plans || selectedAnalysis.input.userPlans || [];
     const competitors = selectedAnalysis.input.competitors || [];
     
     const allPrices = [];

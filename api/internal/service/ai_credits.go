@@ -13,26 +13,59 @@ import (
 
 // AI Credits error codes
 const (
-	AIQuotaExceededCode       = "AI_QUOTA_EXCEEDED"
+	AIQuotaExceededCode        = "AI_QUOTA_EXCEEDED"
 	SimulationNotAvailableCode = "SIMULATION_NOT_AVAILABLE"
+	PaymentRequiredCode        = "PAYMENT_REQUIRED"
 )
 
 // AI Credits errors
 var (
-	ErrAIQuotaExceeded       = errors.New("you have used all your AI Insight Credits for this month on your current plan")
-	ErrSimulationNotInPlan   = errors.New("pricing simulations are only available on Growth and Enterprise plans")
+	ErrAIQuotaExceeded     = errors.New("you have used all your AI Insight Credits for this month on your current plan")
+	ErrSimulationNotInPlan = errors.New("pricing simulations are only available on Growth and Enterprise plans")
+	ErrPaymentRequired     = errors.New("your subscription payment is past due. Please update your payment method to continue using the service")
 )
 
 // AICreditsService handles AI credit tracking and enforcement.
 type AICreditsService struct {
 	aiUsageRepo *mongorepo.AIUsageRepository
+	billingRepo *mongorepo.BillingSubscriptionRepository
 }
 
 // NewAICreditsService creates a new AICreditsService.
-func NewAICreditsService(aiUsageRepo *mongorepo.AIUsageRepository) *AICreditsService {
+func NewAICreditsService(aiUsageRepo *mongorepo.AIUsageRepository, billingRepo *mongorepo.BillingSubscriptionRepository) *AICreditsService {
 	return &AICreditsService{
 		aiUsageRepo: aiUsageRepo,
+		billingRepo: billingRepo,
 	}
+}
+
+// checkSubscriptionActive verifies that the user's subscription is in good standing.
+// Returns error if subscription is past_due, unpaid, or incomplete.
+func (s *AICreditsService) checkSubscriptionActive(ctx context.Context, userID string) error {
+	userOID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+
+	sub, err := s.billingRepo.GetByUserID(ctx, userOID)
+	if err != nil {
+		return err
+	}
+
+	// No subscription = free tier, allowed
+	if sub == nil {
+		return nil
+	}
+
+	// Check if subscription is in a bad state
+	switch sub.Status {
+	case model.SubscriptionStatusPastDue,
+		model.SubscriptionStatusUnpaid,
+		model.SubscriptionStatusIncomplete:
+		return ErrPaymentRequired
+	}
+
+	return nil
 }
 
 // GetCurrentMonthKey returns the current month key in "YYYY-MM" format.
@@ -41,7 +74,7 @@ func GetCurrentMonthKey() string {
 }
 
 // ConsumeCredit attempts to consume 1 AI credit for a user.
-// Returns nil if successful, or an error if quota exceeded.
+// Returns nil if successful, or an error if quota exceeded or payment required.
 func (s *AICreditsService) ConsumeCredit(ctx context.Context, userID string, planType string) error {
 	// Get plan limits
 	limits := GetPlanLimits(planType)
@@ -49,6 +82,11 @@ func (s *AICreditsService) ConsumeCredit(ctx context.Context, userID string, pla
 	// Unlimited plans (admin) can always proceed
 	if limits.IsUnlimited {
 		return nil
+	}
+
+	// Check subscription status first - block if payment failed
+	if err := s.checkSubscriptionActive(ctx, userID); err != nil {
+		return err
 	}
 
 	// Parse user ID

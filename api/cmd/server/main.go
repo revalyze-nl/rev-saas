@@ -89,7 +89,7 @@ func main() {
 	competitorV2Service := service.NewCompetitorV2Service(competitorV2Repo, userRepo, cfg.OpenAIAPIKey, limitsService)
 	pricingV2Service := service.NewPricingV2Service(pricingV2Repo, cfg.OpenAIAPIKey)
 	aiPricingService := service.NewAIPricingService(cfg.OpenAIAPIKey)
-	aiCreditsService := service.NewAICreditsService(aiUsageRepo)
+	aiCreditsService := service.NewAICreditsService(aiUsageRepo, billingSubRepo)
 	simulationService := service.NewSimulationService(elasticityCfg, simulationRepo, planRepo, pricingV2Repo, aiPricingService)
 
 	// Stripe Connect service

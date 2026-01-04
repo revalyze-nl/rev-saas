@@ -130,7 +130,22 @@ const SignUp = () => {
         });
       }, 1000);
     } catch (err) {
-      setResendMessage('Failed to resend. Please try again later.');
+      // Check if it's a rate limit error
+      if (err.message && err.message.includes('wait')) {
+        setResendMessage('Please wait a minute before trying again.');
+        setResendCooldown(60);
+        const interval = setInterval(() => {
+          setResendCooldown(prev => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setResendMessage('Failed to resend. Please try again later.');
+      }
     }
   };
 

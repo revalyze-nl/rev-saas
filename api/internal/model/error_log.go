@@ -20,3 +20,4 @@ type ErrorLog struct {
 	Stack     string             `bson:"stack,omitempty" json:"stack,omitempty"`
 }
 
+

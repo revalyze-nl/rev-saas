@@ -25,8 +25,21 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-# Install ca-certificates for HTTPS calls
-RUN apk --no-cache add ca-certificates tzdata
+# Install ca-certificates, chromium for headless browser, and dependencies
+RUN apk --no-cache add \
+    ca-certificates \
+    tzdata \
+    chromium \
+    chromium-chromedriver \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ttf-freefont
+
+# Set Chromium environment variables for chromedp
+ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/lib/chromium/
 
 # Copy binary from builder
 COPY --from=builder /app/server .

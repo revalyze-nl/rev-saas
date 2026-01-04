@@ -143,3 +143,4 @@ func LogAPIError(ctx context.Context, message string, err error) {
 	globalErrorLogger.LogError(ctx, "api", message, details, primitive.NilObjectID, "")
 }
 
+

@@ -92,3 +92,4 @@ func (r *ErrorLogRepository) DeleteOlderThan(ctx context.Context, before time.Ti
 	return err
 }
 
+

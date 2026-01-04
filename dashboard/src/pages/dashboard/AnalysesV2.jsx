@@ -69,6 +69,7 @@ const AnalysesV2 = () => {
   
   const [exportingId, setExportingId] = useState(null);
   const [exportError, setExportError] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Prepare chart data from analysis
   const chartData = useMemo(() => {
@@ -459,20 +460,120 @@ const AnalysesV2 = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Report Header */}
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-3xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
-            <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50 overflow-hidden">
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500 rounded-full blur-3xl"></div>
+      {/* Floating History Button */}
+      <button
+        onClick={() => setHistoryOpen(true)}
+        className="fixed right-6 top-24 z-40 flex items-center gap-2 px-4 py-2.5 bg-slate-800/90 backdrop-blur-sm text-slate-300 rounded-xl font-medium hover:bg-slate-700 transition-all border border-slate-700 shadow-lg"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        History
+        <span className="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full">
+          {analyses.length}
+        </span>
+      </button>
+
+      {/* History Sidebar Overlay */}
+      {historyOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setHistoryOpen(false)} />
+          <aside className="relative w-full max-w-sm bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-white">Analysis History</h3>
               </div>
-              
-              <div className="relative">
+              <button
+                onClick={() => setHistoryOpen(false)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              {analyses.map((analysis, index) => {
+                const isSelected = analysis.id === selectedAnalysis?.id;
+                const isLatest = index === 0;
+                
+                return (
+                  <div
+                    key={analysis.id}
+                    className={`group rounded-xl border transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? 'border-violet-500/50 bg-violet-500/10'
+                        : 'border-slate-800 bg-slate-800/30 hover:border-slate-700'
+                    }`}
+                    onClick={() => {
+                      selectAnalysis(analysis.id);
+                      setHistoryOpen(false);
+                    }}
+                  >
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-white">
+                          {formatDateShort(analysis.createdAt)}
+                        </span>
+                        {isLatest && (
+                          <span className="text-xs font-medium text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
+                            Latest
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                        <span>{analysis.ruleResult.numPlans} plans</span>
+                        <span>{analysis.ruleResult.numCompetitors} competitors</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {analysis.ruleResult.insights.filter(i => i.severity === 'critical').length > 0 && (
+                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
+                            {analysis.ruleResult.insights.filter(i => i.severity === 'critical').length} critical
+                          </span>
+                        )}
+                        {analysis.ruleResult.insights.filter(i => i.severity === 'warning').length > 0 && (
+                          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
+                            {analysis.ruleResult.insights.filter(i => i.severity === 'warning').length} warning
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="sticky bottom-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-800 p-4">
+              <button
+                onClick={() => {
+                  handleRunNewAnalysis();
+                  setHistoryOpen(false);
+                }}
+                disabled={isRunning}
+                className="w-full text-center text-sm font-medium py-3 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white hover:from-violet-600 hover:to-fuchsia-700 transition-all disabled:opacity-50"
+              >
+                {isRunning ? 'Running...' : '+ Run New Analysis'}
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Main Content */}
+        <div className="space-y-6">
+          
+          {/* Report Header - Clean design */}
+          <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50">
+              <div>
                 <div className="flex items-start justify-between mb-6">
                   <div>
                     <div className="flex items-center gap-3 mb-3">
@@ -548,41 +649,46 @@ const AnalysesV2 = () => {
                   </div>
                 </div>
               </div>
-            </div>
           </div>
 
-          {/* Executive Summary */}
+          {/* Executive Summary - Clean, readable design */}
           {selectedAnalysis.llmOutput.executiveSummary && (
-            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+            <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Executive Summary</h3>
                 </div>
-                <h3 className="text-lg font-semibold text-white">Executive Summary</h3>
               </div>
-              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
-                {selectedAnalysis.llmOutput.executiveSummary}
-              </p>
+              <div className="p-6">
+                <p className="text-slate-300 text-[15px] leading-7 whitespace-pre-line">
+                  {selectedAnalysis.llmOutput.executiveSummary}
+                </p>
+              </div>
             </div>
           )}
 
           {/* System Detected Insights (Rule Engine) */}
           {selectedAnalysis.ruleResult.insights.length > 0 && (
-            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
+            <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">System Detected Insights</h3>
+                    <p className="text-xs text-slate-500">Deterministic analysis</p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-white">System Detected Insights</h3>
-                <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-full ml-auto">
-                  Deterministic
-                </span>
               </div>
-              <div className="space-y-3">
+              <div className="p-6 space-y-3">
                 {selectedAnalysis.ruleResult.insights.map((insight, index) => (
                   <div 
                     key={index} 
@@ -591,11 +697,11 @@ const AnalysesV2 = () => {
                     <div className="flex items-start gap-3">
                       {getSeverityIcon(insight.severity)}
                       <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-medium text-white">{insight.title}</h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-white">{insight.title}</h4>
                           <span className="text-xs text-slate-500 font-mono">{insight.code}</span>
                         </div>
-                        <p className="text-sm text-slate-400 leading-relaxed">
+                        <p className="text-sm text-slate-300 leading-relaxed">
                           {insight.description}
                         </p>
                       </div>
@@ -606,56 +712,55 @@ const AnalysesV2 = () => {
             </div>
           )}
 
-          {/* Pricing Insights (LLM) */}
+          {/* Pricing Insights (LLM) - Clean readable design */}
           {selectedAnalysis.llmOutput.pricingInsights.length > 0 && (
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
-              <div className="relative bg-gradient-to-br from-violet-500/5 via-slate-900/60 to-fuchsia-500/5 backdrop-blur-sm rounded-2xl border border-violet-500/20 overflow-hidden">
-                <div className="px-6 py-4 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border-b border-violet-500/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-white">Pricing Insights</h3>
-                      <p className="text-xs text-slate-400">AI-powered strategic analysis</p>
-                    </div>
+            <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">Pricing Insights</h3>
+                    <p className="text-xs text-slate-500">AI-powered strategic analysis</p>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
-                  {selectedAnalysis.llmOutput.pricingInsights.map((insight, index) => (
-                    <div key={index} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                      <h4 className="font-medium text-white mb-2">{insight.title}</h4>
-                      <p className="text-sm text-slate-400 leading-relaxed">{insight.body}</p>
-                    </div>
-                  ))}
-                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                {selectedAnalysis.llmOutput.pricingInsights.map((insight, index) => (
+                  <div key={index} className="p-5 bg-slate-800/40 rounded-xl border border-slate-700/30">
+                    <h4 className="font-semibold text-white mb-3 text-base">{insight.title}</h4>
+                    <p className="text-sm text-slate-300 leading-relaxed">{insight.body}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Recommendations (LLM) */}
+          {/* Recommendations (LLM) - Clean design */}
           {selectedAnalysis.llmOutput.recommendations.length > 0 && (
-            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+            <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Recommendations</h3>
                 </div>
-                <h3 className="text-lg font-semibold text-white">Recommendations</h3>
               </div>
-              <div className="space-y-4">
+              <div className="p-6 space-y-4">
                 {selectedAnalysis.llmOutput.recommendations.map((rec, index) => (
-                  <div key={index} className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-xl">
-                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/20">
-                      <span className="text-sm font-bold text-white">{index + 1}</span>
+                  <div key={index} className="flex items-start gap-4 p-5 bg-slate-800/40 rounded-xl border border-slate-700/30">
+                    <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-500/30">
+                      <span className="text-sm font-bold text-emerald-400">{index + 1}</span>
                     </div>
                     <div>
-                      <h4 className="font-medium text-white mb-1">{rec.action}</h4>
-                      <p className="text-sm text-slate-400 leading-relaxed">{rec.reason}</p>
+                      <h4 className="font-semibold text-white mb-2 text-base">{rec.action}</h4>
+                      <p className="text-sm text-slate-300 leading-relaxed">{rec.reason}</p>
                     </div>
                   </div>
                 ))}
@@ -663,57 +768,54 @@ const AnalysesV2 = () => {
             </div>
           )}
 
-          {/* Suggested Next Actions */}
+          {/* Suggested Next Actions - Clean design */}
           {selectedAnalysis.llmOutput.suggestedNextActions?.length > 0 && (
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
-              <div className="relative bg-gradient-to-br from-indigo-500/5 via-slate-900/60 to-purple-500/5 backdrop-blur-sm rounded-2xl border border-indigo-500/20 overflow-hidden">
-                <div className="px-6 py-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-b border-indigo-500/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-white">Suggested Next Actions</h3>
-                      <p className="text-xs text-slate-400">Based on this analysis, here are the most impactful next steps</p>
-                    </div>
+            <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">Suggested Next Actions</h3>
+                    <p className="text-xs text-slate-500">Based on this analysis, here are the most impactful next steps</p>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
-                  {selectedAnalysis.llmOutput.suggestedNextActions.map((action, index) => (
-                    <div 
-                      key={index} 
-                      className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30 hover:border-indigo-500/30 transition-all group/action"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-medium text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
-                              Action
-                            </span>
-                            <span className="text-xs text-slate-500 font-mono">{action.code}</span>
-                          </div>
-                          <h4 className="font-medium text-white mb-1">{action.title}</h4>
-                          <p className="text-sm text-slate-400 leading-relaxed">{action.description}</p>
+              </div>
+              <div className="p-6 space-y-4">
+                {selectedAnalysis.llmOutput.suggestedNextActions.map((action, index) => (
+                  <div 
+                    key={index} 
+                    className="p-5 bg-slate-800/40 rounded-xl border border-slate-700/30 hover:border-cyan-500/30 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-medium text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                            Action
+                          </span>
+                          <span className="text-xs text-slate-500 font-mono">{action.code}</span>
                         </div>
-                        <div className="flex-shrink-0">
-                          <button
-                            onClick={() => navigate(`/app/simulation?action=${encodeURIComponent(action.code)}`)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all hover:scale-105 shadow-lg shadow-indigo-500/20"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Simulate
-                          </button>
-                        </div>
+                        <h4 className="font-semibold text-white mb-2 text-base">{action.title}</h4>
+                        <p className="text-sm text-slate-300 leading-relaxed">{action.description}</p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <button
+                          onClick={() => navigate(`/app/simulation?action=${encodeURIComponent(action.code)}`)}
+                          className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-sm font-medium rounded-lg hover:bg-slate-600 transition-all"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Simulate
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -898,18 +1000,20 @@ const AnalysesV2 = () => {
 
           {/* Risk Analysis (LLM) */}
           {selectedAnalysis.llmOutput.riskAnalysis.length > 0 && (
-            <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-red-500/20">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
+            <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Risk Analysis</h3>
                 </div>
-                <h3 className="text-lg font-semibold text-white">Risk Analysis</h3>
               </div>
-              <div className="space-y-3">
+              <div className="p-6 space-y-3">
                 {selectedAnalysis.llmOutput.riskAnalysis.map((risk, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-red-500/5 rounded-xl border border-red-500/10">
+                  <div key={index} className="flex items-start gap-3 p-4 bg-slate-800/40 rounded-xl border border-slate-700/30">
                     <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
                     <p className="text-sm text-slate-300 leading-relaxed">{risk}</p>
                   </div>
@@ -918,95 +1022,6 @@ const AnalysesV2 = () => {
             </div>
           )}
         </div>
-
-        {/* Sidebar - Analysis History */}
-        <aside className="lg:col-span-1">
-          <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 sticky top-6">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-violet-500/10 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-base font-semibold text-white">History</h3>
-              </div>
-              <span className="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full">
-                {analyses.length}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {analyses.map((analysis, index) => {
-                const isSelected = analysis.id === selectedAnalysis.id;
-                const isLatest = index === 0;
-                
-                return (
-                  <div
-                    key={analysis.id}
-                    className={`group rounded-xl border transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? 'border-violet-500/50 bg-violet-500/5'
-                        : 'border-slate-800 bg-slate-900/30 hover:border-slate-700'
-                    }`}
-                    onClick={() => selectAnalysis(analysis.id)}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-white">
-                          {formatDateShort(analysis.createdAt)}
-                        </span>
-                        {isLatest && (
-                          <span className="text-xs font-medium text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
-                            Latest
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
-                        <span>{analysis.ruleResult.numPlans} plans</span>
-                        <span>{analysis.ruleResult.numCompetitors} competitors</span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 mb-3">
-                        {analysis.ruleResult.insights.filter(i => i.severity === 'critical').length > 0 && (
-                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
-                            {analysis.ruleResult.insights.filter(i => i.severity === 'critical').length} critical
-                          </span>
-                        )}
-                        {analysis.ruleResult.insights.filter(i => i.severity === 'warning').length > 0 && (
-                          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
-                            {analysis.ruleResult.insights.filter(i => i.severity === 'warning').length} warning
-                          </span>
-                        )}
-                      </div>
-
-                      <div
-                        className={`w-full text-xs font-medium py-2 rounded-lg text-center transition-all ${
-                          isSelected
-                            ? 'text-slate-500 bg-slate-800/50'
-                            : 'text-white bg-slate-800 hover:bg-slate-700'
-                        }`}
-                      >
-                        {isSelected ? 'Currently Viewing' : 'View Report'}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-slate-800">
-              <button
-                onClick={handleRunNewAnalysis}
-                disabled={isRunning}
-                className="w-full text-center text-sm font-medium py-2.5 rounded-xl bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-400 hover:from-violet-500/20 hover:to-fuchsia-500/20 transition-all border border-violet-500/20 disabled:opacity-50"
-              >
-                {isRunning ? 'Running...' : '+ Run New Analysis'}
-              </button>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );

@@ -195,19 +195,24 @@ func (s *CompetitorV2Service) SaveCompetitors(ctx context.Context, userID string
 		return nil, fmt.Errorf("failed to count competitors: %w", err)
 	}
 
-	// Get limit based on plan
-	planLimits := GetPlanLimits(user.Plan)
+	// Get limit based on plan (use GetEffectivePlan to consider role)
+	effectivePlan := user.GetEffectivePlan()
+	planLimits := GetPlanLimits(effectivePlan)
 	limit := planLimits.MaxCompetitors
-	
-	log.Printf("[competitor-v2] User plan: %s, limit: %d, current: %d, trying to add: %d", user.Plan, limit, currentCount, len(competitors))
 
-	// Check if adding these would exceed limit
-	if int(currentCount)+len(competitors) > limit {
-		remaining := limit - int(currentCount)
-		if remaining <= 0 {
-			return nil, fmt.Errorf("competitor limit reached (%d/%d). Upgrade your plan to add more", currentCount, limit)
+	log.Printf("[competitor-v2] User role: %s, effective plan: %s, unlimited: %v, limit: %d, current: %d, trying to add: %d",
+		user.Role, effectivePlan, planLimits.IsUnlimited, limit, currentCount, len(competitors))
+
+	// Skip limit check for unlimited plans (admin/investor)
+	if !planLimits.IsUnlimited {
+		// Check if adding these would exceed limit
+		if int(currentCount)+len(competitors) > limit {
+			remaining := limit - int(currentCount)
+			if remaining <= 0 {
+				return nil, fmt.Errorf("competitor limit reached (%d/%d). Upgrade your plan to add more", currentCount, limit)
+			}
+			return nil, fmt.Errorf("can only add %d more competitors (%d/%d). Upgrade your plan for more", remaining, currentCount, limit)
 		}
-		return nil, fmt.Errorf("can only add %d more competitors (%d/%d). Upgrade your plan for more", remaining, currentCount, limit)
 	}
 
 	var saved []model.SavedCompetitor
@@ -254,9 +259,15 @@ func (s *CompetitorV2Service) GetSavedCompetitors(ctx context.Context, userID st
 		return nil, fmt.Errorf("failed to get competitors: %w", err)
 	}
 
-	// Get limit based on plan
-	planLimits := GetPlanLimits(user.Plan)
+	// Get limit based on plan (use GetEffectivePlan to consider role)
+	effectivePlan := user.GetEffectivePlan()
+	planLimits := GetPlanLimits(effectivePlan)
 	limit := planLimits.MaxCompetitors
+
+	// For unlimited plans, show 0 as limit (frontend interprets as unlimited)
+	if planLimits.IsUnlimited {
+		limit = 0
+	}
 
 	return &model.SavedCompetitorsResponse{
 		Competitors: competitors,

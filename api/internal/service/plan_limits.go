@@ -73,6 +73,17 @@ var planLimitsConfig = map[string]PlanLimits{
 		MonthlyAICredits:   9999,
 		SimulationsEnabled: true,
 	},
+	model.PlanInvestor: {
+		MaxCompetitors:      0,
+		MaxPlans:            0,
+		MaxAnalysesPerMonth: 0,
+		MaxAnalysesTotal:    0,
+		TrialDays:           0,
+		IsUnlimited:         true,
+		// AI Insight Credits - unlimited for investor (same as admin)
+		MonthlyAICredits:   9999,
+		SimulationsEnabled: true,
+	},
 }
 
 // GetPlanLimits returns the limits for a given plan.

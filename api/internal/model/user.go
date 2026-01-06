@@ -19,7 +19,8 @@ const (
 	PlanStarter    = "starter"
 	PlanGrowth     = "growth"
 	PlanEnterprise = "enterprise"
-	PlanAdmin      = "admin" // Special unlimited plan for admins
+	PlanAdmin      = "admin"    // Special unlimited plan for admins
+	PlanInvestor   = "investor" // Special unlimited plan for investors
 )
 
 // User represents a user in the system.
@@ -78,8 +79,17 @@ func (u *User) IsTrialExpired() bool {
 	return time.Now().After(u.TrialExpiresAt)
 }
 
-// GetEffectivePlan returns the user's plan, defaulting to "free" if empty
+// GetEffectivePlan returns the user's plan, considering role overrides.
+// Admin and investor roles get unlimited access regardless of their plan field.
 func (u *User) GetEffectivePlan() string {
+	// Admin role always gets admin plan (unlimited)
+	if u.Role == RoleAdmin {
+		return PlanAdmin
+	}
+	// Investor role always gets investor plan (unlimited)
+	if u.Role == RoleInvestor {
+		return PlanInvestor
+	}
 	if u.Plan == "" {
 		return PlanFree
 	}

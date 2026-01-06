@@ -17,11 +17,11 @@ const Verdict = () => {
     // Single verbal outcome statement
     outcome: 'This change is expected to increase revenue with low churn risk.',
     lastUpdated: 'Today at 2:34 PM',
-    // Detailed numbers moved to collapsible section only
+    // Detailed numbers - softened to ranges/directional signals
     details: {
-      revenueImpact: '+$24K/month projected',
-      churnRisk: '2.1% expected churn (below industry average)',
-      marketPosition: '23% below competitor average',
+      revenueImpact: '~$20–30K/month additional revenue',
+      churnRisk: 'Low single-digit churn expected',
+      marketPosition: 'Significantly below market average',
     },
     reasoning: [
       {
@@ -81,11 +81,10 @@ const Verdict = () => {
     <div className="max-w-2xl mx-auto pt-8">
       {/* The Verdict - Hero */}
       <div className="mb-10">
-        <div className="mb-5">
-          <span className="px-3 py-1.5 text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
-            New recommendation
-          </span>
-        </div>
+        {/* AI Framing - Subtle authority signal */}
+        <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">
+          AI pricing recommendation
+        </p>
 
         {/* Main Verdict - The Star */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight leading-tight">
@@ -197,7 +196,7 @@ const Verdict = () => {
               onClick={() => toggleSection('details')}
               className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
             >
-              <span className="text-sm text-slate-400">View detailed projections</span>
+              <span className="text-sm text-slate-400">Supporting details</span>
               <svg
                 className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.details ? 'rotate-180' : ''}`}
                 fill="none"
@@ -211,15 +210,15 @@ const Verdict = () => {
             {expandedSections.details && (
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Revenue impact</span>
+                  <span className="text-sm text-slate-500">Expected revenue</span>
                   <span className="text-sm text-slate-300">{verdict.details.revenueImpact}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Churn projection</span>
+                  <span className="text-sm text-slate-500">Churn outlook</span>
                   <span className="text-sm text-slate-300">{verdict.details.churnRisk}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Market position</span>
+                  <span className="text-sm text-slate-500">Your positioning</span>
                   <span className="text-sm text-slate-300">{verdict.details.marketPosition}</span>
                 </div>
               </div>

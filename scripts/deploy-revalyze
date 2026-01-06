@@ -1,0 +1,355 @@
+#!/usr/bin/env bash
+# =============================================================================
+# deploy-revalyze - Production deployment script for Revalyze
+# =============================================================================
+# Install to: /usr/local/bin/deploy-revalyze
+# Usage: deploy-revalyze [service1 service2 ...]
+# Env vars:
+#   DRY_RUN=1  - Only validate, don't execute deploy
+# =============================================================================
+
+set -euo pipefail
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+readonly APP_DIR="/opt/revalyze/app"
+readonly COMPOSE_FILE="docker-compose.prod.yml"
+readonly ENV_FILE=".env"
+readonly GIT_BRANCH="origin/main"
+
+# Required environment variables (will fail if missing/empty)
+readonly REQUIRED_ENV_VARS=(
+    "MONGO_URI"
+    "MONGO_DB_NAME"
+    "JWT_SECRET"
+    "ENCRYPTION_KEY"
+    "STRIPE_SECRET_KEY"
+    "STRIPE_WEBHOOK_SECRET"
+    "SMTP_HOST"
+    "SMTP_PORT"
+    "SMTP_USER"
+    "SMTP_PASSWORD"
+    "SMTP_FROM"
+)
+
+# -----------------------------------------------------------------------------
+# Colors and output helpers
+# -----------------------------------------------------------------------------
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[OK]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+log_step() {
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}▸${NC} $1"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+# -----------------------------------------------------------------------------
+# Validation functions
+# -----------------------------------------------------------------------------
+
+check_app_directory() {
+    log_step "Checking app directory"
+
+    if [[ ! -d "$APP_DIR" ]]; then
+        log_error "App directory not found: $APP_DIR"
+        exit 1
+    fi
+
+    if [[ ! -f "$APP_DIR/$COMPOSE_FILE" ]]; then
+        log_error "Compose file not found: $APP_DIR/$COMPOSE_FILE"
+        exit 1
+    fi
+
+    log_success "App directory exists: $APP_DIR"
+}
+
+check_env_file_exists() {
+    log_step "Checking .env file"
+
+    if [[ ! -f "$APP_DIR/$ENV_FILE" ]]; then
+        log_error ".env file not found: $APP_DIR/$ENV_FILE"
+        log_error "Create the .env file with required variables before deploying."
+        exit 1
+    fi
+
+    log_success ".env file exists"
+}
+
+check_env_not_tracked() {
+    log_step "Checking .env is not tracked by git"
+
+    cd "$APP_DIR"
+
+    # Check if .env is in .gitignore
+    if ! grep -qE "^\.env$" .gitignore 2>/dev/null; then
+        log_warn ".env is not explicitly listed in .gitignore"
+    fi
+
+    # Check if .env is tracked by git
+    if git ls-files --error-unmatch "$ENV_FILE" &>/dev/null; then
+        log_error ".env is tracked by git! This is dangerous."
+        log_error "Run: git rm --cached .env && git commit -m 'Stop tracking .env'"
+        exit 1
+    fi
+
+    log_success ".env is not tracked by git"
+}
+
+validate_env_variables() {
+    log_step "Validating required environment variables"
+
+    local missing_vars=()
+    local empty_vars=()
+
+    # Source the .env file to check variables
+    # Use a subshell to avoid polluting current environment
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^#.*$ ]] && continue
+        [[ -z "$line" ]] && continue
+
+        # Extract key=value
+        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+            declare "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
+        fi
+    done < "$APP_DIR/$ENV_FILE"
+
+    # Check each required variable
+    for var in "${REQUIRED_ENV_VARS[@]}"; do
+        local value="${!var:-}"
+
+        if [[ -z "$value" ]]; then
+            # Check if variable exists in file but is empty vs not present at all
+            if grep -qE "^${var}=" "$APP_DIR/$ENV_FILE"; then
+                empty_vars+=("$var")
+            else
+                missing_vars+=("$var")
+            fi
+        fi
+    done
+
+    # Report missing variables
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
+        log_error "Missing environment variables:"
+        for var in "${missing_vars[@]}"; do
+            echo -e "  ${RED}✗${NC} $var"
+        done
+    fi
+
+    # Report empty variables
+    if [[ ${#empty_vars[@]} -gt 0 ]]; then
+        log_error "Empty environment variables (present but no value):"
+        for var in "${empty_vars[@]}"; do
+            echo -e "  ${RED}✗${NC} $var"
+        done
+    fi
+
+    # Exit if any issues
+    if [[ ${#missing_vars[@]} -gt 0 ]] || [[ ${#empty_vars[@]} -gt 0 ]]; then
+        echo ""
+        log_error "Fix the .env file before deploying!"
+        log_error "File location: $APP_DIR/$ENV_FILE"
+        exit 1
+    fi
+
+    log_success "All ${#REQUIRED_ENV_VARS[@]} required variables are set"
+}
+
+validate_compose_config() {
+    log_step "Validating docker-compose configuration"
+
+    cd "$APP_DIR"
+
+    if ! docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" config > /dev/null 2>&1; then
+        log_error "docker-compose config validation failed!"
+        log_error "Running with verbose output:"
+        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" config
+        exit 1
+    fi
+
+    log_success "docker-compose config is valid"
+}
+
+# -----------------------------------------------------------------------------
+# Backup function
+# -----------------------------------------------------------------------------
+
+backup_env_file() {
+    log_step "Backing up .env file"
+
+    local timestamp
+    timestamp=$(date +%Y%m%d-%H%M%S)
+    local backup_file="$APP_DIR/.env.backup-$timestamp"
+
+    cp "$APP_DIR/$ENV_FILE" "$backup_file"
+    chmod 600 "$backup_file"
+
+    log_success "Backup created: $backup_file"
+}
+
+# -----------------------------------------------------------------------------
+# Deploy functions
+# -----------------------------------------------------------------------------
+
+git_pull() {
+    log_step "Fetching latest code from git"
+
+    cd "$APP_DIR"
+
+    log_info "Running: git fetch --all"
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "[DRY RUN] Would execute: git fetch --all"
+    else
+        git fetch --all
+    fi
+
+    log_info "Running: git reset --hard $GIT_BRANCH"
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "[DRY RUN] Would execute: git reset --hard $GIT_BRANCH"
+    else
+        git reset --hard "$GIT_BRANCH"
+    fi
+
+    log_success "Code updated to latest $GIT_BRANCH"
+}
+
+docker_build() {
+    local services=("$@")
+
+    log_step "Building Docker images"
+
+    cd "$APP_DIR"
+
+    local build_cmd="docker-compose -f $COMPOSE_FILE --env-file $ENV_FILE build --pull"
+
+    if [[ ${#services[@]} -gt 0 ]]; then
+        build_cmd+=" ${services[*]}"
+        log_info "Building specific services: ${services[*]}"
+    else
+        log_info "Building all services"
+    fi
+
+    log_info "Running: $build_cmd"
+
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "[DRY RUN] Would execute: $build_cmd"
+    else
+        eval "$build_cmd"
+    fi
+
+    log_success "Docker build completed"
+}
+
+docker_up() {
+    local services=("$@")
+
+    log_step "Starting Docker containers"
+
+    cd "$APP_DIR"
+
+    local up_cmd="docker-compose -f $COMPOSE_FILE --env-file $ENV_FILE up -d --remove-orphans"
+
+    if [[ ${#services[@]} -gt 0 ]]; then
+        up_cmd+=" ${services[*]}"
+        log_info "Starting specific services: ${services[*]}"
+    else
+        log_info "Starting all services"
+    fi
+
+    log_info "Running: $up_cmd"
+
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "[DRY RUN] Would execute: $up_cmd"
+    else
+        eval "$up_cmd"
+    fi
+
+    log_success "Docker containers started"
+}
+
+show_status() {
+    log_step "Deployment Status"
+
+    cd "$APP_DIR"
+
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "[DRY RUN] Would show: docker-compose ps"
+    else
+        docker-compose -f "$COMPOSE_FILE" ps
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+
+main() {
+    local services=("$@")
+
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}           ${GREEN}Revalyze Production Deployment${NC}                     ${BLUE}║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "DRY RUN MODE - No changes will be made"
+    fi
+
+    if [[ ${#services[@]} -gt 0 ]]; then
+        log_info "Target services: ${services[*]}"
+    else
+        log_info "Target services: all"
+    fi
+
+    # Validation phase
+    check_app_directory
+    check_env_file_exists
+    check_env_not_tracked
+    validate_env_variables
+    validate_compose_config
+
+    # Backup phase
+    backup_env_file
+
+    # Deploy phase
+    git_pull
+    docker_build "${services[@]}"
+    docker_up "${services[@]}"
+
+    # Status
+    show_status
+
+    echo ""
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        log_warn "DRY RUN COMPLETE - No changes were made"
+    else
+        log_success "Deployment completed successfully!"
+    fi
+    echo ""
+}
+
+# Run main with all arguments
+main "$@"

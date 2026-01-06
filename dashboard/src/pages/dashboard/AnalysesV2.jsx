@@ -343,9 +343,12 @@ const AnalysesV2 = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">No Analyses Yet</h2>
-              <p className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
-                Run your first pricing analysis to get deterministic insights with AI-powered commentary.
+              <h2 className="text-2xl font-bold text-white mb-3">Run Your First Analysis</h2>
+              <p className="text-slate-400 mb-2 max-w-md mx-auto leading-relaxed">
+                Analysis combines your pricing data with competitor intelligence to generate actionable insights.
+              </p>
+              <p className="text-slate-500 text-sm mb-8 max-w-md mx-auto">
+                Requires at least one pricing plan and one competitor to run.
               </p>
               <button
                 onClick={handleRunNewAnalysis}
@@ -365,12 +368,12 @@ const AnalysesV2 = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Run First Analysis
+                    Run Analysis
                   </span>
                 )}
               </button>
-              <p className="text-xs text-slate-500 mt-3 max-w-sm mx-auto">
-                AI insights are advisory. Verify recommendations before implementing pricing changes.
+              <p className="text-xs text-slate-500 mt-4 max-w-sm mx-auto">
+                Analysis typically takes 30-60 seconds to complete.
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
+import OnboardingOrchestratorModal from '../components/onboarding/OnboardingOrchestratorModal';
 
 const DashboardLayout = () => {
   return (
@@ -12,6 +13,8 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+      {/* Onboarding Orchestrator Modal */}
+      <OnboardingOrchestratorModal />
     </div>
   );
 };

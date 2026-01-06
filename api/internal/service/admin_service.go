@@ -217,6 +217,18 @@ func (s *AdminService) DeleteUser(ctx context.Context, userID string) error {
 	return s.userRepo.Delete(ctx, oid)
 }
 
+// ActivateUser manually activates a user by setting email_verified to true.
+func (s *AdminService) ActivateUser(ctx context.Context, userID string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID")
+	}
+
+	return s.userRepo.UpdateFields(ctx, oid, map[string]interface{}{
+		"email_verified": true,
+	})
+}
+
 // SubscriptionsResult represents subscriptions response.
 type SubscriptionsResult struct {
 	Subscriptions []map[string]interface{} `json:"subscriptions"`

@@ -3,25 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { usePlans } from '../../context/PlansContext';
 import { useAnalysis } from '../../context/AnalysisV2Context';
 import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
+import { useOnboarding } from '../../context/OnboardingContext';
 import { competitorsV2Api } from '../../lib/apiClient';
+import OnboardingGuidanceBanner from '../../components/onboarding/OnboardingGuidanceBanner';
 
 const Overview = () => {
   const navigate = useNavigate();
   const { plans } = usePlans();
   const { analyses, runAnalysis, isRunning, error: analysisError, limitError, clearLimitError } = useAnalysis();
   const { metrics, hasMetrics, isLoading: metricsLoading } = useBusinessMetrics();
+  const { handleCompletionEvent, updateCompetitorsCount } = useOnboarding();
   const [runError, setRunError] = useState(null);
-  
+
   // Fetch V2 competitors
   const [competitors, setCompetitors] = useState([]);
   const [competitorsLoading, setCompetitorsLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchCompetitors = async () => {
       try {
         const { data } = await competitorsV2Api.list();
         // API returns {competitors: [], count: N, limit: N}
-        setCompetitors(data?.competitors || []);
+        const competitorsList = data?.competitors || [];
+        setCompetitors(competitorsList);
+        // Update onboarding context with competitors count
+        updateCompetitorsCount(competitorsList.length);
       } catch (err) {
         console.error('Failed to fetch V2 competitors:', err);
         setCompetitors([]);
@@ -30,7 +36,22 @@ const Overview = () => {
       }
     };
     fetchCompetitors();
-  }, []);
+  }, [updateCompetitorsCount]);
+
+  // Determine setup completion state
+  const hasPlans = plans.length > 0;
+  const hasCompetitors = competitors.length > 0;
+  const hasAnalysis = analyses.length > 0;
+  const isSetupComplete = hasPlans && hasCompetitors && hasAnalysis;
+
+  // Determine current setup step (for highlighting in checklist)
+  const getCurrentStep = () => {
+    if (!hasPlans) return 2; // Step 3: Define plans (0-indexed as step 2)
+    if (!hasCompetitors) return 3; // Step 4: Add competitors
+    if (!hasAnalysis) return 4; // Step 5: Run analysis
+    return -1; // All complete
+  };
+  const currentStep = getCurrentStep();
 
   // Get user-friendly error title
   const getLimitErrorTitle = (errorCode) => {
@@ -78,17 +99,15 @@ const Overview = () => {
   const completedCount = checklistItems.filter(item => item.completed).length;
   const progressPercent = (completedCount / checklistItems.length) * 100;
 
-  const hasPlans = plans.length > 0;
-  const hasCompetitors = competitors.length > 0;
-  const hasAnalysis = analyses.length > 0;
-
   const handleRunAnalysis = async () => {
     if (!hasPlans || !hasCompetitors) return;
-    
+
     setRunError(null);
     const result = await runAnalysis();
-    
+
     if (result.success) {
+      // Dispatch onboarding completion event
+      handleCompletionEvent('analysis_run');
       navigate('/app/analyses');
     } else {
       setRunError(result.error || 'Failed to run analysis');
@@ -201,6 +220,9 @@ const Overview = () => {
         </div>
       </div>
 
+      {/* Onboarding Guidance Banner */}
+      <OnboardingGuidanceBanner pageId="overview" />
+
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         {/* Left: Checklist Card */}
         <div className="md:col-span-2">
@@ -237,35 +259,69 @@ const Overview = () => {
               </div>
 
               <div className="space-y-3">
-                {checklistItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-                      item.completed
-                        ? 'bg-emerald-500/10 border border-emerald-500/20'
-                        : 'bg-slate-800/50 border border-slate-700/50'
-                    }`}
-                  >
+                {checklistItems.map((item, index) => {
+                  const isCurrent = index === currentStep;
+                  const isFuture = index > currentStep && currentStep !== -1;
+
+                  return (
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                      key={index}
+                      className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
                         item.completed
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30'
-                          : 'bg-slate-700 border-2 border-slate-600'
+                          ? 'bg-emerald-500/10 border border-emerald-500/20'
+                          : isCurrent
+                          ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 border-2 border-violet-500/50 shadow-lg shadow-violet-500/10'
+                          : isFuture
+                          ? 'bg-slate-800/30 border border-slate-700/30 opacity-50'
+                          : 'bg-slate-800/50 border border-slate-700/50'
                       }`}
                     >
-                      {item.completed ? (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <span className="text-slate-400 text-sm font-bold">{index + 1}</span>
-                      )}
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                          item.completed
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30'
+                            : isCurrent
+                            ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/30'
+                            : isFuture
+                            ? 'bg-slate-700/50 border-2 border-slate-600/50'
+                            : 'bg-slate-700 border-2 border-slate-600'
+                        }`}
+                      >
+                        {item.completed ? (
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        ) : isFuture ? (
+                          <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        ) : isCurrent ? (
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        ) : (
+                          <span className="text-slate-400 text-sm font-bold">{index + 1}</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className={`font-medium ${
+                          item.completed
+                            ? 'text-emerald-300'
+                            : isCurrent
+                            ? 'text-white'
+                            : isFuture
+                            ? 'text-slate-500'
+                            : 'text-slate-300'
+                        }`}>
+                          {item.label}
+                        </span>
+                        {isCurrent && (
+                          <p className="text-xs text-violet-300 mt-0.5">Current step</p>
+                        )}
+                      </div>
                     </div>
-                    <span className={`font-medium ${item.completed ? 'text-emerald-300' : 'text-slate-300'}`}>
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -364,14 +420,19 @@ const Overview = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          Quick Stats
-        </h2>
+      {/* Secondary Content - De-emphasized when setup incomplete */}
+      <div className={`transition-all duration-300 ${!isSetupComplete ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+        {/* Quick Stats */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Quick Stats
+            {!isSetupComplete && (
+              <span className="ml-2 text-xs font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Complete setup to view</span>
+            )}
+          </h2>
         <div className="grid md:grid-cols-4 gap-4">
           {/* Plans Defined */}
           <div className="group relative">
@@ -503,9 +564,12 @@ const Overview = () => {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-white mb-2">Add your business metrics</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                    Add your business metrics to get more context in your pricing analysis. Track your MRR, customer count, and churn rate.
+                  <h3 className="text-lg font-bold text-white mb-2">Add Business Metrics</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-1">
+                    Business metrics help calibrate simulation projections and provide context for pricing recommendations.
+                  </p>
+                  <p className="text-slate-500 text-xs leading-relaxed mb-4">
+                    Add MRR, customer count, and churn rate for more accurate insights.
                   </p>
                   <button
                     onClick={() => navigate('/app/settings')}
@@ -572,22 +636,23 @@ const Overview = () => {
           </div>
         </div>
         
-        {/* Analysis Progress Insight */}
-        {analyses.length > 0 && (
-          <div className="mt-4 p-4 bg-violet-500/5 border border-violet-500/20 rounded-xl">
-            <p className="text-sm text-slate-300 flex items-center gap-2">
-              <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {analyses.length === 1
-                ? "You've run 1 analysis so far. "
-                : `You've run ${analyses.length} analyses so far. `}
-              {analyses.length >= 3
-                ? "Great progress! Track your pricing evolution over time in the Analyses page."
-                : "Keep running analyses to track your pricing evolution over time."}
-            </p>
-          </div>
-        )}
+          {/* Analysis Progress Insight */}
+          {analyses.length > 0 && (
+            <div className="mt-4 p-4 bg-violet-500/5 border border-violet-500/20 rounded-xl">
+              <p className="text-sm text-slate-300 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {analyses.length === 1
+                  ? "You've run 1 analysis so far. "
+                  : `You've run ${analyses.length} analyses so far. `}
+                {analyses.length >= 3
+                  ? "Great progress! Track your pricing evolution over time in the Analyses page."
+                  : "Keep running analyses to track your pricing evolution over time."}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

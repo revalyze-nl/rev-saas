@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"rev-saas-api/internal/middleware"
-	"rev-saas-api/internal/model"
 	"rev-saas-api/internal/service"
 )
 
@@ -139,6 +138,27 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
+// ActivateUser manually activates a user (sets email_verified to true).
+func (h *AdminHandler) ActivateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	vars := mux.Vars(r)
+	userID := vars["id"]
+	if userID == "" {
+		http.Error(w, "user ID required", http.StatusBadRequest)
+		return
+	}
+
+	err := h.adminService.ActivateUser(ctx, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "activated"})
+}
+
 // GetSubscriptions returns all subscriptions.
 func (h *AdminHandler) GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -214,7 +234,7 @@ func (h *AdminHandler) GetSystemHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-// AdminMiddleware checks if user is admin.
+// AdminMiddleware checks if user has admin-like permissions (admin or investor).
 func AdminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := middleware.UserFromContext(r.Context())
@@ -223,7 +243,7 @@ func AdminMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if user.Role != model.RoleAdmin {
+		if !user.IsAdminLike() {
 			http.Error(w, "admin access required", http.StatusForbidden)
 			return
 		}

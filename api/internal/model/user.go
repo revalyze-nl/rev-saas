@@ -8,8 +8,9 @@ import (
 
 // User role constants
 const (
-	RoleUser  = "user"
-	RoleAdmin = "admin"
+	RoleUser     = "user"
+	RoleAdmin    = "admin"
+	RoleInvestor = "investor"
 )
 
 // User plan constants
@@ -53,9 +54,14 @@ func (u *User) IsAdmin() bool {
 	return u.Role == RoleAdmin
 }
 
+// IsAdminLike returns true if the user has admin-like permissions (admin or investor)
+func (u *User) IsAdminLike() bool {
+	return u.Role == RoleAdmin || u.Role == RoleInvestor
+}
+
 // HasUnlimitedAccess returns true if the user should skip all limit checks
 func (u *User) HasUnlimitedAccess() bool {
-	return u.Role == RoleAdmin || u.Plan == PlanAdmin
+	return u.IsAdminLike() || u.Plan == PlanAdmin
 }
 
 // IsTrialExpired returns true if the free trial has expired

@@ -1,9 +1,27 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { usePlans } from '../../context/PlansContext';
+import { useAnalysis } from '../../context/AnalysisV2Context';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { plans } = usePlans();
+  const { analyses } = useAnalysis();
+
+  // Track tooltip visibility
+  const [hoveredItem, setHoveredItem] = useState(null);
+
+  // Determine setup completion state
+  // Note: We consider setup complete when user has plans and at least one analysis
+  // Competitors are optional for basic setup
+  const hasPlans = plans.length > 0;
+  const hasAnalysis = analyses.length > 0;
+  const isSetupComplete = hasPlans && hasAnalysis;
+
+  // Navigation items that should be locked during setup
+  const lockedDuringSetup = ['/app/analyses', '/app/simulation', '/app/reports'];
 
   const navItems = [
     {
@@ -105,33 +123,67 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `group flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                isActive
-                  ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 text-white border border-violet-500/30 shadow-lg shadow-violet-500/5'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <svg className={`w-5 h-5 ${isActive ? 'text-violet-400' : 'text-slate-400 group-hover:text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {item.icon}
-                </svg>
-                <span className="text-sm">{item.name}</span>
-                {item.badge && (
-                  <span className="ml-auto text-[10px] font-semibold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
+        {navItems.map((item) => {
+          const isLocked = !isSetupComplete && lockedDuringSetup.includes(item.path);
+
+          if (isLocked) {
+            return (
+              <div
+                key={item.path}
+                className="relative"
+                onMouseEnter={() => setHoveredItem(item.path)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                <div
+                  className="group flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 text-slate-600 cursor-not-allowed border border-transparent opacity-50"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {item.icon}
+                  </svg>
+                  <span className="text-sm">{item.name}</span>
+                  <svg className="w-3.5 h-3.5 ml-auto text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                {/* Tooltip */}
+                {hoveredItem === item.path && (
+                  <div className="absolute left-4 right-4 top-full mt-1 z-50 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl">
+                    <p className="text-xs text-slate-300 text-center">Complete setup to unlock</p>
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full border-8 border-transparent border-b-slate-800" />
+                  </div>
                 )}
-              </>
-            )}
-          </NavLink>
-        ))}
+              </div>
+            );
+          }
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 text-white border border-violet-500/30 shadow-lg shadow-violet-500/5'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <svg className={`w-5 h-5 ${isActive ? 'text-violet-400' : 'text-slate-400 group-hover:text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {item.icon}
+                  </svg>
+                  <span className="text-sm">{item.name}</span>
+                  {item.badge && (
+                    <span className="ml-auto text-[10px] font-semibold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white px-2 py-0.5 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* User & Logout */}

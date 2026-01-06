@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { pricingV2Api } from '../../lib/apiClient';
+import { useOnboarding } from '../../context/OnboardingContext';
+import OnboardingGuidanceBanner from '../../components/onboarding/OnboardingGuidanceBanner';
 
 const PlansV2 = () => {
+  const { handleCompletionEvent } = useOnboarding();
   // Website URL state
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [pricingUrl, setPricingUrl] = useState('');
@@ -200,6 +203,9 @@ const PlansV2 = () => {
       await loadSavedPlans();
       setActiveTab('saved');
       setTimeout(() => setSaveSuccess(false), 3000);
+
+      // Dispatch onboarding completion event
+      handleCompletionEvent('plans_imported');
     } catch (err) {
       setExtractError(err.message || 'Save failed');
     } finally {
@@ -272,6 +278,9 @@ const PlansV2 = () => {
           </div>
         </div>
       </div>
+
+      {/* Onboarding Guidance Banner */}
+      <OnboardingGuidanceBanner pageId="plans" />
 
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-8">
@@ -706,10 +715,24 @@ const PlansV2 = () => {
                 </div>
               )}
 
-              {/* Empty State */}
-              {!isExtracting && extractedPlans.length === 0 && !extractError && (
+              {/* Empty State - No plans extracted */}
+              {!isExtracting && extractedPlans.length === 0 && !extractError && pricingUrl && (
                 <div className="p-12 text-center">
-                  <p className="text-slate-400">No plans found. Try a different URL.</p>
+                  <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">No Plans Detected</h4>
+                  <p className="text-slate-400 text-sm mb-4 max-w-sm mx-auto">
+                    We couldn't find pricing plans on this page. Try the direct pricing page URL, or paste your pricing text manually.
+                  </p>
+                  <button
+                    onClick={() => setShowPasteMode(true)}
+                    className="text-violet-400 hover:text-violet-300 text-sm font-medium"
+                  >
+                    Paste pricing text instead
+                  </button>
                 </div>
               )}
             </div>
@@ -741,15 +764,18 @@ const PlansV2 = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">No plans yet</h3>
-              <p className="text-slate-400 mb-6 max-w-md mx-auto">
-                Import your pricing plans from your website to get started with analysis and simulations.
+              <h3 className="text-2xl font-bold text-white mb-3">Add Your Pricing Plans</h3>
+              <p className="text-slate-400 mb-2 max-w-md mx-auto">
+                We need at least one plan to generate accurate pricing insights and competitive analysis.
+              </p>
+              <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
+                Takes about 30 seconds - just enter your pricing page URL.
               </p>
               <button
                 onClick={() => setActiveTab('import')}
                 className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white rounded-xl font-medium hover:from-violet-600 hover:to-fuchsia-700 transition-all"
               >
-                Import Plans
+                Import Pricing Plans
               </button>
             </div>
           ) : (

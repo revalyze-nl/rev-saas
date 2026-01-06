@@ -588,12 +588,15 @@ const MyCompany = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <p className="text-slate-400 mb-4">No metrics configured</p>
-                <button 
+                <h4 className="text-white font-medium mb-2">Add Business Metrics</h4>
+                <p className="text-slate-400 text-sm mb-4 max-w-xs mx-auto">
+                  Metrics like MRR and churn rate help calibrate simulation projections.
+                </p>
+                <button
                   onClick={() => setShowMetricsModal(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors text-sm font-medium"
                 >
-                  Add Metrics
+                  Add Business Metrics
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
@@ -713,9 +716,12 @@ const MyCompany = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <p className="text-slate-400 mb-4">No competitors tracked yet</p>
-                <Link 
-                  to="/app/competitors" 
+                <h4 className="text-white font-medium mb-2">Track Competitors</h4>
+                <p className="text-slate-400 text-sm mb-4 max-w-xs mx-auto">
+                  Competitor pricing helps benchmark your position in the market.
+                </p>
+                <Link
+                  to="/app/competitors"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-fuchsia-500/10 text-fuchsia-400 rounded-lg hover:bg-fuchsia-500/20 transition-colors text-sm font-medium"
                 >
                   Discover Competitors

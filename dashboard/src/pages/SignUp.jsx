@@ -18,9 +18,6 @@ const SignUp = () => {
     password: '',
     companyName: '',
     companyWebsite: '',
-    role: '',
-    mrrRange: '',
-    heardFrom: '',
     acceptedTerms: false
   });
 
@@ -364,92 +361,14 @@ const SignUp = () => {
                 </div>
               </div>
 
-              {/* Optional fields section */}
-              <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400 mb-6">
-                  Optional information (helps us personalize your experience)
+              {/* Helper text about completing details later */}
+              <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+                <p className="text-sm text-slate-400 flex items-start gap-2">
+                  <svg className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>You'll complete pricing and business details step by step after signup.</span>
                 </p>
-
-                <div className="space-y-6">
-                  {/* Role */}
-                  <div>
-                    <label 
-                      htmlFor="role" 
-                      className="block text-sm font-semibold text-slate-300 mb-2"
-                    >
-                      Your Role <span className="text-slate-500 font-normal">(optional)</span>
-                    </label>
-                    <select
-                      id="role"
-                      name="role"
-                      value={formData.role}
-                      onChange={handleChange}
-                      disabled={isSubmitting}
-                      className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-900/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgb(148 163 184)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat disabled:opacity-50"
-                    >
-                      <option value="">Select your role</option>
-                      <option value="founder">Founder</option>
-                      <option value="cofounder">Co-founder</option>
-                      <option value="product">Product</option>
-                      <option value="growth">Growth</option>
-                      <option value="revenue">Revenue</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-
-                  {/* Two columns for remaining optional */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* MRR Range */}
-                    <div>
-                      <label 
-                        htmlFor="mrrRange" 
-                        className="block text-sm font-semibold text-slate-300 mb-2"
-                      >
-                        Current MRR <span className="text-slate-500 font-normal">(optional)</span>
-                      </label>
-                      <select
-                        id="mrrRange"
-                        name="mrrRange"
-                        value={formData.mrrRange}
-                        onChange={handleChange}
-                        disabled={isSubmitting}
-                        className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-900/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgb(148 163 184)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat disabled:opacity-50"
-                      >
-                        <option value="">Select range</option>
-                        <option value="<1k">&lt;$1k</option>
-                        <option value="1k-10k">$1k–$10k</option>
-                        <option value="10k-50k">$10k–$50k</option>
-                        <option value="50k-100k">$50k–$100k</option>
-                        <option value="100k+">$100k+</option>
-                      </select>
-                    </div>
-
-                    {/* How did you hear */}
-                    <div>
-                      <label 
-                        htmlFor="heardFrom" 
-                        className="block text-sm font-semibold text-slate-300 mb-2"
-                      >
-                        How did you hear about us? <span className="text-slate-500 font-normal">(optional)</span>
-                      </label>
-                      <select
-                        id="heardFrom"
-                        name="heardFrom"
-                        value={formData.heardFrom}
-                        onChange={handleChange}
-                        disabled={isSubmitting}
-                        className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-900/50 border border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgb(148 163 184)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat disabled:opacity-50"
-                      >
-                        <option value="">Select source</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="twitter">X (Twitter)</option>
-                        <option value="friend">Friend</option>
-                        <option value="search">Search</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Terms Acceptance Checkbox */}

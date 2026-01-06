@@ -115,15 +115,18 @@ const Reports = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">No Reports Yet</h2>
-              <p className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
-                Run your first pricing analysis to generate a report. Once you have analysis data, you can download professional PDF reports from here.
+              <h2 className="text-2xl font-bold text-white mb-3">Generate Your First Report</h2>
+              <p className="text-slate-400 mb-2 max-w-md mx-auto leading-relaxed">
+                Reports are generated from your pricing analyses. Run an analysis first to unlock PDF exports.
+              </p>
+              <p className="text-slate-500 text-sm mb-8 max-w-md mx-auto">
+                Reports include pricing recommendations, competitive positioning, and actionable insights.
               </p>
               <button
-                onClick={() => navigate('/app/overview')}
+                onClick={() => navigate('/app/analyses')}
                 className="px-8 py-4 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white rounded-xl font-bold text-lg hover:from-violet-600 hover:to-fuchsia-700 hover:scale-[1.02] hover:shadow-xl hover:shadow-violet-500/25 transition-all"
               >
-                Go to Overview
+                Run Analysis to Generate Report
               </button>
             </div>
           </div>

@@ -92,6 +92,12 @@ class ApiClient {
     })
   }
 
+  async activateUser(id) {
+    return this.request(`/api/admin/users/${id}/activate`, {
+      method: 'POST',
+    })
+  }
+
   async getSubscriptions(params = {}) {
     const query = new URLSearchParams(params).toString()
     return this.request(`/api/admin/subscriptions${query ? `?${query}` : ''}`)

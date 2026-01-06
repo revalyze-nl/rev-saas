@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Mail, Calendar, CreditCard, Zap, Shield, Trash2, Save } from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, CreditCard, Zap, Shield, Trash2, Save, UserCheck } from 'lucide-react'
 import { format } from 'date-fns'
 import apiClient from '../lib/apiClient'
 
@@ -10,6 +10,7 @@ export default function UserDetail() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [activating, setActivating] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({})
 
@@ -74,6 +75,22 @@ export default function UserDetail() {
     } catch (err) {
       console.error('Failed to delete user:', err)
       alert('Failed to delete user')
+    }
+  }
+
+  const handleActivate = async () => {
+    if (!confirm('Are you sure you want to manually activate this user? This will mark their email as verified.')) {
+      return
+    }
+    setActivating(true)
+    try {
+      await apiClient.activateUser(id)
+      setUser({ ...user, emailVerified: true })
+    } catch (err) {
+      console.error('Failed to activate user:', err)
+      alert('Failed to activate user')
+    } finally {
+      setActivating(false)
     }
   }
 
@@ -162,9 +179,13 @@ export default function UserDetail() {
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-surface-500" />
                   <span className="text-white">{user.email}</span>
-                  {user.emailVerified && (
+                  {user.emailVerified ? (
                     <span className="text-xs bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">
                       Verified
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+                      Unverified
                     </span>
                   )}
                 </div>
@@ -208,6 +229,7 @@ export default function UserDetail() {
                     className="px-3 py-1.5 bg-surface-700 border border-surface-600 rounded text-white text-sm"
                   >
                     <option value="user">User</option>
+                    <option value="investor">Investor</option>
                     <option value="admin">Admin</option>
                   </select>
                 ) : (
@@ -283,6 +305,16 @@ export default function UserDetail() {
           <div className="bg-surface-800 border border-surface-700 rounded-xl p-5">
             <h3 className="font-semibold text-white mb-4">Quick Actions</h3>
             <div className="space-y-2">
+              {!user.emailVerified && (
+                <button
+                  onClick={handleActivate}
+                  disabled={activating}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  {activating ? 'Activating...' : 'Activate User'}
+                </button>
+              )}
               <button className="w-full text-left px-3 py-2 text-sm text-surface-300 hover:bg-surface-700 rounded-lg transition-colors">
                 Reset AI credits
               </button>

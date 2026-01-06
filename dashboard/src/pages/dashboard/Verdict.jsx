@@ -11,35 +11,40 @@ const Verdict = () => {
   const verdict = {
     status: 'ready',
     recommendation: 'Increase prices by 15%',
-    confidence: 85,
+    // Qualitative confidence instead of numeric
+    confidence: 'high',
+    confidenceReason: 'strong market alignment and customer data',
+    // Single verbal outcome statement
+    outcome: 'This change is expected to increase revenue with low churn risk.',
     lastUpdated: 'Today at 2:34 PM',
-    metrics: {
-      revenueImpact: { value: '+$24K', subtext: '/month' },
-      churnRisk: { value: '2.1%', subtext: 'expected' },
-      confidence: { value: '85%', subtext: 'score' },
+    // Detailed numbers moved to collapsible section only
+    details: {
+      revenueImpact: '+$24K/month projected',
+      churnRisk: '2.1% expected churn (below industry average)',
+      marketPosition: '23% below competitor average',
     },
     reasoning: [
       {
         title: 'Competitor Analysis',
-        content: 'Your main competitors have all increased prices by 12-20% in the last quarter. Your current pricing puts you 23% below the market average for similar feature sets.',
+        content: 'Your main competitors have increased prices by 12-20% in the last quarter. Your current pricing positions you below market average for similar feature sets.',
       },
       {
-        title: 'Customer Willingness',
-        content: 'Based on your NPS scores and feature usage patterns, 78% of your customer base shows high product dependency. Historical data suggests this segment tolerates price increases up to 18% without significant churn.',
+        title: 'Customer Signals',
+        content: 'Based on product engagement and customer feedback, your user base shows strong product dependency. This segment historically tolerates price adjustments without significant churn.',
       },
       {
-        title: 'Timing Signal',
-        content: 'Q1 is historically your strongest retention quarter. Implementing the increase now capitalizes on annual renewal cycles and minimizes mid-contract friction.',
+        title: 'Timing',
+        content: 'Q1 is historically your strongest retention quarter. Acting now capitalizes on annual renewal cycles.',
       },
     ],
     risks: [
-      { level: 'low', text: 'Enterprise segment may request custom pricing negotiations' },
-      { level: 'medium', text: '5-8% of SMB customers may downgrade to lower tier' },
-      { level: 'low', text: 'Competitors may respond with promotional pricing' },
+      { level: 'low', text: 'Enterprise customers may request pricing discussions' },
+      { level: 'medium', text: 'Some SMB customers may adjust their tier' },
+      { level: 'low', text: 'Competitors may respond with promotions' },
     ],
     timing: {
-      recommendation: 'Implement within 2 weeks',
-      reasoning: 'Before Q1 renewals cycle begins on Feb 1st',
+      recommendation: 'Act within the next 2 weeks',
+      reasoning: 'Ahead of Q1 renewal cycle beginning Feb 1st',
     },
   };
 
@@ -50,11 +55,20 @@ const Verdict = () => {
     }));
   };
 
-  const BlurredValue = ({ children, className = '' }) => (
-    <span className={`blur-sm select-none ${className}`}>{children}</span>
+  const BlurredText = ({ children }) => (
+    <span className="blur-sm select-none">{children}</span>
   );
 
-  const getRiskColor = (level) => {
+  const getConfidenceStyle = (level) => {
+    switch (level) {
+      case 'high': return 'text-emerald-400';
+      case 'medium': return 'text-amber-400';
+      case 'low': return 'text-slate-400';
+      default: return 'text-slate-400';
+    }
+  };
+
+  const getRiskStyle = (level) => {
     switch (level) {
       case 'low': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
       case 'medium': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
@@ -64,166 +78,160 @@ const Verdict = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Section 1: The Verdict (Hero) */}
-      <div className="mb-12">
-        <div className="mb-4">
+    <div className="max-w-2xl mx-auto pt-8">
+      {/* The Verdict - Hero */}
+      <div className="mb-10">
+        <div className="mb-5">
           <span className="px-3 py-1.5 text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
-            New verdict ready
+            New recommendation
           </span>
         </div>
 
-        <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
+        {/* Main Verdict - The Star */}
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight leading-tight">
           {isPaidUser ? verdict.recommendation : (
-            <BlurredValue>Increase prices by 15%</BlurredValue>
+            <BlurredText>Increase prices by 15%</BlurredText>
           )}
         </h1>
 
-        <p className="text-slate-500 text-sm">
-          Last updated {verdict.lastUpdated}
+        {/* Single Verbal Outcome - Replaces Metric Cards */}
+        <p className="text-lg text-slate-300 mb-4">
+          {verdict.outcome}
+        </p>
+
+        {/* Qualitative Confidence - Advisory, Not Statistical */}
+        <p className="text-sm text-slate-500">
+          Confidence: <span className={`font-medium capitalize ${getConfidenceStyle(verdict.confidence)}`}>{verdict.confidence}</span>
+          <span className="text-slate-600"> — based on {verdict.confidenceReason}</span>
         </p>
       </div>
 
-      {/* Section 2: The Numbers */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="p-5 bg-slate-900/50 border border-slate-800/50 rounded-xl">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Revenue Impact</p>
-          {isPaidUser ? (
-            <p className="text-2xl font-bold text-emerald-400">
-              {verdict.metrics.revenueImpact.value}
-              <span className="text-sm font-normal text-slate-500">{verdict.metrics.revenueImpact.subtext}</span>
-            </p>
-          ) : (
-            <p className="text-2xl font-bold">
-              <BlurredValue className="text-emerald-400">+$24K</BlurredValue>
-              <span className="text-sm font-normal text-slate-500">/month</span>
-            </p>
-          )}
-        </div>
+      {/* Timing Advisory */}
+      <div className="mb-8 py-4 px-5 bg-slate-900/30 border-l-2 border-violet-500/50 rounded-r-lg">
+        <p className="text-sm text-white font-medium">{verdict.timing.recommendation}</p>
+        <p className="text-sm text-slate-500 mt-1">{verdict.timing.reasoning}</p>
+      </div>
 
-        <div className="p-5 bg-slate-900/50 border border-slate-800/50 rounded-xl">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Churn Risk</p>
-          {isPaidUser ? (
-            <p className="text-2xl font-bold text-amber-400">
-              {verdict.metrics.churnRisk.value}
-              <span className="text-sm font-normal text-slate-500 ml-1">{verdict.metrics.churnRisk.subtext}</span>
-            </p>
-          ) : (
-            <p className="text-2xl font-bold">
-              <BlurredValue className="text-amber-400">2.1%</BlurredValue>
-              <span className="text-sm font-normal text-slate-500 ml-1">expected</span>
-            </p>
-          )}
-        </div>
+      {/* Primary Action - Softer Language */}
+      <div className="mb-10">
+        <button
+          className="w-full py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!isPaidUser}
+        >
+          {isPaidUser ? 'Proceed with this decision' : 'Upgrade to proceed'}
+        </button>
 
-        <div className="p-5 bg-slate-900/50 border border-slate-800/50 rounded-xl">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Confidence</p>
-          <p className="text-2xl font-bold text-white">
-            {verdict.metrics.confidence.value}
-            <span className="text-sm font-normal text-slate-500 ml-1">{verdict.metrics.confidence.subtext}</span>
+        {!isPaidUser && (
+          <p className="text-center text-xs text-slate-500 mt-3">
+            Upgrade to act on recommendations
           </p>
-        </div>
+        )}
       </div>
 
-      {/* Section 3: Unlock CTA (Free users only) */}
-      {!isPaidUser && (
-        <div className="mb-10 p-6 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-1">See your full verdict</h3>
-              <p className="text-sm text-slate-400">Unlock detailed recommendations and exact numbers</p>
+      {/* Collapsible Sections - Secondary, Calm */}
+      <div className="space-y-3">
+        {/* Why We Recommend This */}
+        <div>
+          <button
+            onClick={() => toggleSection('reasoning')}
+            className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
+          >
+            <span className="text-sm text-slate-400">Why we recommend this</span>
+            <svg
+              className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.reasoning ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {expandedSections.reasoning && (
+            <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-4">
+              {verdict.reasoning.map((item, index) => (
+                <div key={index}>
+                  <h4 className="text-sm font-medium text-slate-300 mb-1">{item.title}</h4>
+                  <p className="text-sm text-slate-500 leading-relaxed">{item.content}</p>
+                </div>
+              ))}
             </div>
-            <button className="px-5 py-2.5 bg-white text-slate-900 font-semibold rounded-lg hover:bg-slate-100 transition-colors">
-              Upgrade
+          )}
+        </div>
+
+        {/* Risk Considerations */}
+        <div>
+          <button
+            onClick={() => toggleSection('risks')}
+            className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
+          >
+            <span className="text-sm text-slate-400">Risk considerations</span>
+            <svg
+              className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.risks ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {expandedSections.risks && (
+            <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
+              {verdict.risks.map((risk, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded border capitalize ${getRiskStyle(risk.level)}`}>
+                    {risk.level}
+                  </span>
+                  <p className="text-sm text-slate-500">{risk.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Detailed Numbers - Only Here, Not Above */}
+        {isPaidUser && (
+          <div>
+            <button
+              onClick={() => toggleSection('details')}
+              className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
+            >
+              <span className="text-sm text-slate-400">View detailed projections</span>
+              <svg
+                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.details ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-          </div>
-        </div>
-      )}
 
-      {/* Section 4: Why This Verdict (Collapsible) */}
-      <div className="mb-4">
-        <button
-          onClick={() => toggleSection('reasoning')}
-          className="w-full flex items-center justify-between p-4 bg-slate-900/30 border border-slate-800/50 rounded-xl hover:bg-slate-900/50 transition-colors"
-        >
-          <span className="text-sm font-medium text-white">Why this verdict?</span>
-          <svg
-            className={`w-5 h-5 text-slate-400 transition-transform ${expandedSections.reasoning ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {expandedSections.reasoning && (
-          <div className="mt-2 p-5 bg-slate-900/30 border border-slate-800/50 rounded-xl space-y-5">
-            {verdict.reasoning.map((item, index) => (
-              <div key={index}>
-                <h4 className="text-sm font-semibold text-white mb-2">{item.title}</h4>
-                <p className="text-sm text-slate-400 leading-relaxed">{item.content}</p>
+            {expandedSections.details && (
+              <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">Revenue impact</span>
+                  <span className="text-sm text-slate-300">{verdict.details.revenueImpact}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">Churn projection</span>
+                  <span className="text-sm text-slate-300">{verdict.details.churnRisk}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">Market position</span>
+                  <span className="text-sm text-slate-300">{verdict.details.marketPosition}</span>
+                </div>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
-      {/* Section 5: Risk Assessment (Collapsible) */}
-      <div className="mb-4">
-        <button
-          onClick={() => toggleSection('risks')}
-          className="w-full flex items-center justify-between p-4 bg-slate-900/30 border border-slate-800/50 rounded-xl hover:bg-slate-900/50 transition-colors"
-        >
-          <span className="text-sm font-medium text-white">Risk assessment</span>
-          <svg
-            className={`w-5 h-5 text-slate-400 transition-transform ${expandedSections.risks ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {expandedSections.risks && (
-          <div className="mt-2 p-5 bg-slate-900/30 border border-slate-800/50 rounded-xl space-y-3">
-            {verdict.risks.map((risk, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <span className={`px-2 py-0.5 text-xs font-medium rounded border ${getRiskColor(risk.level)}`}>
-                  {risk.level}
-                </span>
-                <p className="text-sm text-slate-400">{risk.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Section 6: When to Act */}
-      <div className="mb-10 p-5 bg-slate-900/30 border border-slate-800/50 rounded-xl">
-        <div className="flex items-center gap-3 mb-2">
-          <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm font-semibold text-white">{verdict.timing.recommendation}</span>
-        </div>
-        <p className="text-sm text-slate-400 ml-8">{verdict.timing.reasoning}</p>
-      </div>
-
-      {/* Section 7: Apply Verdict */}
-      <button
-        className="w-full py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={!isPaidUser}
-      >
-        {isPaidUser ? 'Apply This Recommendation' : 'Upgrade to Apply'}
-      </button>
-
-      {!isPaidUser && (
-        <p className="text-center text-xs text-slate-500 mt-3">
-          Free users can view verdicts. Upgrade to apply recommendations.
-        </p>
-      )}
+      {/* Timestamp - Subtle */}
+      <p className="text-xs text-slate-600 mt-8 text-center">
+        Last updated {verdict.lastUpdated}
+      </p>
     </div>
   );
 };

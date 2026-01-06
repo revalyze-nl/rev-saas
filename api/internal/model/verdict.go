@@ -12,31 +12,37 @@ type VerdictRequest struct {
 }
 
 // VerdictResponse represents the AI-generated pricing verdict
-// Matches the strict JSON contract for frontend consumption
+// All claims must be grounded in the provided website content
 type VerdictResponse struct {
-	ID                  primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
-	UserID              primitive.ObjectID   `json:"userId,omitempty" bson:"user_id,omitempty"`
-	WebsiteURL          string               `json:"websiteUrl" bson:"website_url"`
-	VerdictTitle        string               `json:"verdictTitle" bson:"verdict_title"`
-	OutcomeSummary      string               `json:"outcomeSummary" bson:"outcome_summary"`
-	ConfidenceLevel     string               `json:"confidenceLevel" bson:"confidence_level"` // low, medium, high
-	Why                 []string             `json:"why" bson:"why"`
-	RiskConsiderations  []RiskConsideration  `json:"riskConsiderations" bson:"risk_considerations"`
-	SupportingDetails   SupportingDetails    `json:"supportingDetails" bson:"supporting_details"`
-	CreatedAt           time.Time            `json:"createdAt" bson:"created_at"`
+	ID                 primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
+	UserID             primitive.ObjectID  `json:"userId,omitempty" bson:"user_id,omitempty"`
+	WebsiteURL         string              `json:"websiteUrl" bson:"website_url"`
+	VerdictTitle       string              `json:"verdictTitle" bson:"verdict_title"`
+	OutcomeSummary     string              `json:"outcomeSummary" bson:"outcome_summary"`
+	ConfidenceLevel    string              `json:"confidenceLevel" bson:"confidence_level"` // low, medium, high
+	Why                []string            `json:"why" bson:"why"`
+	RiskConsiderations []RiskConsideration `json:"riskConsiderations" bson:"risk_considerations"`
+	SupportingDetails  SupportingDetails   `json:"supportingDetails" bson:"supporting_details"`
+	Evidence           VerdictEvidence     `json:"evidence" bson:"evidence"`
+	CreatedAt          time.Time           `json:"createdAt" bson:"created_at"`
 }
 
 // RiskConsideration represents a risk with level and description
 type RiskConsideration struct {
 	Level       string `json:"level" bson:"level"`             // low, medium, high
-	Description string `json:"description" bson:"description"`
+	Description string `json:"description" bson:"description"` // risk + mitigation suggestion
 }
 
 // SupportingDetails contains directional/range-based supporting info
 type SupportingDetails struct {
-	RevenueDirection string `json:"revenueDirection" bson:"revenue_direction"`
-	ChurnDirection   string `json:"churnDirection" bson:"churn_direction"`
-	MarketPosition   string `json:"marketPosition" bson:"market_position"`
+	ExpectedRevenue string `json:"expectedRevenue" bson:"expected_revenue"`
+	ChurnOutlook    string `json:"churnOutlook" bson:"churn_outlook"`
+	MarketPosition  string `json:"marketPosition" bson:"market_position"`
+}
+
+// VerdictEvidence contains the signals used to generate the verdict
+type VerdictEvidence struct {
+	WebsiteSignalsUsed []string `json:"websiteSignalsUsed" bson:"website_signals_used"`
 }
 
 // OpenAIVerdictResponse is the expected JSON structure from OpenAI
@@ -50,8 +56,11 @@ type OpenAIVerdictResponse struct {
 		Description string `json:"description"`
 	} `json:"riskConsiderations"`
 	SupportingDetails struct {
-		RevenueDirection string `json:"revenueDirection"`
-		ChurnDirection   string `json:"churnDirection"`
-		MarketPosition   string `json:"marketPosition"`
+		ExpectedRevenue string `json:"expectedRevenue"`
+		ChurnOutlook    string `json:"churnOutlook"`
+		MarketPosition  string `json:"marketPosition"`
 	} `json:"supportingDetails"`
+	Evidence struct {
+		WebsiteSignalsUsed []string `json:"websiteSignalsUsed"`
+	} `json:"evidence"`
 }

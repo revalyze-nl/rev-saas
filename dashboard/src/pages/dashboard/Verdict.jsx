@@ -278,16 +278,49 @@ const Verdict = () => {
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-500">Expected revenue</span>
-                  <span className="text-sm text-slate-300">{verdict.supportingDetails.revenueDirection}</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.expectedRevenue}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-500">Churn outlook</span>
-                  <span className="text-sm text-slate-300">{verdict.supportingDetails.churnDirection}</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.churnOutlook}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Your positioning</span>
+                  <span className="text-sm text-slate-500">Market position</span>
                   <span className="text-sm text-slate-300">{verdict.supportingDetails.marketPosition}</span>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Evidence - Website Signals Used */}
+        {verdict.evidence && verdict.evidence.websiteSignalsUsed && verdict.evidence.websiteSignalsUsed.length > 0 && (
+          <div>
+            <button
+              onClick={() => toggleSection('evidence')}
+              className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
+            >
+              <span className="text-sm text-slate-400">Evidence from your website</span>
+              <svg
+                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.evidence ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {expandedSections.evidence && (
+              <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-2">
+                {verdict.evidence.websiteSignalsUsed.map((signal, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm text-slate-400">{signal}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

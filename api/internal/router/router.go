@@ -28,6 +28,7 @@ func NewRouter(
 	billingHandler *handler.BillingHandler,
 	adminHandler *handler.AdminHandler,
 	demoHandler *handler.DemoHandler,
+	verdictHandler *handler.VerdictHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -133,6 +134,9 @@ func NewRouter(
 
 	// Demo mode endpoints (protected)
 	api.HandleFunc("/demo/replace", demoHandler.ReplaceDemoData).Methods(http.MethodPost)
+
+	// Verdict endpoint (protected)
+	api.HandleFunc("/verdict", verdictHandler.GenerateVerdict).Methods(http.MethodPost)
 
 	// Admin endpoints (protected + admin only)
 	adminAPI := r.PathPrefix("/api/admin").Subrouter()

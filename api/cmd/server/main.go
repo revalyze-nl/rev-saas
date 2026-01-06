@@ -124,6 +124,9 @@ func main() {
 	// Demo service
 	demoService := service.NewDemoService(userRepo, planRepo, competitorRepo, competitorV2Repo, businessMetricsRepo, analysisRepo, analysisV2Repo, simulationRepo, pricingV2Repo)
 
+	// Verdict service (AI pricing recommendation)
+	verdictService := service.NewVerdictService(cfg.OpenAIAPIKey)
+
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
 
@@ -145,9 +148,10 @@ func main() {
 	billingHandler := handler.NewBillingHandler(billingService, cfg)
 	adminHandler := handler.NewAdminHandler(adminService, demoService)
 	demoHandler := handler.NewDemoHandler(demoService)
+	verdictHandler := handler.NewVerdictHandler(verdictService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

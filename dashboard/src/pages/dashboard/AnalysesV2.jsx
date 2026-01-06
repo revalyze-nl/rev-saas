@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAnalysisV2 } from '../../context/AnalysisV2Context';
 import { useAiCreditsContext } from '../../context/AiCreditsContext';
 import { analysisV2Api, downloadBlob } from '../../lib/apiClient';
+import DemoBadge from '../../components/demo/DemoBadge';
 import {
   ScatterChart,
   Scatter,
@@ -323,9 +324,12 @@ const AnalysesV2 = () => {
                 </svg>
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
-                  Pricing Analysis
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                    Pricing Analysis
+                  </h1>
+                  <DemoBadge />
+                </div>
                 <p className="text-slate-400 text-lg">
                   AI-powered pricing insights and recommendations
                 </p>

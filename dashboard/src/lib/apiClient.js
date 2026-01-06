@@ -360,6 +360,11 @@ export const pricingV2Api = {
   delete: (id) => deleteJson(`/api/pricing-v2/${id}`),
 };
 
+// Demo mode API
+export const demoApi = {
+  replace: () => postJson('/api/demo/replace'),
+};
+
 export default {
   postJson,
   getJson,
@@ -382,6 +387,7 @@ export default {
   aiCreditsApi,
   stripeApi,
   billingApi,
+  demoApi,
   AICreditsError,
 };
 

@@ -27,6 +27,7 @@ func NewRouter(
 	stripeHandler *handler.StripeHandler,
 	billingHandler *handler.BillingHandler,
 	adminHandler *handler.AdminHandler,
+	demoHandler *handler.DemoHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -129,6 +130,9 @@ func NewRouter(
 
 	// Stripe Billing Webhook (public - uses Stripe signature verification, not auth)
 	r.HandleFunc("/api/billing/webhook", billingHandler.HandleWebhook).Methods(http.MethodPost)
+
+	// Demo mode endpoints (protected)
+	api.HandleFunc("/demo/replace", demoHandler.ReplaceDemoData).Methods(http.MethodPost)
 
 	// Admin endpoints (protected + admin only)
 	adminAPI := r.PathPrefix("/api/admin").Subrouter()

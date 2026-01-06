@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlans } from '../../context/PlansContext';
 import { businessMetricsApi, simulationApi, downloadBlob, AICreditsError } from '../../lib/apiClient';
 import { useAiCreditsContext } from '../../context/AiCreditsContext';
+import DemoBadge from '../../components/demo/DemoBadge';
+import { useDemo } from '../../context/DemoContext';
 import { 
   toPlanKey, 
   getActionConfig, 
@@ -155,7 +157,7 @@ const ScenarioCard = ({ scenario, currency, isPriceIncrease, isRecommended }) =>
 };
 
 // Simulation result component
-const SimulationResult = ({ result, onDownloadPdf, isPdfLoading }) => {
+const SimulationResult = ({ result, onDownloadPdf, isPdfLoading, isDemoMode }) => {
   if (!result) return null;
 
   const formatCurrency = (value, currency) => {
@@ -222,28 +224,44 @@ const SimulationResult = ({ result, onDownloadPdf, isPdfLoading }) => {
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-700/50">
-            <button
-              onClick={onDownloadPdf}
-              disabled={isPdfLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700"
-            >
-              {isPdfLoading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span>Generating PDF...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Download Simulation PDF</span>
-                </>
+            <div className="relative group/pdf inline-block">
+              <button
+                onClick={onDownloadPdf}
+                disabled={isPdfLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700"
+              >
+                {isPdfLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Generating PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Download Simulation PDF</span>
+                  </>
+                )}
+              </button>
+              {/* Demo mode tooltip */}
+              {isDemoMode && !isPdfLoading && (
+                <div className="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover/pdf:opacity-100 group-hover/pdf:visible transition-all pointer-events-none z-20">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs text-slate-300">
+                      PDF will be labeled as demo data with a watermark
+                    </p>
+                  </div>
+                  <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800 border-r border-b border-slate-700" />
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -333,6 +351,7 @@ const PricingSimulation = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { plans, isLoading: plansLoading, addPlan } = usePlans();
   const { credits, loading: creditsLoading, refetch: refetchCredits } = useAiCreditsContext();
+  const { isDemoMode } = useDemo();
 
   const actionCode = searchParams.get('action');
   const [showActionBanner, setShowActionBanner] = useState(true);
@@ -554,9 +573,12 @@ const PricingSimulation = () => {
                 </svg>
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
-                  Pricing Simulation
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                    Pricing Simulation
+                  </h1>
+                  <DemoBadge />
+                </div>
                 <p className="text-slate-400 text-lg">
                   Test new price points before rolling them out
                 </p>
@@ -564,7 +586,7 @@ const PricingSimulation = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="max-w-2xl mx-auto">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-amber-600 to-orange-600 rounded-3xl blur opacity-20" />
@@ -844,10 +866,11 @@ const PricingSimulation = () => {
         {/* Right Column - Results */}
         <div className="lg:col-span-3">
           {currentResult ? (
-            <SimulationResult 
-              result={currentResult} 
+            <SimulationResult
+              result={currentResult}
               onDownloadPdf={handleDownloadPdf}
               isPdfLoading={isPdfLoading}
+              isDemoMode={isDemoMode}
             />
           ) : (
             <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl p-12 border border-slate-800 text-center">

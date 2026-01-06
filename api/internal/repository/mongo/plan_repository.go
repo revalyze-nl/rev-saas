@@ -168,4 +168,11 @@ func (r *PlanRepository) Update(ctx context.Context, plan *model.Plan) error {
 	return nil
 }
 
-
+// DeleteAllByUserID deletes all plans for a user.
+func (r *PlanRepository) DeleteAllByUserID(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+	result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
+}

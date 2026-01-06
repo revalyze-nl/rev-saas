@@ -107,3 +107,12 @@ func (r *AnalysisRepository) Update(ctx context.Context, analysis *model.Analysi
 	return err
 }
 
+// DeleteAllByUserID deletes all analyses for a user.
+func (r *AnalysisRepository) DeleteAllByUserID(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+	result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
+}
+

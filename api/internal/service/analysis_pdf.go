@@ -16,6 +16,7 @@ import (
 type PDFExportData struct {
 	Analysis *model.Analysis
 	Metrics  *model.BusinessMetrics
+	IsDemo   bool // True if this is demo/sample data
 }
 
 // Color definitions
@@ -45,6 +46,7 @@ type pdfBuilder struct {
 	rightMargin  float64
 	contentWidth float64
 	logoPath     string
+	isDemo       bool // True if generating demo report
 }
 
 // Layout constants for consistent spacing
@@ -61,6 +63,11 @@ const (
 
 // newPDFBuilder creates a new PDF builder
 func newPDFBuilder() *pdfBuilder {
+	return newPDFBuilderWithDemo(false)
+}
+
+// newPDFBuilderWithDemo creates a new PDF builder with demo mode flag
+func newPDFBuilderWithDemo(isDemo bool) *pdfBuilder {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(pdfMargin, pdfMargin, pdfMargin)
 	pdf.SetAutoPageBreak(true, 30) // Leave space for footer
@@ -79,6 +86,7 @@ func newPDFBuilder() *pdfBuilder {
 		rightMargin:  rightMargin,
 		contentWidth: pageWidth - leftMargin - rightMargin,
 		logoPath:     logoPath,
+		isDemo:       isDemo,
 	}
 }
 
@@ -406,6 +414,7 @@ func (b *pdfBuilder) drawRecommendationCards(recommendations []model.Recommendat
 		if b.pdf.GetY() > 210 {
 			b.drawFooter()
 			b.pdf.AddPage()
+			b.drawDemoWatermark() // Add watermark to new page
 			b.drawHeader(rec.PlanName) // Use plan name as context
 			b.drawSectionTitle("Pricing Recommendations (continued)")
 		}
@@ -559,6 +568,7 @@ func (b *pdfBuilder) drawAIInsights(aiSummary string, aiScenarios []string) {
 	if b.pdf.GetY() > 190 {
 		b.drawFooter()
 		b.pdf.AddPage()
+		b.drawDemoWatermark() // Add watermark to new page
 		b.drawHeader("AI Insights")
 	}
 
@@ -678,6 +688,75 @@ func (b *pdfBuilder) drawAIInsights(aiSummary string, aiScenarios []string) {
 	b.pdf.Ln(pdfSectionSpaceBefore)
 }
 
+// drawDemoWatermark draws a subtle diagonal "DEMO DATA" watermark on the current page
+func (b *pdfBuilder) drawDemoWatermark() {
+	if !b.isDemo {
+		return
+	}
+
+	// Save current state
+	b.pdf.SetAlpha(0.08, "Normal") // Very subtle - 8% opacity
+
+	// Draw diagonal watermark text
+	b.pdf.SetFont("Arial", "B", 60)
+	b.pdf.SetTextColor(100, 100, 100)
+
+	// Position watermark diagonally across page center
+	// A4 page: 210mm x 297mm
+	centerX := b.pageWidth / 2
+	centerY := b.pageHeight / 2
+
+	// Use TransformRotate for diagonal text
+	b.pdf.TransformBegin()
+	b.pdf.TransformRotate(-35, centerX, centerY)
+	b.pdf.SetXY(centerX-60, centerY-10)
+	b.pdf.CellFormat(120, 20, "DEMO DATA", "", 0, "C", false, 0, "")
+	b.pdf.TransformEnd()
+
+	// Reset alpha
+	b.pdf.SetAlpha(1.0, "Normal")
+}
+
+// drawDemoDisclaimer draws the demo disclaimer block at the top of the report
+func (b *pdfBuilder) drawDemoDisclaimer() {
+	if !b.isDemo {
+		return
+	}
+
+	// Draw a subtle amber/yellow tinted box
+	b.setFillColor(pdfColor{254, 252, 232}) // Amber-50
+	b.setDrawColor(pdfColor{250, 204, 21})  // Amber-400
+	b.pdf.SetLineWidth(0.4)
+
+	boxX := b.leftMargin
+	boxY := b.pdf.GetY()
+	boxW := b.contentWidth
+	boxH := 18.0
+
+	b.pdf.RoundedRect(boxX, boxY, boxW, boxH, 2, "1234", "FD")
+
+	// Warning icon (triangle with !)
+	b.pdf.SetXY(boxX+6, boxY+5)
+	b.setColor(pdfColor{217, 119, 6}) // Amber-600
+	b.pdf.SetFont("Arial", "B", 12)
+	b.pdf.CellFormat(10, 6, "!", "", 0, "C", false, 0, "")
+
+	// Title
+	b.pdf.SetXY(boxX+16, boxY+4)
+	b.setColor(pdfColor{146, 64, 14}) // Amber-800
+	b.pdf.SetFont("Arial", "B", 9)
+	b.pdf.CellFormat(boxW-22, 5, "DEMO REPORT - Sample Data", "", 1, "L", false, 0, "")
+
+	// Disclaimer text
+	b.pdf.SetXY(boxX+16, boxY+10)
+	b.setColor(pdfColor{180, 83, 9}) // Amber-700
+	b.pdf.SetFont("Arial", "", 8)
+	b.pdf.CellFormat(boxW-22, 4, "This report is generated using sample data for demonstration purposes.", "", 1, "L", false, 0, "")
+
+	// Move cursor below box
+	b.pdf.SetY(boxY + boxH + 6)
+}
+
 // drawFooter draws the footer with disclaimer (at current position, after content)
 func (b *pdfBuilder) drawFooter() {
 	// Add some vertical space before footer
@@ -690,6 +769,14 @@ func (b *pdfBuilder) drawFooter() {
 
 	// Move below the line
 	b.pdf.SetY(currentY + 4)
+
+	// Demo mode footer note
+	if b.isDemo {
+		b.setColor(pdfColor{217, 119, 6}) // Amber-600
+		b.pdf.SetFont("Arial", "I", 7)
+		b.pdf.CellFormat(b.contentWidth, 4, "Demo Report - Generated with sample data for demonstration purposes", "", 1, "C", false, 0, "")
+		b.pdf.Ln(2)
+	}
 
 	// Disclaimer text (small, gray, italic)
 	b.setColor(colorLight)
@@ -804,7 +891,7 @@ func cleanText(s string) string {
 
 // GenerateAnalysisPDF creates a professionally styled PDF report.
 func GenerateAnalysisPDF(data PDFExportData) (*bytes.Buffer, error) {
-	builder := newPDFBuilder()
+	builder := newPDFBuilderWithDemo(data.IsDemo)
 	pdf := builder.pdf
 
 	analysis := data.Analysis
@@ -816,10 +903,18 @@ func GenerateAnalysisPDF(data PDFExportData) (*bytes.Buffer, error) {
 	// Add first page
 	pdf.AddPage()
 
+	// Draw demo watermark if in demo mode (on every page)
+	builder.drawDemoWatermark()
+
 	// ═══════════════════════════════════════════════════════════════
 	// HEADER BAR
 	// ═══════════════════════════════════════════════════════════════
 	builder.drawHeader(reportDate)
+
+	// ═══════════════════════════════════════════════════════════════
+	// DEMO DISCLAIMER (if in demo mode)
+	// ═══════════════════════════════════════════════════════════════
+	builder.drawDemoDisclaimer()
 
 	// ═══════════════════════════════════════════════════════════════
 	// TITLE BLOCK

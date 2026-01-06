@@ -3,6 +3,7 @@ import { competitorsV2Api } from '../../lib/apiClient';
 import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
 import { useOnboarding } from '../../context/OnboardingContext';
 import OnboardingGuidanceBanner from '../../components/onboarding/OnboardingGuidanceBanner';
+import DemoBadge from '../../components/demo/DemoBadge';
 
 const CompetitorsV2 = () => {
   const { metrics: businessMetrics } = useBusinessMetrics();
@@ -304,9 +305,12 @@ const CompetitorsV2 = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent">
-                Competitors
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent">
+                  Competitors
+                </h1>
+                <DemoBadge />
+              </div>
               <p className="text-slate-400 text-lg">
                 Discover and track your market competitors using AI
               </p>

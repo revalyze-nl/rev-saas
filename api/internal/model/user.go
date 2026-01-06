@@ -47,6 +47,9 @@ type User struct {
 	// Terms acceptance fields
 	AcceptedTerms   bool       `bson:"accepted_terms" json:"accepted_terms"`
 	AcceptedTermsAt *time.Time `bson:"accepted_terms_at,omitempty" json:"accepted_terms_at,omitempty"`
+
+	// Demo mode fields
+	DemoDisabled bool `bson:"demo_disabled,omitempty" json:"demo_disabled,omitempty"`
 }
 
 // IsAdmin returns true if the user has admin role
@@ -81,5 +84,15 @@ func (u *User) GetEffectivePlan() string {
 		return PlanFree
 	}
 	return u.Plan
+}
+
+// IsDemoMode returns true if user is in demo mode (investor who hasn't disabled demo)
+func (u *User) IsDemoMode() bool {
+	return u.Role == RoleInvestor && !u.DemoDisabled
+}
+
+// CanSeedDemo returns true if demo data can be seeded for this user
+func (u *User) CanSeedDemo() bool {
+	return u.Role == RoleInvestor && !u.DemoDisabled
 }
 

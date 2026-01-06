@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAnalysis } from '../../context/AnalysisV2Context';
 import { analysisV2Api, downloadBlob } from '../../lib/apiClient';
+import DemoBadge from '../../components/demo/DemoBadge';
+import { useDemo } from '../../context/DemoContext';
 
 const Reports = () => {
   const navigate = useNavigate();
   const { analyses, isLoading } = useAnalysis();
-  
+  const { isDemoMode } = useDemo();
+
   // PDF export state
   const [exportingId, setExportingId] = useState(null);
   const [exportError, setExportError] = useState(null);
@@ -95,9 +98,12 @@ const Reports = () => {
                 </svg>
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
-                  Reports
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                    Reports
+                  </h1>
+                  <DemoBadge />
+                </div>
                 <p className="text-slate-400 text-lg">
                   Download and manage your pricing analysis reports
                 </p>
@@ -288,41 +294,57 @@ const Reports = () => {
                     View
                   </button>
 
-                  <button
-                    onClick={() => handleExportPdf(analysis.id, analysis.createdAt)}
-                    disabled={isExporting}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${
-                      justExported
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                        : isExporting
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-400 hover:from-violet-500/30 hover:to-fuchsia-500/30 border border-violet-500/20'
-                    }`}
-                  >
-                    {isExporting ? (
-                      <>
-                        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        Exporting...
-                      </>
-                    ) : justExported ? (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Downloaded!
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Export PDF
-                      </>
+                  <div className="relative group/pdf">
+                    <button
+                      onClick={() => handleExportPdf(analysis.id, analysis.createdAt)}
+                      disabled={isExporting}
+                      className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${
+                        justExported
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          : isExporting
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-400 hover:from-violet-500/30 hover:to-fuchsia-500/30 border border-violet-500/20'
+                      }`}
+                    >
+                      {isExporting ? (
+                        <>
+                          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Exporting...
+                        </>
+                      ) : justExported ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Downloaded!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Export PDF
+                        </>
+                      )}
+                    </button>
+                    {/* Demo mode tooltip */}
+                    {isDemoMode && !isExporting && !justExported && (
+                      <div className="absolute bottom-full right-0 mb-2 w-56 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover/pdf:opacity-100 group-hover/pdf:visible transition-all pointer-events-none z-20">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-xs text-slate-300">
+                            PDF will be labeled as demo data with a watermark
+                          </p>
+                        </div>
+                        <div className="absolute bottom-0 right-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800 border-r border-b border-slate-700" />
+                      </div>
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
             );

@@ -99,7 +99,12 @@ func (r *AnalysisV2Repository) GetLatestByUser(ctx context.Context, userID primi
 	return &analysis, nil
 }
 
-
-
-
+// DeleteAllByUserID deletes all V2 analyses for a user.
+func (r *AnalysisV2Repository) DeleteAllByUserID(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+	result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
+}
 

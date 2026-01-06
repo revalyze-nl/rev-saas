@@ -38,6 +38,10 @@ func (h *AnalysisPDFHandler) ExportPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user to check if in demo mode
+	user := middleware.UserFromContext(r.Context())
+	isDemo := user != nil && user.IsDemoMode()
+
 	// Get analysis ID from URL
 	vars := mux.Vars(r)
 	analysisID := vars["id"]
@@ -63,17 +67,18 @@ func (h *AnalysisPDFHandler) ExportPDF(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid user ID", http.StatusBadRequest)
 		return
 	}
-	
+
 	metrics, err := h.businessMetricsRepo.GetByUserID(r.Context(), uid)
 	if err != nil {
 		// Log error but continue - metrics are optional
 		metrics = nil
 	}
 
-	// Generate PDF
+	// Generate PDF with demo flag
 	pdfData := service.PDFExportData{
 		Analysis: analysis,
 		Metrics:  metrics,
+		IsDemo:   isDemo,
 	}
 
 	pdfBuffer, err := service.GenerateAnalysisPDF(pdfData)

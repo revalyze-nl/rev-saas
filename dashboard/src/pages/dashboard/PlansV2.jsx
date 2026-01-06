@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { pricingV2Api } from '../../lib/apiClient';
 import { useOnboarding } from '../../context/OnboardingContext';
 import OnboardingGuidanceBanner from '../../components/onboarding/OnboardingGuidanceBanner';
+import DemoBadge from '../../components/demo/DemoBadge';
 
 const PlansV2 = () => {
   const { handleCompletionEvent } = useOnboarding();
@@ -268,9 +269,12 @@ const PlansV2 = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
-                My Pricing
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                  My Pricing
+                </h1>
+                <DemoBadge />
+              </div>
               <p className="text-slate-400 text-lg">
                 Import your pricing plans automatically with AI
               </p>

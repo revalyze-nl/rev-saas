@@ -7,6 +7,7 @@ import { SettingsProvider } from './context/SettingsContext';
 import { BusinessMetricsProvider } from './context/BusinessMetricsContext';
 import { AiCreditsProvider } from './context/AiCreditsContext';
 import { OnboardingProvider } from './context/OnboardingContext';
+import { DemoProvider } from './context/DemoContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -31,9 +32,11 @@ const DashboardWithProviders = () => (
         <AnalysisProvider>
           <SettingsProvider>
             <BusinessMetricsProvider>
-              <OnboardingProvider>
-                <DashboardLayout />
-              </OnboardingProvider>
+              <DemoProvider>
+                <OnboardingProvider>
+                  <DashboardLayout />
+                </OnboardingProvider>
+              </DemoProvider>
             </BusinessMetricsProvider>
           </SettingsProvider>
         </AnalysisProvider>

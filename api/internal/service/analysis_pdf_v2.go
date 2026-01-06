@@ -10,11 +10,12 @@ import (
 // PDFExportDataV2 contains all data needed to generate the V2 analysis PDF.
 type PDFExportDataV2 struct {
 	Analysis *model.AnalysisResultV2
+	IsDemo   bool // True if this is demo/sample data
 }
 
 // GenerateAnalysisPDFV2 creates a professionally styled PDF report for V2 analysis.
 func GenerateAnalysisPDFV2(data PDFExportDataV2) (*bytes.Buffer, error) {
-	builder := newPDFBuilder()
+	builder := newPDFBuilderWithDemo(data.IsDemo)
 	pdf := builder.pdf
 
 	// Disable auto page break to control it manually
@@ -28,10 +29,18 @@ func GenerateAnalysisPDFV2(data PDFExportDataV2) (*bytes.Buffer, error) {
 	// Add first page
 	pdf.AddPage()
 
+	// Draw demo watermark if in demo mode (on every page)
+	builder.drawDemoWatermark()
+
 	// ═══════════════════════════════════════════════════════════════
 	// HEADER BAR
 	// ═══════════════════════════════════════════════════════════════
 	builder.drawHeader(reportDate)
+
+	// ═══════════════════════════════════════════════════════════════
+	// DEMO DISCLAIMER (if in demo mode)
+	// ═══════════════════════════════════════════════════════════════
+	builder.drawDemoDisclaimer()
 
 	// ═══════════════════════════════════════════════════════════════
 	// TITLE BLOCK
@@ -132,6 +141,7 @@ func (b *pdfBuilder) checkPageBreakV2(reportDate string, requiredSpace float64) 
 	if b.pdf.GetY()+requiredSpace > maxY {
 		b.drawFooterV2()
 		b.pdf.AddPage()
+		b.drawDemoWatermark() // Add watermark to new page
 		b.drawHeader(reportDate)
 	}
 }
@@ -948,6 +958,15 @@ func (b *pdfBuilder) drawFooterV2() {
 	// Draw separator line
 	b.setDrawColor(colorLighter)
 	b.pdf.Line(b.leftMargin, footerY, b.pageWidth-b.rightMargin, footerY)
+
+	// Demo mode footer note
+	if b.isDemo {
+		b.pdf.SetXY(b.leftMargin, footerY+2)
+		b.setColor(pdfColor{217, 119, 6}) // Amber-600
+		b.pdf.SetFont("Arial", "I", 7)
+		b.pdf.CellFormat(b.contentWidth, 3, "Demo Report - Generated with sample data for demonstration purposes", "", 1, "C", false, 0, "")
+		footerY += 4
+	}
 
 	// Disclaimer text
 	b.pdf.SetXY(b.leftMargin, footerY+3)

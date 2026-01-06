@@ -146,6 +146,10 @@ func (h *AnalysisV2Handler) ExportPDFV2(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Get user to check if in demo mode
+	user := middleware.UserFromContext(r.Context())
+	isDemo := user != nil && user.IsDemoMode()
+
 	vars := mux.Vars(r)
 	analysisID := vars["id"]
 	if analysisID == "" {
@@ -165,9 +169,10 @@ func (h *AnalysisV2Handler) ExportPDFV2(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Generate PDF
+	// Generate PDF with demo flag
 	pdfData := service.PDFExportDataV2{
 		Analysis: result,
+		IsDemo:   isDemo,
 	}
 
 	pdfBuffer, err := service.GenerateAnalysisPDFV2(pdfData)

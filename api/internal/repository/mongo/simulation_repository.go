@@ -142,9 +142,14 @@ func (r *SimulationRepository) DeleteByIDAndUser(ctx context.Context, id primiti
 	return nil
 }
 
-
-
-
+// DeleteAllByUserID deletes all simulations for a user.
+func (r *SimulationRepository) DeleteAllByUserID(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+	result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
+}
 
 
 

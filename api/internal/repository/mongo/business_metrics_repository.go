@@ -108,6 +108,11 @@ func (r *BusinessMetricsRepository) UpsertForUser(ctx context.Context, metrics *
 	return nil
 }
 
-
-
-
+// DeleteByUserID deletes business metrics for a user.
+func (r *BusinessMetricsRepository) DeleteByUserID(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+	result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
+}

@@ -12,11 +12,12 @@ import (
 // SimulationPDFData contains all data needed to generate a simulation PDF.
 type SimulationPDFData struct {
 	Simulation *model.SimulationResult
+	IsDemo     bool // True if this is demo/sample data
 }
 
 // GenerateSimulationPDF creates a professionally styled PDF report for a pricing simulation.
 func GenerateSimulationPDF(data SimulationPDFData) (*bytes.Buffer, error) {
-	builder := newPDFBuilder()
+	builder := newPDFBuilderWithDemo(data.IsDemo)
 	pdf := builder.pdf
 
 	sim := data.Simulation
@@ -25,10 +26,18 @@ func GenerateSimulationPDF(data SimulationPDFData) (*bytes.Buffer, error) {
 	// Add first page
 	pdf.AddPage()
 
+	// Draw demo watermark if in demo mode (on every page)
+	builder.drawDemoWatermark()
+
 	// ═══════════════════════════════════════════════════════════════
 	// HEADER BAR
 	// ═══════════════════════════════════════════════════════════════
 	builder.drawHeader(reportDate)
+
+	// ═══════════════════════════════════════════════════════════════
+	// DEMO DISCLAIMER (if in demo mode)
+	// ═══════════════════════════════════════════════════════════════
+	builder.drawDemoDisclaimer()
 
 	// ═══════════════════════════════════════════════════════════════
 	// TITLE BLOCK
@@ -96,9 +105,10 @@ func (b *pdfBuilder) checkPageBreakSim(reportDate string, requiredHeight float64
 	_, pageHeight := b.pdf.GetPageSize()
 	currentY := b.pdf.GetY()
 	bottomMargin := 30.0 // Space for footer
-	
+
 	if currentY+requiredHeight > pageHeight-bottomMargin {
 		b.pdf.AddPage()
+		b.drawDemoWatermark() // Add watermark to new page
 		b.drawHeader(reportDate)
 		b.pdf.Ln(5)
 	}
@@ -749,6 +759,7 @@ func (b *pdfBuilder) drawSimulationAIInsights(narrative string) {
 	if b.pdf.GetY() > 180 {
 		b.drawFooter()
 		b.pdf.AddPage()
+		b.drawDemoWatermark() // Add watermark to new page
 		b.drawHeader("AI Insights")
 	}
 

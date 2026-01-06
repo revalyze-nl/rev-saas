@@ -4,6 +4,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { usePlans } from '../../context/PlansContext';
 import { useBusinessMetrics } from '../../context/BusinessMetricsContext';
 import { competitorsV2Api } from '../../lib/apiClient';
+import DemoBadge from '../../components/demo/DemoBadge';
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -388,9 +389,12 @@ const MyCompany = () => {
                 )}
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
-                  {profile.companyName || 'My Company'}
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+                    {profile.companyName || 'My Company'}
+                  </h1>
+                  <DemoBadge />
+                </div>
                 <p className="text-slate-400 text-lg">
                   {profile.companyWebsite || 'Complete your company profile'}
                 </p>

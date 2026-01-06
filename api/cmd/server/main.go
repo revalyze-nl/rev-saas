@@ -121,6 +121,9 @@ func main() {
 	// Admin service
 	adminService := service.NewAdminService(userRepo, billingSubRepo, aiUsageRepo, errorLogRepo)
 
+	// Demo service
+	demoService := service.NewDemoService(userRepo, planRepo, competitorRepo, competitorV2Repo, businessMetricsRepo, analysisRepo, analysisV2Repo, simulationRepo, pricingV2Repo)
+
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
 
@@ -141,9 +144,10 @@ func main() {
 	stripeHandler := handler.NewStripeHandler(stripeService)
 	billingHandler := handler.NewBillingHandler(billingService, cfg)
 	adminHandler := handler.NewAdminHandler(adminService)
+	demoHandler := handler.NewDemoHandler(demoService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

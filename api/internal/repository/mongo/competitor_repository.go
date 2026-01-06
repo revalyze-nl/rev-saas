@@ -124,4 +124,11 @@ func (r *CompetitorRepository) UpdateByIDAndUser(ctx context.Context, id primiti
 	return nil
 }
 
-
+// DeleteAllByUserID deletes all competitors for a user.
+func (r *CompetitorRepository) DeleteAllByUserID(ctx context.Context, userID primitive.ObjectID) (int64, error) {
+	result, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
+}

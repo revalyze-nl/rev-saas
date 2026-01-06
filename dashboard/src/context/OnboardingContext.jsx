@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { usePlans } from './PlansContext';
 import { useAnalysis } from './AnalysisV2Context';
@@ -130,28 +130,20 @@ export const OnboardingProvider = ({ children }) => {
     }
   }, [completionState.hasPlans, completionState.hasCompetitors, completionState.hasAnalysis, isAuthenticated, isOnboardingComplete, isModalDismissed, persistState]);
 
-  // Auto-open modal on load if onboarding not complete
-  // Reset dismissed state if user has no data at all (fresh start)
+  // Auto-open modal on first load if onboarding not complete and not dismissed
+  // Uses a ref to prevent re-opening after user dismisses in the same session
+  const hasAutoOpenedRef = useRef(false);
+
   useEffect(() => {
-    if (isAuthenticated && !isOnboardingComplete) {
-      // If user has no data at all, reset the dismissed state
-      const hasNoData = !completionState.hasPlans && !completionState.hasCompetitors && !completionState.hasAnalysis;
-
-      if (hasNoData && isModalDismissed) {
-        // Reset dismissed state for fresh users
-        setIsModalDismissed(false);
-        persistState(completedSteps, false, false);
-      }
-
-      if (!isModalDismissed || hasNoData) {
-        // Small delay to let the page render first
-        const timer = setTimeout(() => {
-          setIsModalOpen(true);
-        }, 500);
-        return () => clearTimeout(timer);
-      }
+    if (isAuthenticated && !isOnboardingComplete && !isModalDismissed && !hasAutoOpenedRef.current) {
+      // Small delay to let the page render first
+      const timer = setTimeout(() => {
+        setIsModalOpen(true);
+        hasAutoOpenedRef.current = true;
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isOnboardingComplete, isModalDismissed, completionState.hasPlans, completionState.hasCompetitors, completionState.hasAnalysis, completedSteps, persistState]);
+  }, [isAuthenticated, isOnboardingComplete, isModalDismissed]);
 
   // Handle completion events from feature pages
   const handleCompletionEvent = useCallback((eventType) => {

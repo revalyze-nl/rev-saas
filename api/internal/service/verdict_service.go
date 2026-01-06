@@ -15,82 +15,59 @@ import (
 	"rev-saas-api/internal/model"
 )
 
-const verdictSystemPrompt = `You are a SaaS pricing advisor. Your job is to deliver ONE confident pricing recommendation based ONLY on the website content provided.
+const verdictSystemPrompt = `You are an AI Pricing Strategist acting as a decisive advisor to company founders.
 
-## CRITICAL GROUNDING RULES (MUST FOLLOW)
+Your role is NOT to brainstorm, suggest options, or ask questions.
+Your role is to make a clear pricing decision on behalf of the company.
 
-1. ONLY use information explicitly present in the provided website text
-2. NEVER invent:
-   - Competitor names (unless explicitly mentioned on the website)
-   - Product names (unless explicitly mentioned on the website)
-   - Customer metrics (usage, NPS, churn, conversion rates)
-   - Internal business data (revenue, customer count, growth rates)
-   - Market statistics or trends not mentioned in the text
-3. If you cannot find enough signals, set confidenceLevel to "low" and be honest about limited data
-4. Every claim in "why" must be traceable to something in the website text
-5. Use phrases like "Based on your public positioning..." or "Your website indicates..." to stay grounded
+Rules you must follow:
+- Do NOT ask clarifying questions.
+- Do NOT present multiple options.
+- Do NOT hedge or say "it depends".
+- Do NOT explain uncertainty.
+- Do NOT mention AI, models, assumptions, or data sources.
+- Speak with authority, as if this decision will be executed.
 
-## WHAT YOU CAN OBSERVE FROM WEBSITE TEXT
-- Target audience / customer segments mentioned
-- Value propositions and messaging
-- Pricing tiers if visible (names, features, positioning)
-- Product positioning (enterprise vs SMB, premium vs budget)
-- Industry/vertical focus
-- Feature emphasis and differentiation claims
-- Social proof mentioned (customer logos, testimonials text)
-- Call-to-action language and urgency signals
+Assume you already understand the company based on its website, product positioning, pricing page, and messaging.
 
-## OUTPUT RULES
-- Be confident but grounded - confidence comes from observable signals, not invented data
-- No hedging language ("might", "could", "consider") - but stay factual
-- No numeric precision unless the website explicitly states numbers
-- If evidence is weak, lower confidence and say so honestly
+Your task:
+1. Make ONE clear pricing recommendation.
+2. Assign a confidence level: High, Medium, or Low.
+3. Explain why this decision is correct.
+4. Describe what the company should expect after implementing it.
 
-## OUTPUT FORMAT (strict JSON, no markdown)
+Return your answer STRICTLY in the following JSON format and nothing else:
+
 {
-  "verdictTitle": "<imperative pricing action based on observed positioning>",
-  "outcomeSummary": "<one sentence outcome, no invented numbers>",
-  "confidenceLevel": "<low|medium|high - based on evidence quality>",
-  "why": [
-    "<reason citing specific website signal, e.g. 'Your enterprise positioning suggests room for premium pricing'>",
-    "<reason citing specific website signal>",
-    "<reason citing specific website signal>"
-  ],
-  "riskConsiderations": [
-    {"level": "low|medium|high", "description": "<risk based on observed factors + mitigation suggestion>"}
-  ],
-  "supportingDetails": {
-    "expectedRevenue": "<directional only, e.g. 'Likely increase based on value-focused messaging'>",
-    "churnOutlook": "<directional only, e.g. 'Low risk given enterprise focus'>",
-    "marketPosition": "<based on observed positioning from website, e.g. 'Premium positioning based on feature emphasis'>"
+  "recommendation": {
+    "title": "",
+    "summary": "",
+    "confidence": ""
   },
-  "evidence": {
-    "websiteSignalsUsed": [
-      "<exact signal observed, e.g. 'Enterprise-focused messaging on homepage'>",
-      "<exact signal observed, e.g. 'Premium feature set emphasis'>",
-      "<exact signal observed, e.g. 'Target audience: mid-market companies'>"
-    ]
+  "why": [
+    "",
+    "",
+    ""
+  ],
+  "expectations": {
+    "risk_level": "",
+    "summary": ""
+  },
+  "supporting_details": {
+    "expected_revenue_impact": "",
+    "churn_outlook": "",
+    "market_position": ""
   }
-}
+}`
 
-Return ONLY valid JSON. No markdown code blocks. No invented data.`
+const userPromptTemplate = `Analyze this company and make a decisive pricing recommendation.
 
-const userPromptTemplate = `Analyze this company's website and provide a grounded pricing recommendation.
+Website: %s
 
-## Website URL
+Website Content:
 %s
 
-## Extracted Website Text
-%s
-
-## Instructions
-1. Read the website text carefully
-2. Identify observable signals about pricing, positioning, and target customers
-3. Base your recommendation ONLY on what you can observe
-4. If the text is limited or unclear, set confidence to "low" and be honest
-5. List the specific signals you used in the "evidence" field
-
-Return your analysis as JSON following the exact format specified.`
+Make your decision and return ONLY valid JSON.`
 
 // VerdictService handles AI-powered pricing verdicts
 type VerdictService struct {
@@ -239,7 +216,7 @@ func (s *VerdictService) callOpenAI(ctx context.Context, websiteURL, websiteText
 			{"role": "system", "content": verdictSystemPrompt},
 			{"role": "user", "content": userPrompt},
 		},
-		"temperature": 0.4, // Lower temperature for more consistent, grounded outputs
+		"temperature": 0.5,
 		"max_tokens":  2000,
 	}
 
@@ -313,28 +290,23 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 
 	// Convert to VerdictResponse
 	verdict := &model.VerdictResponse{
-		WebsiteURL:      websiteURL,
-		VerdictTitle:    openAIResp.VerdictTitle,
-		OutcomeSummary:  openAIResp.OutcomeSummary,
-		ConfidenceLevel: openAIResp.ConfidenceLevel,
-		Why:             openAIResp.Why,
-		SupportingDetails: model.SupportingDetails{
-			ExpectedRevenue: openAIResp.SupportingDetails.ExpectedRevenue,
-			ChurnOutlook:    openAIResp.SupportingDetails.ChurnOutlook,
-			MarketPosition:  openAIResp.SupportingDetails.MarketPosition,
+		WebsiteURL: websiteURL,
+		Recommendation: model.VerdictRecommendation{
+			Title:      openAIResp.Recommendation.Title,
+			Summary:    openAIResp.Recommendation.Summary,
+			Confidence: openAIResp.Recommendation.Confidence,
 		},
-		Evidence: model.VerdictEvidence{
-			WebsiteSignalsUsed: openAIResp.Evidence.WebsiteSignalsUsed,
+		Why: openAIResp.Why,
+		Expectations: model.Expectations{
+			RiskLevel: openAIResp.Expectations.RiskLevel,
+			Summary:   openAIResp.Expectations.Summary,
+		},
+		SupportingDetails: model.SupportingDetails{
+			ExpectedRevenueImpact: openAIResp.SupportingDetails.ExpectedRevenueImpact,
+			ChurnOutlook:          openAIResp.SupportingDetails.ChurnOutlook,
+			MarketPosition:        openAIResp.SupportingDetails.MarketPosition,
 		},
 		CreatedAt: time.Now(),
-	}
-
-	// Convert risk considerations
-	for _, r := range openAIResp.RiskConsiderations {
-		verdict.RiskConsiderations = append(verdict.RiskConsiderations, model.RiskConsideration{
-			Level:       r.Level,
-			Description: r.Description,
-		})
 	}
 
 	return verdict, nil
@@ -343,28 +315,25 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 // getFallbackVerdict returns a safe fallback when OpenAI fails
 func (s *VerdictService) getFallbackVerdict(websiteURL string) *model.VerdictResponse {
 	return &model.VerdictResponse{
-		WebsiteURL:      websiteURL,
-		VerdictTitle:    "Review your current pricing structure",
-		OutcomeSummary:  "Insufficient data to provide a specific recommendation.",
-		ConfidenceLevel: "low",
+		WebsiteURL: websiteURL,
+		Recommendation: model.VerdictRecommendation{
+			Title:      "Review your current pricing structure",
+			Summary:    "Insufficient data to provide a specific recommendation.",
+			Confidence: "Low",
+		},
 		Why: []string{
 			"Website content could not be fully analyzed",
 			"Limited observable signals available",
 			"Manual review of your pricing page recommended",
 		},
-		RiskConsiderations: []model.RiskConsideration{
-			{
-				Level:       "low",
-				Description: "No immediate action required - gather more data before making changes",
-			},
+		Expectations: model.Expectations{
+			RiskLevel: "Low",
+			Summary:   "No immediate action required until full analysis is complete.",
 		},
 		SupportingDetails: model.SupportingDetails{
-			ExpectedRevenue: "Unable to assess without website data",
-			ChurnOutlook:    "Unable to assess without website data",
-			MarketPosition:  "Unable to assess without website data",
-		},
-		Evidence: model.VerdictEvidence{
-			WebsiteSignalsUsed: []string{"Website content unavailable for analysis"},
+			ExpectedRevenueImpact: "Unable to assess without website data",
+			ChurnOutlook:          "Unable to assess without website data",
+			MarketPosition:        "Unable to assess without website data",
 		},
 		CreatedAt: time.Now(),
 	}

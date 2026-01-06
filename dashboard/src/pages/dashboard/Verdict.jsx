@@ -43,7 +43,8 @@ const Verdict = () => {
   );
 
   const getConfidenceStyle = (level) => {
-    switch (level) {
+    const lowerLevel = level?.toLowerCase();
+    switch (lowerLevel) {
       case 'high': return 'text-emerald-400';
       case 'medium': return 'text-amber-400';
       case 'low': return 'text-slate-400';
@@ -52,7 +53,8 @@ const Verdict = () => {
   };
 
   const getRiskStyle = (level) => {
-    switch (level) {
+    const lowerLevel = level?.toLowerCase();
+    switch (lowerLevel) {
       case 'low': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
       case 'medium': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
       case 'high': return 'text-red-400 bg-red-500/10 border-red-500/20';
@@ -158,19 +160,19 @@ const Verdict = () => {
 
         {/* Main Verdict - The Star */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight leading-tight">
-          {isPaidUser ? verdict.verdictTitle : (
-            <BlurredText>{verdict.verdictTitle}</BlurredText>
+          {isPaidUser ? verdict.recommendation?.title : (
+            <BlurredText>{verdict.recommendation?.title}</BlurredText>
           )}
         </h1>
 
-        {/* Single Verbal Outcome */}
+        {/* Summary */}
         <p className="text-lg text-slate-300 mb-4">
-          {verdict.outcomeSummary}
+          {verdict.recommendation?.summary}
         </p>
 
-        {/* Qualitative Confidence */}
+        {/* Confidence */}
         <p className="text-sm text-slate-500">
-          Confidence: <span className={`font-medium capitalize ${getConfidenceStyle(verdict.confidenceLevel)}`}>{verdict.confidenceLevel}</span>
+          Confidence: <span className={`font-medium ${getConfidenceStyle(verdict.recommendation?.confidence)}`}>{verdict.recommendation?.confidence}</span>
         </p>
       </div>
 
@@ -192,14 +194,14 @@ const Verdict = () => {
 
       {/* Collapsible Sections */}
       <div className="space-y-3">
-        {/* Why We Recommend This */}
+        {/* Why This Decision */}
         {verdict.why && verdict.why.length > 0 && (
           <div>
             <button
               onClick={() => toggleSection('why')}
               className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
             >
-              <span className="text-sm text-slate-400">Why we recommend this</span>
+              <span className="text-sm text-slate-400">Why this decision</span>
               <svg
                 className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.why ? 'rotate-180' : ''}`}
                 fill="none"
@@ -223,16 +225,16 @@ const Verdict = () => {
           </div>
         )}
 
-        {/* Risk Considerations */}
-        {verdict.riskConsiderations && verdict.riskConsiderations.length > 0 && (
+        {/* What to Expect */}
+        {verdict.expectations && (
           <div>
             <button
-              onClick={() => toggleSection('risks')}
+              onClick={() => toggleSection('expectations')}
               className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
             >
               <span className="text-sm text-slate-400">What to expect</span>
               <svg
-                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.risks ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.expectations ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -241,16 +243,14 @@ const Verdict = () => {
               </svg>
             </button>
 
-            {expandedSections.risks && (
+            {expandedSections.expectations && (
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
-                {verdict.riskConsiderations.map((risk, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded border capitalize ${getRiskStyle(risk.level)}`}>
-                      {risk.level}
-                    </span>
-                    <p className="text-sm text-slate-500">{risk.description}</p>
-                  </div>
-                ))}
+                <div className="flex items-start gap-3">
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded border ${getRiskStyle(verdict.expectations.riskLevel)}`}>
+                    {verdict.expectations.riskLevel} Risk
+                  </span>
+                </div>
+                <p className="text-sm text-slate-400">{verdict.expectations.summary}</p>
               </div>
             )}
           </div>
@@ -277,8 +277,8 @@ const Verdict = () => {
             {expandedSections.details && (
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Expected revenue</span>
-                  <span className="text-sm text-slate-300">{verdict.supportingDetails.expectedRevenue}</span>
+                  <span className="text-sm text-slate-500">Expected revenue impact</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.expectedRevenueImpact}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-500">Churn outlook</span>
@@ -288,39 +288,6 @@ const Verdict = () => {
                   <span className="text-sm text-slate-500">Market position</span>
                   <span className="text-sm text-slate-300">{verdict.supportingDetails.marketPosition}</span>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Evidence - Website Signals Used */}
-        {verdict.evidence && verdict.evidence.websiteSignalsUsed && verdict.evidence.websiteSignalsUsed.length > 0 && (
-          <div>
-            <button
-              onClick={() => toggleSection('evidence')}
-              className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
-            >
-              <span className="text-sm text-slate-400">Evidence from your website</span>
-              <svg
-                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.evidence ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {expandedSections.evidence && (
-              <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-2">
-                {verdict.evidence.websiteSignalsUsed.map((signal, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <svg className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-sm text-slate-400">{signal}</p>
-                  </div>
-                ))}
               </div>
             )}
           </div>

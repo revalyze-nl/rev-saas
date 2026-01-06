@@ -12,55 +12,52 @@ type VerdictRequest struct {
 }
 
 // VerdictResponse represents the AI-generated pricing verdict
-// All claims must be grounded in the provided website content
 type VerdictResponse struct {
-	ID                 primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
-	UserID             primitive.ObjectID  `json:"userId,omitempty" bson:"user_id,omitempty"`
-	WebsiteURL         string              `json:"websiteUrl" bson:"website_url"`
-	VerdictTitle       string              `json:"verdictTitle" bson:"verdict_title"`
-	OutcomeSummary     string              `json:"outcomeSummary" bson:"outcome_summary"`
-	ConfidenceLevel    string              `json:"confidenceLevel" bson:"confidence_level"` // low, medium, high
-	Why                []string            `json:"why" bson:"why"`
-	RiskConsiderations []RiskConsideration `json:"riskConsiderations" bson:"risk_considerations"`
-	SupportingDetails  SupportingDetails   `json:"supportingDetails" bson:"supporting_details"`
-	Evidence           VerdictEvidence     `json:"evidence" bson:"evidence"`
-	CreatedAt          time.Time           `json:"createdAt" bson:"created_at"`
+	ID                primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	UserID            primitive.ObjectID `json:"userId,omitempty" bson:"user_id,omitempty"`
+	WebsiteURL        string                `json:"websiteUrl" bson:"website_url"`
+	Recommendation    VerdictRecommendation `json:"recommendation" bson:"recommendation"`
+	Why               []string           `json:"why" bson:"why"`
+	Expectations      Expectations       `json:"expectations" bson:"expectations"`
+	SupportingDetails SupportingDetails  `json:"supportingDetails" bson:"supporting_details"`
+	CreatedAt         time.Time          `json:"createdAt" bson:"created_at"`
 }
 
-// RiskConsideration represents a risk with level and description
-type RiskConsideration struct {
-	Level       string `json:"level" bson:"level"`             // low, medium, high
-	Description string `json:"description" bson:"description"` // risk + mitigation suggestion
+// VerdictRecommendation contains the main pricing decision
+type VerdictRecommendation struct {
+	Title      string `json:"title" bson:"title"`
+	Summary    string `json:"summary" bson:"summary"`
+	Confidence string `json:"confidence" bson:"confidence"` // High, Medium, Low
 }
 
-// SupportingDetails contains directional/range-based supporting info
+// Expectations contains what to expect after implementation
+type Expectations struct {
+	RiskLevel string `json:"riskLevel" bson:"risk_level"` // Low, Medium, High
+	Summary   string `json:"summary" bson:"summary"`
+}
+
+// SupportingDetails contains directional impact details
 type SupportingDetails struct {
-	ExpectedRevenue string `json:"expectedRevenue" bson:"expected_revenue"`
-	ChurnOutlook    string `json:"churnOutlook" bson:"churn_outlook"`
-	MarketPosition  string `json:"marketPosition" bson:"market_position"`
-}
-
-// VerdictEvidence contains the signals used to generate the verdict
-type VerdictEvidence struct {
-	WebsiteSignalsUsed []string `json:"websiteSignalsUsed" bson:"website_signals_used"`
+	ExpectedRevenueImpact string `json:"expectedRevenueImpact" bson:"expected_revenue_impact"`
+	ChurnOutlook          string `json:"churnOutlook" bson:"churn_outlook"`
+	MarketPosition        string `json:"marketPosition" bson:"market_position"`
 }
 
 // OpenAIVerdictResponse is the expected JSON structure from OpenAI
 type OpenAIVerdictResponse struct {
-	VerdictTitle       string   `json:"verdictTitle"`
-	OutcomeSummary     string   `json:"outcomeSummary"`
-	ConfidenceLevel    string   `json:"confidenceLevel"`
-	Why                []string `json:"why"`
-	RiskConsiderations []struct {
-		Level       string `json:"level"`
-		Description string `json:"description"`
-	} `json:"riskConsiderations"`
+	Recommendation struct {
+		Title      string `json:"title"`
+		Summary    string `json:"summary"`
+		Confidence string `json:"confidence"`
+	} `json:"recommendation"`
+	Why          []string `json:"why"`
+	Expectations struct {
+		RiskLevel string `json:"risk_level"`
+		Summary   string `json:"summary"`
+	} `json:"expectations"`
 	SupportingDetails struct {
-		ExpectedRevenue string `json:"expectedRevenue"`
-		ChurnOutlook    string `json:"churnOutlook"`
-		MarketPosition  string `json:"marketPosition"`
-	} `json:"supportingDetails"`
-	Evidence struct {
-		WebsiteSignalsUsed []string `json:"websiteSignalsUsed"`
-	} `json:"evidence"`
+		ExpectedRevenueImpact string `json:"expected_revenue_impact"`
+		ChurnOutlook          string `json:"churn_outlook"`
+		MarketPosition        string `json:"market_position"`
+	} `json:"supporting_details"`
 }

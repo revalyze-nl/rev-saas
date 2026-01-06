@@ -32,7 +32,7 @@ const ONBOARDING_STEPS = [
     description: 'Generate your first AI-powered pricing analysis to get actionable insights.',
     whyItMatters: 'The analysis combines your data with market intelligence to find opportunities.',
     ctaText: 'Run Analysis',
-    ctaPath: '/app/overview',
+    ctaPath: '/verdict',
     completionCheck: (state) => state.hasAnalysis,
   },
 ];
@@ -132,9 +132,9 @@ export const OnboardingProvider = ({ children }) => {
     }
   }, [completionState.hasPlans, completionState.hasCompetitors, completionState.hasAnalysis, isAuthenticated, isOnboardingComplete, isModalDismissed, persistState]);
 
-  // Auto-open modal only on Overview page (/app/overview) when onboarding not complete
+  // Auto-open modal only on Overview page (/verdict) when onboarding not complete
   // This acts as a reminder each time user visits or refreshes Overview
-  const isOverviewPage = location.pathname === '/app/overview' || location.pathname === '/app';
+  const isOverviewPage = location.pathname === '/verdict' || location.pathname === '/';
 
   useEffect(() => {
     if (isAuthenticated && !isOnboardingComplete && isOverviewPage) {

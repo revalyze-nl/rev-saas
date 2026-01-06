@@ -77,7 +77,7 @@ const Billing = () => {
 
   // Redirect admin users
   useEffect(() => {
-    if (isAdmin) navigate('/app/overview', { replace: true });
+    if (isAdmin) navigate('/verdict', { replace: true });
   }, [isAdmin, navigate]);
 
   const handleUpgradeClick = async (planKey) => {

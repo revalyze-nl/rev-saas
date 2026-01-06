@@ -31,7 +31,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const from = location.state?.from?.pathname || '/app/overview';
+      const from = location.state?.from?.pathname || '/verdict';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, location]);
@@ -62,7 +62,7 @@ const Login = () => {
           setShowUnverifiedBanner(true);
           setLocalError('Please verify your email before signing in.');
         } else {
-          const from = location.state?.from?.pathname || '/app/overview';
+          const from = location.state?.from?.pathname || '/verdict';
           navigate(from, { replace: true });
         }
       } else {

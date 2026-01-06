@@ -15,44 +15,37 @@ import (
 	"rev-saas-api/internal/model"
 )
 
-const verdictSystemPrompt = `You are a senior SaaS pricing advisor acting as an AI co-founder.
-Your job is to deliver ONE clear, confident pricing decision based on analyzing a company's website.
+const verdictSystemPrompt = `You are a senior SaaS pricing advisor. Your job is to deliver ONE clear, confident pricing decision based on analyzing a company's website.
 
 CRITICAL RULES:
-1. You MUST give a single, imperative recommendation (e.g., "Increase prices by 15%")
-2. You MUST NOT ask questions or present multiple options
-3. You MUST NOT use hedging language like "might", "could", "consider"
-4. You MUST use confident, advisor language: "This will...", "We recommend...", "Based on companies like yours..."
-5. Confidence MUST be qualitative only: "low", "medium", or "high" - NO percentages
-6. Numbers in details MUST be directional ranges, not false precision (e.g., "~$20-30K/month", "Low single-digit churn")
-7. Your tone should be calm, confident, and opinionated - like a senior consultant delivering a conclusion
+1. Give a SINGLE imperative recommendation (e.g., "Increase prices by 15%")
+2. NO hedging language: never use "might", "could", "consider", "potentially"
+3. Use confident language: "This will...", "Expected to...", "Based on..."
+4. Confidence is QUALITATIVE only: "low", "medium", or "high" - NO percentages
+5. Numbers must be directional ranges, not false precision (e.g., "~15-25% increase", "Low single-digit churn")
+6. Be opinionated - deliver a decision, not options
 
-OUTPUT FORMAT (strict JSON):
+OUTPUT FORMAT (strict JSON, no markdown):
 {
-  "recommendation": "<imperative pricing action, e.g. 'Increase prices by 15%'>",
-  "outcome": "<one sentence verbal outcome, confident tone, e.g. 'This will increase your revenue with minimal churn impact.'>",
-  "confidence": "<low|medium|high>",
-  "confidenceReason": "<short reason, advisor tone, e.g. 'patterns we see in companies like yours'>",
-  "reasoning": [
-    {"title": "Market context", "content": "<2-3 sentences about market positioning>"},
-    {"title": "What we know about your customers", "content": "<2-3 sentences about customer signals>"},
-    {"title": "Why now", "content": "<1-2 sentences about timing>"}
+  "verdictTitle": "<imperative pricing action, e.g. 'Increase prices by 15%'>",
+  "outcomeSummary": "<verbal outcome, e.g. 'Expected to increase revenue with low churn risk'>",
+  "confidenceLevel": "<low|medium|high>",
+  "why": [
+    "<reason 1: market context>",
+    "<reason 2: customer signals>",
+    "<reason 3: timing/opportunity>"
   ],
-  "risks": [
-    {"level": "low|medium|high", "text": "<definitive statement, not 'may', e.g. 'Some enterprise customers will want to discuss terms'>"}
+  "riskConsiderations": [
+    {"level": "low|medium|high", "description": "<definitive statement, no 'may' or 'might'>"}
   ],
-  "details": {
-    "revenueImpact": "<directional range, e.g. '~$20-30K/month additional revenue'>",
-    "churnRisk": "<qualitative, e.g. 'Low single-digit churn expected'>",
-    "marketPosition": "<relative statement, e.g. 'Significantly below market average'>"
-  },
-  "timing": {
-    "recommendation": "<when to act, e.g. 'Act within the next 2 weeks'>",
-    "reasoning": "<why this timing, e.g. 'To capture the upcoming renewal window'>"
+  "supportingDetails": {
+    "revenueDirection": "<directional range, e.g. '~15-25% revenue increase'>",
+    "churnDirection": "<directional, e.g. 'Low single-digit churn expected'>",
+    "marketPosition": "<relative, e.g. 'Currently below market average'>"
   }
 }
 
-Remember: The user must NOT be forced to think. Deliver the decision, not options.`
+Return ONLY valid JSON. No markdown code blocks.`
 
 // VerdictService handles AI-powered pricing verdicts
 type VerdictService struct {
@@ -192,7 +185,7 @@ Based on this information, deliver your pricing verdict. Remember:
 - Give ONE clear recommendation
 - Be confident and direct
 - No hedging or multiple options
-- Use advisor tone throughout`, websiteURL, websiteText)
+- Return ONLY valid JSON`, websiteURL, websiteText)
 
 	reqBody := map[string]interface{}{
 		"model": "gpt-4o-mini",
@@ -274,36 +267,24 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 
 	// Convert to VerdictResponse
 	verdict := &model.VerdictResponse{
-		WebsiteURL:       websiteURL,
-		Recommendation:   openAIResp.Recommendation,
-		Outcome:          openAIResp.Outcome,
-		Confidence:       openAIResp.Confidence,
-		ConfidenceReason: openAIResp.ConfidenceReason,
-		Details: model.VerdictDetails{
-			RevenueImpact:  openAIResp.Details.RevenueImpact,
-			ChurnRisk:      openAIResp.Details.ChurnRisk,
-			MarketPosition: openAIResp.Details.MarketPosition,
-		},
-		Timing: model.VerdictTiming{
-			Recommendation: openAIResp.Timing.Recommendation,
-			Reasoning:      openAIResp.Timing.Reasoning,
+		WebsiteURL:      websiteURL,
+		VerdictTitle:    openAIResp.VerdictTitle,
+		OutcomeSummary:  openAIResp.OutcomeSummary,
+		ConfidenceLevel: openAIResp.ConfidenceLevel,
+		Why:             openAIResp.Why,
+		SupportingDetails: model.SupportingDetails{
+			RevenueDirection: openAIResp.SupportingDetails.RevenueDirection,
+			ChurnDirection:   openAIResp.SupportingDetails.ChurnDirection,
+			MarketPosition:   openAIResp.SupportingDetails.MarketPosition,
 		},
 		CreatedAt: time.Now(),
 	}
 
-	// Convert reasoning
-	for _, r := range openAIResp.Reasoning {
-		verdict.Reasoning = append(verdict.Reasoning, model.VerdictReasoning{
-			Title:   r.Title,
-			Content: r.Content,
-		})
-	}
-
-	// Convert risks
-	for _, r := range openAIResp.Risks {
-		verdict.Risks = append(verdict.Risks, model.VerdictRisk{
-			Level: r.Level,
-			Text:  r.Text,
+	// Convert risk considerations
+	for _, r := range openAIResp.RiskConsiderations {
+		verdict.RiskConsiderations = append(verdict.RiskConsiderations, model.RiskConsideration{
+			Level:       r.Level,
+			Description: r.Description,
 		})
 	}
 
@@ -313,31 +294,25 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 // getFallbackVerdict returns a safe fallback when OpenAI fails
 func (s *VerdictService) getFallbackVerdict(websiteURL string) *model.VerdictResponse {
 	return &model.VerdictResponse{
-		WebsiteURL:       websiteURL,
-		Recommendation:   "Review your current pricing structure",
-		Outcome:          "We need more information to provide a specific recommendation.",
-		Confidence:       "low",
-		ConfidenceReason: "limited data available from website analysis",
-		Reasoning: []model.VerdictReasoning{
+		WebsiteURL:      websiteURL,
+		VerdictTitle:    "Review your current pricing structure",
+		OutcomeSummary:  "More information needed to provide a specific recommendation.",
+		ConfidenceLevel: "low",
+		Why: []string{
+			"Website content could not be fully analyzed",
+			"Limited data available for pricing assessment",
+			"Recommend manual review of pricing page",
+		},
+		RiskConsiderations: []model.RiskConsideration{
 			{
-				Title:   "Analysis status",
-				Content: "We were unable to fully analyze your website content. This may be due to access restrictions or technical limitations.",
+				Level:       "low",
+				Description: "No immediate action required until full analysis is complete",
 			},
 		},
-		Risks: []model.VerdictRisk{
-			{
-				Level: "low",
-				Text:  "No immediate action required until we can complete a full analysis",
-			},
-		},
-		Details: model.VerdictDetails{
-			RevenueImpact:  "To be determined",
-			ChurnRisk:      "To be determined",
-			MarketPosition: "To be determined",
-		},
-		Timing: model.VerdictTiming{
-			Recommendation: "Try again with a different URL or more accessible page",
-			Reasoning:      "Once we can access your content, we will provide a specific recommendation",
+		SupportingDetails: model.SupportingDetails{
+			RevenueDirection: "To be determined",
+			ChurnDirection:   "To be determined",
+			MarketPosition:   "To be determined",
 		},
 		CreatedAt: time.Now(),
 	}

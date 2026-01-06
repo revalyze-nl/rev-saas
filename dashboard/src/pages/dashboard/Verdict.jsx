@@ -158,32 +158,23 @@ const Verdict = () => {
 
         {/* Main Verdict - The Star */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight leading-tight">
-          {isPaidUser ? verdict.recommendation : (
-            <BlurredText>{verdict.recommendation}</BlurredText>
+          {isPaidUser ? verdict.verdictTitle : (
+            <BlurredText>{verdict.verdictTitle}</BlurredText>
           )}
         </h1>
 
-        {/* Single Verbal Outcome - Replaces Metric Cards */}
+        {/* Single Verbal Outcome */}
         <p className="text-lg text-slate-300 mb-4">
-          {verdict.outcome}
+          {verdict.outcomeSummary}
         </p>
 
-        {/* Qualitative Confidence - Advisory, Not Statistical */}
+        {/* Qualitative Confidence */}
         <p className="text-sm text-slate-500">
-          Confidence: <span className={`font-medium capitalize ${getConfidenceStyle(verdict.confidence)}`}>{verdict.confidence}</span>
-          <span className="text-slate-600"> — based on {verdict.confidenceReason}</span>
+          Confidence: <span className={`font-medium capitalize ${getConfidenceStyle(verdict.confidenceLevel)}`}>{verdict.confidenceLevel}</span>
         </p>
       </div>
 
-      {/* Timing Advisory */}
-      {verdict.timing && (
-        <div className="mb-8 py-4 px-5 bg-slate-900/30 border-l-2 border-violet-500/50 rounded-r-lg">
-          <p className="text-sm text-white font-medium">{verdict.timing.recommendation}</p>
-          <p className="text-sm text-slate-500 mt-1">{verdict.timing.reasoning}</p>
-        </div>
-      )}
-
-      {/* Primary Action - Softer Language */}
+      {/* Primary Action */}
       <div className="mb-10">
         <button
           className="w-full py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -199,18 +190,18 @@ const Verdict = () => {
         )}
       </div>
 
-      {/* Collapsible Sections - Secondary, Calm */}
+      {/* Collapsible Sections */}
       <div className="space-y-3">
         {/* Why We Recommend This */}
-        {verdict.reasoning && verdict.reasoning.length > 0 && (
+        {verdict.why && verdict.why.length > 0 && (
           <div>
             <button
-              onClick={() => toggleSection('reasoning')}
+              onClick={() => toggleSection('why')}
               className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
             >
               <span className="text-sm text-slate-400">Why we recommend this</span>
               <svg
-                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.reasoning ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.why ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -219,13 +210,13 @@ const Verdict = () => {
               </svg>
             </button>
 
-            {expandedSections.reasoning && (
-              <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-4">
-                {verdict.reasoning.map((item, index) => (
-                  <div key={index}>
-                    <h4 className="text-sm font-medium text-slate-300 mb-1">{item.title}</h4>
-                    <p className="text-sm text-slate-500 leading-relaxed">{item.content}</p>
-                  </div>
+            {expandedSections.why && (
+              <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
+                {verdict.why.map((reason, index) => (
+                  <p key={index} className="text-sm text-slate-400 leading-relaxed flex items-start gap-2">
+                    <span className="text-slate-600 mt-0.5">•</span>
+                    {reason}
+                  </p>
                 ))}
               </div>
             )}
@@ -233,7 +224,7 @@ const Verdict = () => {
         )}
 
         {/* Risk Considerations */}
-        {verdict.risks && verdict.risks.length > 0 && (
+        {verdict.riskConsiderations && verdict.riskConsiderations.length > 0 && (
           <div>
             <button
               onClick={() => toggleSection('risks')}
@@ -252,12 +243,12 @@ const Verdict = () => {
 
             {expandedSections.risks && (
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
-                {verdict.risks.map((risk, index) => (
+                {verdict.riskConsiderations.map((risk, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <span className={`px-2 py-0.5 text-xs font-medium rounded border capitalize ${getRiskStyle(risk.level)}`}>
                       {risk.level}
                     </span>
-                    <p className="text-sm text-slate-500">{risk.text}</p>
+                    <p className="text-sm text-slate-500">{risk.description}</p>
                   </div>
                 ))}
               </div>
@@ -265,8 +256,8 @@ const Verdict = () => {
           </div>
         )}
 
-        {/* Detailed Numbers - Only Here, Not Above */}
-        {isPaidUser && verdict.details && (
+        {/* Supporting Details */}
+        {isPaidUser && verdict.supportingDetails && (
           <div>
             <button
               onClick={() => toggleSection('details')}
@@ -287,15 +278,15 @@ const Verdict = () => {
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-500">Expected revenue</span>
-                  <span className="text-sm text-slate-300">{verdict.details.revenueImpact}</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.revenueDirection}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-500">Churn outlook</span>
-                  <span className="text-sm text-slate-300">{verdict.details.churnRisk}</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.churnDirection}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-500">Your positioning</span>
-                  <span className="text-sm text-slate-300">{verdict.details.marketPosition}</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.marketPosition}</span>
                 </div>
               </div>
             )}
@@ -303,7 +294,7 @@ const Verdict = () => {
         )}
       </div>
 
-      {/* Timestamp - Subtle */}
+      {/* Timestamp */}
       <p className="text-xs text-slate-600 mt-8 text-center">
         Analysis completed {formatDate(verdict.createdAt)}
       </p>

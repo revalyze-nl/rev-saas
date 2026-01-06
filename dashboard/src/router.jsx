@@ -11,15 +11,10 @@ import { DemoProvider } from './context/DemoContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
-import OnboardingLayout from './pages/onboarding/OnboardingLayout';
 import DashboardLayout from './layouts/DashboardLayout';
-import Overview from './pages/dashboard/Overview';
-import MyCompany from './pages/dashboard/MyCompany';
-import Analyses from './pages/dashboard/AnalysesV2';
-import Competitors from './pages/dashboard/CompetitorsV2';
-import Plans from './pages/dashboard/PlansV2'; // Using V2 as the main Plans page
-import PricingSimulation from './pages/dashboard/PricingSimulation';
-import Reports from './pages/dashboard/Reports';
+import Verdict from './pages/dashboard/Verdict';
+import Scenarios from './pages/dashboard/Scenarios';
+import History from './pages/dashboard/History';
 import Settings from './pages/dashboard/Settings';
 import Billing from './pages/dashboard/Billing';
 import VerifyEmail from './pages/VerifyEmail';
@@ -62,10 +57,6 @@ const RootLayout = ({ children }) => (
 // Create routes with auth wrapper
 export const router = createBrowserRouter([
   {
-    path: '/',
-    element: <RootLayout><Navigate to="/login" replace /></RootLayout>
-  },
-  {
     path: '/login',
     element: <RootLayout><Login /></RootLayout>
   },
@@ -78,50 +69,24 @@ export const router = createBrowserRouter([
     element: <RootLayout><VerifyEmail /></RootLayout>
   },
   {
-    path: '/onboarding',
-    element: (
-      <RootLayout>
-        <ProtectedRoute>
-          <OnboardingLayout />
-        </ProtectedRoute>
-      </RootLayout>
-    )
-  },
-  {
-    path: '/app',
+    path: '/',
     element: <RootLayout><ProtectedDashboard /></RootLayout>,
     children: [
       {
         index: true,
-        element: <Navigate to="/app/overview" replace />
+        element: <Navigate to="/verdict" replace />
       },
       {
-        path: 'overview',
-        element: <Overview />
+        path: 'verdict',
+        element: <Verdict />
       },
       {
-        path: 'company',
-        element: <MyCompany />
+        path: 'scenarios',
+        element: <Scenarios />
       },
       {
-        path: 'analyses',
-        element: <Analyses />
-      },
-      {
-        path: 'competitors',
-        element: <Competitors />
-      },
-      {
-        path: 'plans',
-        element: <Plans />
-      },
-      {
-        path: 'simulation',
-        element: <PricingSimulation />
-      },
-      {
-        path: 'reports',
-        element: <Reports />
+        path: 'history',
+        element: <History />
       },
       {
         path: 'settings',

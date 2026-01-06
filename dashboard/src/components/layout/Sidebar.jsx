@@ -1,83 +1,31 @@
-import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { usePlans } from '../../context/PlansContext';
-import { useAnalysis } from '../../context/AnalysisV2Context';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const { plans } = usePlans();
-  const { analyses } = useAnalysis();
 
-  // Track tooltip visibility
-  const [hoveredItem, setHoveredItem] = useState(null);
-
-  // Determine setup completion state
-  // Note: We consider setup complete when user has plans and at least one analysis
-  // Competitors are optional for basic setup
-  const hasPlans = plans.length > 0;
-  const hasAnalysis = analyses.length > 0;
-  const isSetupComplete = hasPlans && hasAnalysis;
-
-  // Navigation items that should be locked during setup
-  const lockedDuringSetup = ['/app/analyses', '/app/simulation', '/app/reports'];
-
+  // Main navigation items
   const navItems = [
     {
-      name: 'Overview',
-      path: '/app/overview',
+      name: 'Verdict',
+      path: '/verdict',
       icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
       )
     },
     {
-      name: 'My Company',
-      path: '/app/company',
+      name: 'Scenarios',
+      path: '/scenarios',
       icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
       )
     },
     {
-      name: 'Analysis',
-      path: '/app/analyses',
+      name: 'History',
+      path: '/history',
       icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      )
-    },
-    {
-      name: 'Competitors',
-      path: '/app/competitors',
-      icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      )
-    },
-    {
-      name: 'My Pricing',
-      path: '/app/plans',
-      icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-      )
-    },
-    {
-      name: 'Simulation',
-      path: '/app/simulation',
-      icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-      )
-    },
-    {
-      name: 'Reports',
-      path: '/app/reports',
-      icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      )
-    },
-    {
-      name: 'Settings',
-      path: '/app/settings',
-      icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
       )
     }
   ];
@@ -87,22 +35,14 @@ const Sidebar = () => {
     navigate('/login');
   };
 
-  // Get user display name
-  const getUserDisplayName = () => {
-    if (user?.full_name) return user.full_name;
-    if (user?.name) return user.name;
-    return user?.email || 'User';
-  };
-
   // Get user initials
   const getUserInitials = () => {
-    const name = getUserDisplayName();
-    if (name && name !== user?.email) {
-      const parts = name.split(' ');
+    if (user?.full_name) {
+      const parts = user.full_name.split(' ');
       if (parts.length >= 2) {
         return (parts[0][0] + parts[1][0]).toUpperCase();
       }
-      return name.substring(0, 2).toUpperCase();
+      return user.full_name.substring(0, 2).toUpperCase();
     }
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
@@ -110,111 +50,112 @@ const Sidebar = () => {
     return 'U';
   };
 
+  // Get plan display name
+  const getPlanDisplay = () => {
+    const plan = user?.plan || 'free';
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
+  };
+
   return (
-    <div className="w-64 bg-slate-950 border-r border-slate-800/50 flex flex-col h-screen sticky top-0">
+    <div className="w-56 bg-slate-950 border-r border-slate-800/50 flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="p-6 border-b border-slate-800/50">
-        <img 
-          src="/revalyze-logo.png" 
-          alt="Revalyze" 
-          className="h-10 w-auto"
+      <div className="p-5 border-b border-slate-800/30">
+        <img
+          src="/revalyze-logo.png"
+          alt="Revalyze"
+          className="h-8 w-auto"
         />
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isLocked = !isSetupComplete && lockedDuringSetup.includes(item.path);
-
-          if (isLocked) {
-            return (
-              <div
-                key={item.path}
-                className="relative"
-                onMouseEnter={() => setHoveredItem(item.path)}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <div
-                  className="group flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 text-slate-600 cursor-not-allowed border border-transparent opacity-50"
-                >
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {item.icon}
-                  </svg>
-                  <span className="text-sm">{item.name}</span>
-                  <svg className="w-3.5 h-3.5 ml-auto text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                {/* Tooltip */}
-                {hoveredItem === item.path && (
-                  <div className="absolute left-4 right-4 top-full mt-1 z-50 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl">
-                    <p className="text-xs text-slate-300 text-center">Complete setup to unlock</p>
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full border-8 border-transparent border-b-slate-800" />
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          return (
+      {/* Main Navigation */}
+      <nav className="flex-1 p-3 pt-4">
+        <div className="space-y-1">
+          {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `group flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive
-                    ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 text-white border border-violet-500/30 shadow-lg shadow-violet-500/5'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                    ? 'bg-white/10 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <svg className={`w-5 h-5 ${isActive ? 'text-violet-400' : 'text-slate-400 group-hover:text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     {item.icon}
                   </svg>
-                  <span className="text-sm">{item.name}</span>
-                  {item.badge && (
-                    <span className="ml-auto text-[10px] font-semibold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white px-2 py-0.5 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
+                  <span>{item.name}</span>
                 </>
               )}
             </NavLink>
-          );
-        })}
+          ))}
+        </div>
       </nav>
 
-      {/* User & Logout */}
-      <div className="p-4 border-t border-slate-800/50 space-y-3">
-        {user && (
-          <div className="px-3 py-3 bg-slate-900/50 rounded-xl border border-slate-800/50">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
-                {getUserInitials()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500">Signed in as</p>
-                <p className="text-sm text-slate-300 truncate">{getUserDisplayName()}</p>
-              </div>
+      {/* Bottom Section */}
+      <div className="border-t border-slate-800/30">
+        {/* Settings */}
+        <div className="p-3">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                isActive
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <svg
+                  className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Settings</span>
+              </>
+            )}
+          </NavLink>
+        </div>
+
+        {/* Account Info */}
+        <div className="px-3 pb-2">
+          <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-slate-900/50">
+            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-medium text-xs">
+              {getUserInitials()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-white truncate">{user?.email || 'User'}</p>
+              <p className="text-xs text-slate-500">{getPlanDisplay()} Plan</p>
             </div>
           </div>
-        )}
-        
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span className="text-sm">Sign Out</span>
-        </button>
+        </div>
 
-        <p className="text-[11px] text-slate-600 text-center pt-2">
-          © {new Date().getFullYear()} Revalyze B.V.
-        </p>
+        {/* Sign Out */}
+        <div className="p-3 pt-0">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
       </div>
     </div>
   );

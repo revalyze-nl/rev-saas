@@ -130,16 +130,28 @@ export const OnboardingProvider = ({ children }) => {
     }
   }, [completionState.hasPlans, completionState.hasCompetitors, completionState.hasAnalysis, isAuthenticated, isOnboardingComplete, isModalDismissed, persistState]);
 
-  // Auto-open modal on load if onboarding not complete and not dismissed
+  // Auto-open modal on load if onboarding not complete
+  // Reset dismissed state if user has no data at all (fresh start)
   useEffect(() => {
-    if (isAuthenticated && !isOnboardingComplete && !isModalDismissed) {
-      // Small delay to let the page render first
-      const timer = setTimeout(() => {
-        setIsModalOpen(true);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (isAuthenticated && !isOnboardingComplete) {
+      // If user has no data at all, reset the dismissed state
+      const hasNoData = !completionState.hasPlans && !completionState.hasCompetitors && !completionState.hasAnalysis;
+
+      if (hasNoData && isModalDismissed) {
+        // Reset dismissed state for fresh users
+        setIsModalDismissed(false);
+        persistState(completedSteps, false, false);
+      }
+
+      if (!isModalDismissed || hasNoData) {
+        // Small delay to let the page render first
+        const timer = setTimeout(() => {
+          setIsModalOpen(true);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isAuthenticated, isOnboardingComplete, isModalDismissed]);
+  }, [isAuthenticated, isOnboardingComplete, isModalDismissed, completionState.hasPlans, completionState.hasCompetitors, completionState.hasAnalysis, completedSteps, persistState]);
 
   // Handle completion events from feature pages
   const handleCompletionEvent = useCallback((eventType) => {

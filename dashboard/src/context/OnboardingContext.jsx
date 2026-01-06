@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { usePlans } from './PlansContext';
 import { useAnalysis } from './AnalysisV2Context';
@@ -43,6 +44,7 @@ export const OnboardingProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
   const { plans } = usePlans();
   const { analyses } = useAnalysis();
+  const location = useLocation();
 
   // Onboarding state
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -130,20 +132,19 @@ export const OnboardingProvider = ({ children }) => {
     }
   }, [completionState.hasPlans, completionState.hasCompetitors, completionState.hasAnalysis, isAuthenticated, isOnboardingComplete, isModalDismissed, persistState]);
 
-  // Auto-open modal on first load if onboarding not complete and not dismissed
-  // Uses a ref to prevent re-opening after user dismisses in the same session
-  const hasAutoOpenedRef = useRef(false);
+  // Auto-open modal only on Overview page (/app/overview) when onboarding not complete
+  // This acts as a reminder each time user visits or refreshes Overview
+  const isOverviewPage = location.pathname === '/app/overview' || location.pathname === '/app';
 
   useEffect(() => {
-    if (isAuthenticated && !isOnboardingComplete && !isModalDismissed && !hasAutoOpenedRef.current) {
+    if (isAuthenticated && !isOnboardingComplete && isOverviewPage) {
       // Small delay to let the page render first
       const timer = setTimeout(() => {
         setIsModalOpen(true);
-        hasAutoOpenedRef.current = true;
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isOnboardingComplete, isModalDismissed]);
+  }, [isAuthenticated, isOnboardingComplete, isOverviewPage]);
 
   // Handle completion events from feature pages
   const handleCompletionEvent = useCallback((eventType) => {

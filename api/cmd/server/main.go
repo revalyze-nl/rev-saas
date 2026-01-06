@@ -143,7 +143,7 @@ func main() {
 	aiCreditsHandler := handler.NewAICreditsHandler(aiCreditsService)
 	stripeHandler := handler.NewStripeHandler(stripeService)
 	billingHandler := handler.NewBillingHandler(billingService, cfg)
-	adminHandler := handler.NewAdminHandler(adminService)
+	adminHandler := handler.NewAdminHandler(adminService, demoService)
 	demoHandler := handler.NewDemoHandler(demoService)
 
 	// Create router

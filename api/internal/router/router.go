@@ -144,6 +144,7 @@ func NewRouter(
 	adminAPI.HandleFunc("/users/{id}", adminHandler.UpdateUser).Methods(http.MethodPatch)
 	adminAPI.HandleFunc("/users/{id}", adminHandler.DeleteUser).Methods(http.MethodDelete)
 	adminAPI.HandleFunc("/users/{id}/activate", adminHandler.ActivateUser).Methods(http.MethodPost)
+	adminAPI.HandleFunc("/users/{id}/reset-data", adminHandler.ResetUserData).Methods(http.MethodPost)
 	adminAPI.HandleFunc("/subscriptions", adminHandler.GetSubscriptions).Methods(http.MethodGet)
 	adminAPI.HandleFunc("/ai-usage", adminHandler.GetAIUsage).Methods(http.MethodGet)
 	adminAPI.HandleFunc("/error-logs", adminHandler.GetErrorLogs).Methods(http.MethodGet)

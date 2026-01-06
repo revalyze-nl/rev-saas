@@ -16,12 +16,14 @@ import (
 // AdminHandler handles admin-only endpoints.
 type AdminHandler struct {
 	adminService *service.AdminService
+	demoService  *service.DemoService
 }
 
 // NewAdminHandler creates a new AdminHandler.
-func NewAdminHandler(adminService *service.AdminService) *AdminHandler {
+func NewAdminHandler(adminService *service.AdminService, demoService *service.DemoService) *AdminHandler {
 	return &AdminHandler{
 		adminService: adminService,
+		demoService:  demoService,
 	}
 }
 
@@ -157,6 +159,38 @@ func (h *AdminHandler) ActivateUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "activated"})
+}
+
+// ResetUserData resets all data for a user (plans, competitors, analyses, etc.)
+func (h *AdminHandler) ResetUserData(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	vars := mux.Vars(r)
+	userID := vars["id"]
+	if userID == "" {
+		http.Error(w, "user ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Parse user ID to ObjectID
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// Use DemoService to delete all user data
+	result, err := h.demoService.ReplaceDemoData(ctx, oid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "reset",
+		"result": result,
+	})
 }
 
 // GetSubscriptions returns all subscriptions.

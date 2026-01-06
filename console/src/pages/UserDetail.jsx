@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Mail, Calendar, CreditCard, Zap, Shield, Trash2, Save, UserCheck } from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, CreditCard, Zap, Shield, Trash2, Save, UserCheck, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import apiClient from '../lib/apiClient'
 
@@ -11,6 +11,7 @@ export default function UserDetail() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activating, setActivating] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({})
 
@@ -91,6 +92,22 @@ export default function UserDetail() {
       alert('Failed to activate user')
     } finally {
       setActivating(false)
+    }
+  }
+
+  const handleResetData = async () => {
+    if (!confirm('Are you sure you want to reset all data for this user? This will delete all their plans, competitors, analyses, and simulations. This action cannot be undone.')) {
+      return
+    }
+    setResetting(true)
+    try {
+      const result = await apiClient.resetUserData(id)
+      alert(`User data reset successfully.\n\nDeleted:\n- ${result.result?.plans_deleted || 0} plans\n- ${result.result?.competitors_deleted || 0} competitors\n- ${result.result?.analyses_deleted || 0} analyses\n- ${result.result?.simulations_deleted || 0} simulations`)
+    } catch (err) {
+      console.error('Failed to reset user data:', err)
+      alert('Failed to reset user data')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -315,6 +332,14 @@ export default function UserDetail() {
                   {activating ? 'Activating...' : 'Activate User'}
                 </button>
               )}
+              <button
+                onClick={handleResetData}
+                disabled={resetting}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/20 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
+                {resetting ? 'Resetting...' : 'Reset User Data'}
+              </button>
               <button className="w-full text-left px-3 py-2 text-sm text-surface-300 hover:bg-surface-700 rounded-lg transition-colors">
                 Reset AI credits
               </button>

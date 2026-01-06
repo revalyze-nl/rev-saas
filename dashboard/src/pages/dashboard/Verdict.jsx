@@ -13,9 +13,9 @@ const Verdict = () => {
     recommendation: 'Increase prices by 15%',
     // Qualitative confidence instead of numeric
     confidence: 'high',
-    confidenceReason: 'strong market alignment and customer data',
-    // Single verbal outcome statement
-    outcome: 'This change is expected to increase revenue with low churn risk.',
+    confidenceReason: 'patterns we see in companies like yours',
+    // Single verbal outcome statement - confident, no hedging
+    outcome: 'This will increase your revenue with minimal churn impact.',
     lastUpdated: 'Today at 2:34 PM',
     // Detailed numbers - softened to ranges/directional signals
     details: {
@@ -25,26 +25,26 @@ const Verdict = () => {
     },
     reasoning: [
       {
-        title: 'Competitor Analysis',
-        content: 'Your main competitors have increased prices by 12-20% in the last quarter. Your current pricing positions you below market average for similar feature sets.',
+        title: 'Market context',
+        content: 'Your competitors have raised prices 12–20% recently. You are currently priced below market for what you offer.',
       },
       {
-        title: 'Customer Signals',
-        content: 'Based on product engagement and customer feedback, your user base shows strong product dependency. This segment historically tolerates price adjustments without significant churn.',
+        title: 'What we know about your customers',
+        content: 'Your users rely heavily on your product. Companies like yours typically retain customers through moderate price adjustments.',
       },
       {
-        title: 'Timing',
-        content: 'Q1 is historically your strongest retention quarter. Acting now capitalizes on annual renewal cycles.',
+        title: 'Why now',
+        content: 'Q1 is your strongest retention period. Acting now aligns with annual renewal cycles.',
       },
     ],
     risks: [
-      { level: 'low', text: 'Enterprise customers may request pricing discussions' },
-      { level: 'medium', text: 'Some SMB customers may adjust their tier' },
-      { level: 'low', text: 'Competitors may respond with promotions' },
+      { level: 'low', text: 'Some enterprise customers will want to discuss terms' },
+      { level: 'medium', text: 'A small portion of SMB customers will adjust their tier' },
+      { level: 'low', text: 'Competitors occasionally respond with short-term promotions' },
     ],
     timing: {
       recommendation: 'Act within the next 2 weeks',
-      reasoning: 'Ahead of Q1 renewal cycle beginning Feb 1st',
+      reasoning: 'To capture the upcoming renewal window',
     },
   };
 
@@ -164,7 +164,7 @@ const Verdict = () => {
             onClick={() => toggleSection('risks')}
             className="w-full flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/30 rounded-xl hover:bg-slate-900/30 transition-colors"
           >
-            <span className="text-sm text-slate-400">Risk considerations</span>
+            <span className="text-sm text-slate-400">What to expect</span>
             <svg
               className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.risks ? 'rotate-180' : ''}`}
               fill="none"

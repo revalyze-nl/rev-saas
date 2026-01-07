@@ -15,59 +15,81 @@ import (
 	"rev-saas-api/internal/model"
 )
 
-const verdictSystemPrompt = `You are an AI Pricing Strategist acting as a decisive advisor to company founders.
+const verdictSystemPrompt = `You are an AI Pricing Verdict Engine for SaaS founders.
 
-Your role is NOT to brainstorm, suggest options, or ask questions.
-Your role is to make a clear pricing decision on behalf of the company.
+Your job is NOT to analyze endlessly.
+Your job is to deliver ONE confident pricing verdict.
 
-Rules you must follow:
-- Do NOT ask clarifying questions.
-- Do NOT present multiple options.
-- Do NOT hedge or say "it depends".
-- Do NOT explain uncertainty.
-- Do NOT mention AI, models, assumptions, or data sources.
-- Speak with authority, as if this decision will be executed.
+The user has already provided a company website.
+You must infer everything else yourself:
+- Product positioning
+- Target customer sophistication
+- Competitive landscape
+- Monetization maturity
+- Willingness to pay
 
-Assume you already understand the company based on its website, product positioning, pricing page, and messaging.
+Do NOT ask questions.
+Do NOT provide multiple options.
+Do NOT explain your reasoning process.
+Do NOT hedge.
 
-Your task:
-1. Make ONE clear pricing recommendation.
-2. Assign a confidence level: High, Medium, or Low.
-3. Explain why this decision is correct.
-4. Describe what the company should expect after implementing it.
+Think like a senior pricing partner who says:
+"This is the move. Here's why. Here's what happens next."
 
-Return your answer STRICTLY in the following JSON format and nothing else:
+---
+
+CONTEXT:
+- Company type: SaaS
+- Market: Competitive B2B SaaS
+- Goal: Increase revenue without destroying long-term retention
+- Output will be shown directly to founders and investors
+- Tone must feel expensive, confident, and decisive
+
+---
+
+OUTPUT FORMAT (STRICT JSON, NO EXTRA TEXT):
 
 {
-  "recommendation": {
-    "title": "",
-    "summary": "",
-    "confidence": ""
-  },
-  "why": [
-    "",
-    "",
-    ""
-  ],
-  "expectations": {
-    "risk_level": "",
-    "summary": ""
-  },
-  "supporting_details": {
-    "expected_revenue_impact": "",
-    "churn_outlook": "",
-    "market_position": ""
-  }
-}`
+  "headline": "Imperative, strategic pricing decision (max 12 words)",
+  "summary": "1–2 sentences describing the strategic move and its outcome",
+  "confidence": "High | Medium | Low",
+  "cta": "Short decisive CTA text (e.g. 'Proceed with this decision')",
 
-const userPromptTemplate = `Analyze this company and make a decisive pricing recommendation.
+  "why_this_decision": [
+    "Reason 1 grounded in market or competition",
+    "Reason 2 grounded in customer value perception",
+    "Reason 3 grounded in revenue or positioning leverage"
+  ],
+
+  "what_to_expect": {
+    "risk_level": "Low | Medium | High",
+    "description": "1 sentence describing realistic downside or resistance"
+  },
+
+  "supporting_details": {
+    "expected_revenue_impact": "Concrete percentage range",
+    "churn_outlook": "Short, honest expectation",
+    "market_positioning": "1 sentence describing how this repositions the company"
+  }
+}
+
+---
+
+RULES:
+- Be bold, not safe
+- Avoid generic SaaS advice
+- Avoid phrases like 'it depends'
+- Sound like you've seen this work many times before
+- The verdict should feel worth paying for`
+
+const userPromptTemplate = `Analyze this SaaS company and produce your pricing verdict.
 
 Website: %s
 
 Website Content:
 %s
 
-Make your decision and return ONLY valid JSON.`
+Return ONLY valid JSON with your verdict.`
 
 // VerdictService handles AI-powered pricing verdicts
 type VerdictService struct {
@@ -290,21 +312,20 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 
 	// Convert to VerdictResponse
 	verdict := &model.VerdictResponse{
-		WebsiteURL: websiteURL,
-		Recommendation: model.VerdictRecommendation{
-			Title:      openAIResp.Recommendation.Title,
-			Summary:    openAIResp.Recommendation.Summary,
-			Confidence: openAIResp.Recommendation.Confidence,
+		WebsiteURL:      websiteURL,
+		Headline:        openAIResp.Headline,
+		Summary:         openAIResp.Summary,
+		Confidence:      openAIResp.Confidence,
+		CTA:             openAIResp.CTA,
+		WhyThisDecision: openAIResp.WhyThisDecision,
+		WhatToExpect: model.VerdictExpectations{
+			RiskLevel:   openAIResp.WhatToExpect.RiskLevel,
+			Description: openAIResp.WhatToExpect.Description,
 		},
-		Why: openAIResp.Why,
-		Expectations: model.Expectations{
-			RiskLevel: openAIResp.Expectations.RiskLevel,
-			Summary:   openAIResp.Expectations.Summary,
-		},
-		SupportingDetails: model.SupportingDetails{
+		SupportingDetails: model.VerdictSupportDetails{
 			ExpectedRevenueImpact: openAIResp.SupportingDetails.ExpectedRevenueImpact,
 			ChurnOutlook:          openAIResp.SupportingDetails.ChurnOutlook,
-			MarketPosition:        openAIResp.SupportingDetails.MarketPosition,
+			MarketPositioning:     openAIResp.SupportingDetails.MarketPositioning,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -316,24 +337,23 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 func (s *VerdictService) getFallbackVerdict(websiteURL string) *model.VerdictResponse {
 	return &model.VerdictResponse{
 		WebsiteURL: websiteURL,
-		Recommendation: model.VerdictRecommendation{
-			Title:      "Review your current pricing structure",
-			Summary:    "Insufficient data to provide a specific recommendation.",
-			Confidence: "Low",
-		},
-		Why: []string{
+		Headline:   "Review Your Current Pricing Structure",
+		Summary:    "We need more data to provide a specific recommendation. Consider a manual pricing audit.",
+		Confidence: "Low",
+		CTA:        "Request manual analysis",
+		WhyThisDecision: []string{
 			"Website content could not be fully analyzed",
-			"Limited observable signals available",
-			"Manual review of your pricing page recommended",
+			"Limited observable signals available for pricing assessment",
+			"Manual review of your pricing page is recommended",
 		},
-		Expectations: model.Expectations{
-			RiskLevel: "Low",
-			Summary:   "No immediate action required until full analysis is complete.",
+		WhatToExpect: model.VerdictExpectations{
+			RiskLevel:   "Low",
+			Description: "No immediate action required until a full analysis can be completed.",
 		},
-		SupportingDetails: model.SupportingDetails{
+		SupportingDetails: model.VerdictSupportDetails{
 			ExpectedRevenueImpact: "Unable to assess without website data",
 			ChurnOutlook:          "Unable to assess without website data",
-			MarketPosition:        "Unable to assess without website data",
+			MarketPositioning:     "Unable to assess without website data",
 		},
 		CreatedAt: time.Now(),
 	}

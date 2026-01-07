@@ -2,6 +2,49 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { postJson } from '../../lib/apiClient';
 
+// Context options
+const COMPANY_STAGES = [
+  { value: 'unknown', label: 'Select stage...' },
+  { value: 'pre_seed', label: 'Pre-Seed' },
+  { value: 'seed', label: 'Seed' },
+  { value: 'series_a', label: 'Series A' },
+  { value: 'series_b_plus', label: 'Series B+' },
+  { value: 'public', label: 'Public' },
+];
+
+const BUSINESS_MODELS = [
+  { value: 'unknown', label: 'Select model...' },
+  { value: 'saas', label: 'SaaS' },
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'marketplace', label: 'Marketplace' },
+  { value: 'agency', label: 'Agency' },
+  { value: 'enterprise_license', label: 'Enterprise License' },
+  { value: 'usage_based', label: 'Usage-based' },
+];
+
+const PRIMARY_KPIS = [
+  { value: 'unknown', label: 'Select KPI...' },
+  { value: 'mrr_growth', label: 'MRR Growth' },
+  { value: 'churn_reduction', label: 'Churn Reduction' },
+  { value: 'activation', label: 'Activation' },
+  { value: 'arpu', label: 'ARPU' },
+  { value: 'nrr', label: 'NRR' },
+  { value: 'cvr', label: 'Conversion Rate' },
+  { value: 'retention', label: 'Retention' },
+];
+
+const MARKETS = [
+  { value: 'unknown', label: 'Select market...' },
+  { value: 'b2b', label: 'B2B' },
+  { value: 'b2c', label: 'B2C' },
+  { value: 'b2b2c', label: 'B2B2C' },
+  { value: 'devtools', label: 'DevTools' },
+  { value: 'productivity', label: 'Productivity' },
+  { value: 'fintech', label: 'Fintech' },
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'other', label: 'Other' },
+];
+
 const Verdict = () => {
   const { user } = useAuth();
   const [expandedSections, setExpandedSections] = useState({});
@@ -9,6 +52,13 @@ const Verdict = () => {
   const [verdict, setVerdict] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showContext, setShowContext] = useState(false);
+  const [context, setContext] = useState({
+    companyStage: 'unknown',
+    businessModel: 'saas',
+    primaryKpi: 'mrr_growth',
+    market: 'b2b',
+  });
 
   // Check if user is on paid plan
   const isPaidUser = user?.plan && user.plan !== 'free';
@@ -21,7 +71,10 @@ const Verdict = () => {
     setError(null);
 
     try {
-      const response = await postJson('/api/verdict', { websiteUrl: websiteUrl.trim() });
+      const response = await postJson('/api/verdict', {
+        websiteUrl: websiteUrl.trim(),
+        context: context,
+      });
       setVerdict(response.data);
     } catch (err) {
       console.error('Verdict error:', err);
@@ -29,6 +82,10 @@ const Verdict = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleContextChange = (field, value) => {
+    setContext(prev => ({ ...prev, [field]: value }));
   };
 
   const toggleSection = (section) => {
@@ -101,6 +158,83 @@ const Verdict = () => {
             />
           </div>
 
+          {/* Context Section (Collapsible) */}
+          <div className="border border-slate-800/30 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowContext(!showContext)}
+              className="w-full flex items-center justify-between p-4 bg-slate-900/30 hover:bg-slate-900/50 transition-colors"
+            >
+              <span className="text-sm text-slate-400">
+                Add context for better recommendations
+              </span>
+              <svg
+                className={`w-4 h-4 text-slate-500 transition-transform ${showContext ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showContext && (
+              <div className="p-4 bg-slate-900/20 border-t border-slate-800/30 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1.5">Company Stage</label>
+                  <select
+                    value={context.companyStage}
+                    onChange={(e) => handleContextChange('companyStage', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800/50 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/50"
+                  >
+                    {COMPANY_STAGES.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1.5">Business Model</label>
+                  <select
+                    value={context.businessModel}
+                    onChange={(e) => handleContextChange('businessModel', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800/50 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/50"
+                  >
+                    {BUSINESS_MODELS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1.5">Primary KPI</label>
+                  <select
+                    value={context.primaryKpi}
+                    onChange={(e) => handleContextChange('primaryKpi', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800/50 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/50"
+                  >
+                    {PRIMARY_KPIS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1.5">Target Market</label>
+                  <select
+                    value={context.market}
+                    onChange={(e) => handleContextChange('market', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800/50 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/50"
+                  >
+                    {MARKETS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
           {error && (
             <p className="text-sm text-red-400 text-center">{error}</p>
           )}
@@ -155,24 +289,24 @@ const Verdict = () => {
       <div className="mb-10">
         {/* AI Framing - Subtle authority signal */}
         <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">
-          AI pricing recommendation
+          AI pricing verdict
         </p>
 
-        {/* Main Verdict - The Star */}
+        {/* Main Headline - The Star */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight leading-tight">
-          {isPaidUser ? verdict.recommendation?.title : (
-            <BlurredText>{verdict.recommendation?.title}</BlurredText>
+          {isPaidUser ? verdict.headline : (
+            <BlurredText>{verdict.headline}</BlurredText>
           )}
         </h1>
 
         {/* Summary */}
         <p className="text-lg text-slate-300 mb-4">
-          {verdict.recommendation?.summary}
+          {verdict.summary}
         </p>
 
         {/* Confidence */}
         <p className="text-sm text-slate-500">
-          Confidence: <span className={`font-medium ${getConfidenceStyle(verdict.recommendation?.confidence)}`}>{verdict.recommendation?.confidence}</span>
+          Confidence: <span className={`font-medium ${getConfidenceStyle(verdict.confidence)}`}>{verdict.confidence}</span>
         </p>
       </div>
 
@@ -182,7 +316,7 @@ const Verdict = () => {
           className="w-full py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!isPaidUser}
         >
-          {isPaidUser ? 'Proceed with this decision' : 'Upgrade to proceed'}
+          {isPaidUser ? (verdict.cta || 'Proceed with this decision') : 'Upgrade to proceed'}
         </button>
 
         {!isPaidUser && (
@@ -195,7 +329,7 @@ const Verdict = () => {
       {/* Collapsible Sections */}
       <div className="space-y-3">
         {/* Why This Decision */}
-        {verdict.why && verdict.why.length > 0 && (
+        {verdict.whyThisDecision && verdict.whyThisDecision.length > 0 && (
           <div>
             <button
               onClick={() => toggleSection('why')}
@@ -214,7 +348,7 @@ const Verdict = () => {
 
             {expandedSections.why && (
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
-                {verdict.why.map((reason, index) => (
+                {verdict.whyThisDecision.map((reason, index) => (
                   <p key={index} className="text-sm text-slate-400 leading-relaxed flex items-start gap-2">
                     <span className="text-slate-600 mt-0.5">•</span>
                     {reason}
@@ -226,7 +360,7 @@ const Verdict = () => {
         )}
 
         {/* What to Expect */}
-        {verdict.expectations && (
+        {verdict.whatToExpect && (
           <div>
             <button
               onClick={() => toggleSection('expectations')}
@@ -246,11 +380,11 @@ const Verdict = () => {
             {expandedSections.expectations && (
               <div className="mt-2 p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded border ${getRiskStyle(verdict.expectations.riskLevel)}`}>
-                    {verdict.expectations.riskLevel} Risk
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded border ${getRiskStyle(verdict.whatToExpect.riskLevel)}`}>
+                    {verdict.whatToExpect.riskLevel} Risk
                   </span>
                 </div>
-                <p className="text-sm text-slate-400">{verdict.expectations.summary}</p>
+                <p className="text-sm text-slate-400">{verdict.whatToExpect.description}</p>
               </div>
             )}
           </div>
@@ -285,8 +419,8 @@ const Verdict = () => {
                   <span className="text-sm text-slate-300">{verdict.supportingDetails.churnOutlook}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Market position</span>
-                  <span className="text-sm text-slate-300">{verdict.supportingDetails.marketPosition}</span>
+                  <span className="text-sm text-slate-500">Market positioning</span>
+                  <span className="text-sm text-slate-300">{verdict.supportingDetails.marketPositioning}</span>
                 </div>
               </div>
             )}

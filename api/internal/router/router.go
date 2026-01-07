@@ -29,6 +29,9 @@ func NewRouter(
 	adminHandler *handler.AdminHandler,
 	demoHandler *handler.DemoHandler,
 	verdictHandler *handler.VerdictHandler,
+	decisionHandler *handler.DecisionHandler,
+	decisionV2Handler *handler.DecisionV2Handler,
+	workspaceProfileHandler *handler.WorkspaceProfileHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -85,6 +88,23 @@ func NewRouter(
 	apiv2.HandleFunc("/competitors/{id}/pricing", competitorV2Handler.UpdatePricing).Methods(http.MethodPut)
 	apiv2.HandleFunc("/competitors/{id}/verify-pricing", competitorV2Handler.VerifyPricing).Methods(http.MethodPost)
 
+	// Workspace Profile V2
+	apiv2.HandleFunc("/workspace/profile", workspaceProfileHandler.Get).Methods(http.MethodGet)
+	apiv2.HandleFunc("/workspace/defaults", workspaceProfileHandler.UpdateDefaults).Methods(http.MethodPut)
+	apiv2.HandleFunc("/workspace/defaults", workspaceProfileHandler.PatchDefaults).Methods(http.MethodPatch)
+
+	// Decision V2 (versioned decisions with context resolution)
+	apiv2.HandleFunc("/decisions", decisionV2Handler.Create).Methods(http.MethodPost)
+	apiv2.HandleFunc("/decisions", decisionV2Handler.List).Methods(http.MethodGet)
+	apiv2.HandleFunc("/decisions/compare", decisionV2Handler.Compare).Methods(http.MethodPost)
+	apiv2.HandleFunc("/decisions/{id}", decisionV2Handler.Get).Methods(http.MethodGet)
+	apiv2.HandleFunc("/decisions/{id}", decisionV2Handler.Delete).Methods(http.MethodDelete)
+	apiv2.HandleFunc("/decisions/{id}/context", decisionV2Handler.UpdateContext).Methods(http.MethodPut)
+	apiv2.HandleFunc("/decisions/{id}/regenerate", decisionV2Handler.RegenerateVerdict).Methods(http.MethodPost)
+	apiv2.HandleFunc("/decisions/{id}/status", decisionV2Handler.UpdateStatus).Methods(http.MethodPut)
+	apiv2.HandleFunc("/decisions/{id}/outcomes", decisionV2Handler.AddOutcome).Methods(http.MethodPost)
+	apiv2.HandleFunc("/decisions/{id}/outcomes/effective", decisionV2Handler.GetEffectiveOutcomes).Methods(http.MethodGet)
+
 	// Pricing V2 (auto-import from website)
 	api.HandleFunc("/pricing-v2/discover", pricingV2Handler.Discover).Methods(http.MethodPost)
 	api.HandleFunc("/pricing-v2/extract", pricingV2Handler.Extract).Methods(http.MethodPost)
@@ -137,6 +157,16 @@ func NewRouter(
 
 	// Verdict endpoint (protected)
 	api.HandleFunc("/verdict", verdictHandler.GenerateVerdict).Methods(http.MethodPost)
+
+	// Decision Archive (protected)
+	api.HandleFunc("/decisions", decisionHandler.Create).Methods(http.MethodPost)
+	api.HandleFunc("/decisions", decisionHandler.List).Methods(http.MethodGet)
+	api.HandleFunc("/decisions/{id}", decisionHandler.Get).Methods(http.MethodGet)
+	api.HandleFunc("/decisions/{id}", decisionHandler.Delete).Methods(http.MethodDelete)
+	api.HandleFunc("/decisions/{id}/status", decisionHandler.UpdateStatus).Methods(http.MethodPatch)
+	api.HandleFunc("/decisions/{id}/outcomes", decisionHandler.CreateOutcome).Methods(http.MethodPost)
+	api.HandleFunc("/decisions/{id}/outcomes", decisionHandler.ListOutcomes).Methods(http.MethodGet)
+	api.HandleFunc("/decisions/compare", decisionHandler.Compare).Methods(http.MethodGet)
 
 	// Admin endpoints (protected + admin only)
 	adminAPI := r.PathPrefix("/api/admin").Subrouter()

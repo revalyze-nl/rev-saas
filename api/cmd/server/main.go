@@ -76,6 +76,9 @@ func main() {
 	competitorV2Repo := mongorepo.NewCompetitorV2Repository(db)
 	pricingV2Repo := mongorepo.NewPricingV2Repository(db)
 	errorLogRepo := mongorepo.NewErrorLogRepository(db)
+	decisionRepo := mongorepo.NewDecisionRepository(db)
+	decisionV2Repo := mongorepo.NewDecisionV2Repository(db)
+	workspaceProfileRepo := mongorepo.NewWorkspaceProfileRepository(db)
 
 	// Initialize services
 	jwtService := service.NewJWTService(cfg.JWTSecret)
@@ -127,6 +130,11 @@ func main() {
 	// Verdict service (AI pricing recommendation)
 	verdictService := service.NewVerdictService(cfg.OpenAIAPIKey)
 
+	// Decision V2 services (versioned decisions with context resolution)
+	inferenceService := service.NewInferenceService()
+	workspaceProfileService := service.NewWorkspaceProfileService(workspaceProfileRepo)
+	decisionV2Service := service.NewDecisionV2Service(decisionV2Repo, workspaceProfileRepo, inferenceService)
+
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
 
@@ -148,10 +156,13 @@ func main() {
 	billingHandler := handler.NewBillingHandler(billingService, cfg)
 	adminHandler := handler.NewAdminHandler(adminService, demoService)
 	demoHandler := handler.NewDemoHandler(demoService)
-	verdictHandler := handler.NewVerdictHandler(verdictService)
+	verdictHandler := handler.NewVerdictHandler(verdictService, decisionRepo)
+	decisionHandler := handler.NewDecisionHandler(decisionRepo)
+	decisionV2Handler := handler.NewDecisionV2Handler(decisionV2Service)
+	workspaceProfileHandler := handler.NewWorkspaceProfileHandler(workspaceProfileService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

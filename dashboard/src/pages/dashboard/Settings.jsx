@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext';
-import { stripeApi } from '../../lib/apiClient';
+import { stripeApi, workspaceApi } from '../../lib/apiClient';
 
 const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +15,17 @@ const Settings = () => {
   const [stripeError, setStripeError] = useState(null);
   const [stripeSyncWarnings, setStripeSyncWarnings] = useState([]);
   const [stripeToast, setStripeToast] = useState(null);
+
+  // Workspace defaults state
+  const [workspaceDefaults, setWorkspaceDefaults] = useState({
+    companyStage: '',
+    businessModel: '',
+    primaryKpi: '',
+    market: { type: '', segment: '' }
+  });
+  const [workspaceLoading, setWorkspaceLoading] = useState(true);
+  const [workspaceSaving, setWorkspaceSaving] = useState(false);
+  const [workspaceToast, setWorkspaceToast] = useState(null);
 
   // Fetch Stripe status
   const fetchStripeStatus = useCallback(async () => {
@@ -30,6 +41,56 @@ const Settings = () => {
   useEffect(() => {
     fetchStripeStatus();
   }, [fetchStripeStatus]);
+
+  // Fetch workspace defaults
+  const fetchWorkspaceDefaults = useCallback(async () => {
+    try {
+      const { data } = await workspaceApi.getProfile();
+      if (data?.defaults) {
+        setWorkspaceDefaults({
+          companyStage: data.defaults.companyStage || '',
+          businessModel: data.defaults.businessModel || '',
+          primaryKpi: data.defaults.primaryKpi || '',
+          market: {
+            type: data.defaults.market?.type || '',
+            segment: data.defaults.market?.segment || ''
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch workspace defaults:', err);
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWorkspaceDefaults();
+  }, [fetchWorkspaceDefaults]);
+
+  // Save workspace defaults
+  const handleSaveWorkspaceDefaults = async () => {
+    setWorkspaceSaving(true);
+    try {
+      const payload = {
+        companyStage: workspaceDefaults.companyStage || undefined,
+        businessModel: workspaceDefaults.businessModel || undefined,
+        primaryKpi: workspaceDefaults.primaryKpi || undefined,
+        market: (workspaceDefaults.market.type || workspaceDefaults.market.segment) ? {
+          type: workspaceDefaults.market.type || undefined,
+          segment: workspaceDefaults.market.segment || undefined,
+        } : undefined,
+      };
+      await workspaceApi.updateDefaults(payload);
+      setWorkspaceToast({ type: 'success', message: 'Workspace defaults saved!' });
+      setTimeout(() => setWorkspaceToast(null), 3000);
+    } catch (err) {
+      setWorkspaceToast({ type: 'error', message: err.message || 'Failed to save defaults' });
+      setTimeout(() => setWorkspaceToast(null), 5000);
+    } finally {
+      setWorkspaceSaving(false);
+    }
+  };
 
   // Handle ?stripe=connected query param
   useEffect(() => {
@@ -360,6 +421,185 @@ const Settings = () => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Workspace Defaults Section */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
+          <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Decision Defaults</h2>
+                  <p className="text-sm text-slate-400">Pre-fill context for new decisions (override per-decision)</p>
+                </div>
+              </div>
+              {workspaceToast && (
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  workspaceToast.type === 'success'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {workspaceToast.message}
+                </span>
+              )}
+            </div>
+
+            {workspaceLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <svg className="animate-spin h-6 w-6 text-emerald-400" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Company Stage */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                      Company Stage
+                    </label>
+                    <select
+                      value={workspaceDefaults.companyStage}
+                      onChange={(e) => setWorkspaceDefaults(prev => ({ ...prev, companyStage: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                    >
+                      <option value="">Select stage...</option>
+                      <option value="pre_seed">Pre-Seed</option>
+                      <option value="seed">Seed</option>
+                      <option value="series_a">Series A</option>
+                      <option value="series_b">Series B</option>
+                      <option value="series_c_plus">Series C+</option>
+                      <option value="public">Public</option>
+                    </select>
+                  </div>
+
+                  {/* Business Model */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                      Business Model
+                    </label>
+                    <select
+                      value={workspaceDefaults.businessModel}
+                      onChange={(e) => setWorkspaceDefaults(prev => ({ ...prev, businessModel: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                    >
+                      <option value="">Select model...</option>
+                      <option value="saas">SaaS</option>
+                      <option value="marketplace">Marketplace</option>
+                      <option value="ecommerce">E-commerce</option>
+                      <option value="services">Services</option>
+                      <option value="hardware">Hardware</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                  </div>
+
+                  {/* Primary KPI */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                      Primary KPI
+                    </label>
+                    <select
+                      value={workspaceDefaults.primaryKpi}
+                      onChange={(e) => setWorkspaceDefaults(prev => ({ ...prev, primaryKpi: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                    >
+                      <option value="">Select KPI...</option>
+                      <option value="arr">ARR</option>
+                      <option value="mrr">MRR</option>
+                      <option value="gmv">GMV</option>
+                      <option value="revenue">Revenue</option>
+                      <option value="users">Users</option>
+                      <option value="retention">Retention</option>
+                    </select>
+                  </div>
+
+                  {/* Market Type */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                      Market Type
+                    </label>
+                    <select
+                      value={workspaceDefaults.market.type}
+                      onChange={(e) => setWorkspaceDefaults(prev => ({
+                        ...prev,
+                        market: { ...prev.market, type: e.target.value }
+                      }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                    >
+                      <option value="">Select type...</option>
+                      <option value="b2b">B2B</option>
+                      <option value="b2c">B2C</option>
+                      <option value="b2b2c">B2B2C</option>
+                    </select>
+                  </div>
+
+                  {/* Market Segment */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                      Market Segment
+                    </label>
+                    <select
+                      value={workspaceDefaults.market.segment}
+                      onChange={(e) => setWorkspaceDefaults(prev => ({
+                        ...prev,
+                        market: { ...prev.market, segment: e.target.value }
+                      }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                    >
+                      <option value="">Select segment...</option>
+                      <option value="devtools">DevTools</option>
+                      <option value="fintech">Fintech</option>
+                      <option value="healthtech">Healthtech</option>
+                      <option value="edtech">Edtech</option>
+                      <option value="ecommerce">E-commerce</option>
+                      <option value="crm">CRM</option>
+                      <option value="hr">HR</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="analytics">Analytics</option>
+                      <option value="security">Security</option>
+                      <option value="productivity">Productivity</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
+                  <p className="text-xs text-slate-500">
+                    These defaults will auto-fill when analyzing new companies
+                  </p>
+                  <button
+                    onClick={handleSaveWorkspaceDefaults}
+                    disabled={workspaceSaving}
+                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {workspaceSaving ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Defaults
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

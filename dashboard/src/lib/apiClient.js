@@ -365,11 +365,119 @@ export const demoApi = {
   replace: () => postJson('/api/demo/replace'),
 };
 
+// Workspace Profile API (V2)
+export const workspaceApi = {
+  // Get workspace profile with defaults
+  getProfile: () => getJson('/api/v2/workspace/profile'),
+
+  // Update all workspace defaults (full replace)
+  updateDefaults: (defaults) => putJson('/api/v2/workspace/defaults', defaults),
+
+  // Patch workspace defaults (partial update)
+  patchDefaults: (patch) => patchJson('/api/v2/workspace/defaults', patch),
+};
+
+// Decisions V2 API (versioned decisions with context resolution)
+export const decisionsV2Api = {
+  // Create a new decision - context is resolved: user > workspace > inferred
+  create: (data) => postJson('/api/v2/decisions', data),
+
+  // List decisions with filters and pagination
+  // Params: status, segment, kpi, minConfidence, from, to, search, page, pageSize
+  list: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== null) {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString();
+    return getJson(`/api/v2/decisions${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // Get a single decision by ID (full detail with versions)
+  get: (id) => getJson(`/api/v2/decisions/${id}`),
+
+  // Delete a decision (soft delete)
+  delete: (id) => deleteJson(`/api/v2/decisions/${id}`),
+
+  // Update context (creates new version)
+  updateContext: (id, contextData) => putJson(`/api/v2/decisions/${id}/context`, contextData),
+
+  // Regenerate verdict (creates new version)
+  regenerateVerdict: (id, reason) => postJson(`/api/v2/decisions/${id}/regenerate`, { reason }),
+
+  // Update decision status
+  updateStatus: (id, statusData) => putJson(`/api/v2/decisions/${id}/status`, statusData),
+
+  // Add an outcome (or correction)
+  addOutcome: (id, outcomeData) => postJson(`/api/v2/decisions/${id}/outcomes`, outcomeData),
+
+  // Get effective outcomes (non-superseded)
+  getEffectiveOutcomes: (id) => getJson(`/api/v2/decisions/${id}/outcomes/effective`),
+
+  // Compare 2-3 decisions
+  compare: (ids) => postJson('/api/v2/decisions/compare', { ids }),
+};
+
+// PATCH request with JSON body
+export const patchJson = async (path, body = {}, options = {}) => {
+  const url = `${API_BASE_URL}${path}`;
+  const includeAuth = options.includeAuth !== false;
+
+  return fetchWithError(url, {
+    method: 'PATCH',
+    headers: buildHeaders(includeAuth),
+    body: JSON.stringify(body),
+    ...options,
+  });
+};
+
+// Decisions API (Decision Archive)
+export const decisionsApi = {
+  // Create a new decision with context
+  create: (data) => postJson('/api/decisions', data),
+
+  // List decisions with filters and pagination
+  // Params: q, status, decisionType, confidence, risk, from, to, page, pageSize, sort, order
+  list: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== null) {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString();
+    return getJson(`/api/decisions${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // Get a single decision by ID (returns decision with outcomes and status events)
+  get: (id) => getJson(`/api/decisions/${id}`),
+
+  // Delete a decision (soft delete)
+  delete: (id) => deleteJson(`/api/decisions/${id}`),
+
+  // Update decision status with audit trail
+  // statusData: { status, reason?, implementedAt?, rollbackAt? }
+  updateStatus: (id, statusData) => patchJson(`/api/decisions/${id}/status`, statusData),
+
+  // Add an outcome to a decision
+  // outcomeData: { outcomeType, timeframeDays, metricName, metricBefore?, metricAfter?, notes, evidenceUrl? }
+  addOutcome: (decisionId, outcomeData) => postJson(`/api/decisions/${decisionId}/outcomes`, outcomeData),
+
+  // List outcomes for a decision
+  listOutcomes: (decisionId) => getJson(`/api/decisions/${decisionId}/outcomes`),
+
+  // Compare up to 3 decisions
+  compare: (ids) => getJson(`/api/decisions/compare?ids=${ids.join(',')}`),
+};
+
 export default {
   postJson,
   getJson,
   deleteJson,
   putJson,
+  patchJson,
   fetchBlob,
   downloadBlob,
   getToken,
@@ -388,6 +496,9 @@ export default {
   stripeApi,
   billingApi,
   demoApi,
+  decisionsApi,
+  decisionsV2Api,
+  workspaceApi,
   AICreditsError,
 };
 

@@ -24,14 +24,55 @@ const getEndingTypeStyle = (type) => {
   }
 };
 
+// Delta badge component - shows +/- with color
+const DeltaBadge = ({ label, value, invertColors = false }) => {
+  if (!value || value === 'Baseline' || value === 'N/A') {
+    if (value === 'Baseline') {
+      return (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-slate-500">{label}</span>
+          <span className="text-slate-400 font-medium">Baseline</span>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  // Determine if positive or negative
+  const isPositive = value.includes('+') || value.toLowerCase().includes('more') || value.toLowerCase().includes('faster') || value.toLowerCase().includes('better');
+  const isNegative = value.includes('-') || value.toLowerCase().includes('less') || value.toLowerCase().includes('slower') || value.toLowerCase().includes('worse');
+  const isHigher = value.toLowerCase().includes('higher');
+  const isLower = value.toLowerCase().includes('lower');
+
+  // Color logic - for some metrics, lower is better (churn, risk)
+  let colorClass = 'text-slate-400';
+  if (invertColors) {
+    // For churn/risk - lower is green, higher is red
+    if (isNegative || isLower) colorClass = 'text-emerald-400';
+    else if (isPositive || isHigher) colorClass = 'text-red-400';
+  } else {
+    // For revenue/conversion - higher is green, lower is red
+    if (isPositive || isHigher) colorClass = 'text-emerald-400';
+    else if (isNegative || isLower) colorClass = 'text-red-400';
+  }
+
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-slate-500">{label}</span>
+      <span className={`font-medium ${colorClass}`}>{value}</span>
+    </div>
+  );
+};
+
 /**
- * Compact Ending Card for 2x2 grid display
- * Shows scenario name, teaser, and action buttons
- * NO KPIs or detailed metrics - those live in the inspect drawer
+ * Delta-First Ending Card
+ * Shows scenario comparison as DELTAS vs baseline
+ * NO absolute KPI values - only what changes
  */
 const EndingCard = memo(({ 
   scenario, 
   isChosen = false,
+  isBaseline = false,
   onInspect,
   onChoose
 }) => {
@@ -39,13 +80,16 @@ const EndingCard = memo(({
 
   const typeLabel = getEndingTypeLabel(scenario.type);
   const borderStyle = getEndingTypeStyle(scenario.type);
+  const deltas = scenario.deltas || {};
 
   return (
     <div 
       className={`relative p-4 border-l-4 ${borderStyle} rounded-xl transition-all ${
         isChosen 
           ? 'bg-violet-500/10 border border-violet-500/30 ring-2 ring-violet-500/20' 
-          : 'bg-slate-900/50 border border-slate-800/40 hover:border-slate-700/60 hover:bg-slate-900/60'
+          : isBaseline
+            ? 'bg-emerald-500/5 border border-emerald-500/20'
+            : 'bg-slate-900/50 border border-slate-800/40 hover:border-slate-700/60 hover:bg-slate-900/60'
       }`}
     >
       {/* Chosen Badge */}
@@ -65,6 +109,11 @@ const EndingCard = memo(({
             Recommended
           </span>
         )}
+        {isBaseline && !isChosen && (
+          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-slate-500/20 text-slate-400 rounded border border-slate-500/30">
+            Baseline
+          </span>
+        )}
         {isChosen && (
           <span className="px-1.5 py-0.5 text-[10px] font-medium bg-violet-500/20 text-violet-400 rounded border border-violet-500/30">
             Chosen
@@ -72,10 +121,23 @@ const EndingCard = memo(({
         )}
       </div>
 
-      {/* Teaser Line */}
-      <p className="text-xs text-slate-400 mb-4 line-clamp-2 min-h-[32px]">
-        {scenario.positioning || scenario.summary?.slice(0, 80) + '...'}
-      </p>
+      {/* Delta Grid - DELTA FIRST, NO ABSOLUTE VALUES */}
+      <div className="space-y-1.5 mb-4 py-2 border-y border-slate-800/30">
+        <DeltaBadge label="Δ Revenue" value={deltas.revenue} />
+        <DeltaBadge label="Δ Churn" value={deltas.churn} invertColors={true} />
+        <DeltaBadge label="Δ Risk" value={deltas.risk} invertColors={true} />
+        <DeltaBadge label="Δ Time" value={deltas.time} />
+        {!isBaseline && deltas.effort && deltas.effort !== 'Baseline' && (
+          <DeltaBadge label="Δ Effort" value={deltas.effort} invertColors={true} />
+        )}
+      </div>
+
+      {/* Baseline indicator */}
+      {isBaseline && (
+        <p className="text-[10px] text-slate-500 mb-3 text-center">
+          All other scenarios show changes vs this path
+        </p>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">
@@ -116,4 +178,3 @@ const EndingCard = memo(({
 EndingCard.displayName = 'EndingCard';
 
 export default EndingCard;
-

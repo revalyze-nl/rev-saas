@@ -1,14 +1,28 @@
 import { useEffect, memo } from 'react';
 
-// Risk badge styles
-const getRiskStyle = (level) => {
-  const lowerLevel = level?.toLowerCase();
-  switch (lowerLevel) {
-    case 'low': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-    case 'medium': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    case 'high': return 'text-red-400 bg-red-500/10 border-red-500/20';
-    default: return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+// Delta value styling
+const getDeltaStyle = (value, invertColors = false) => {
+  if (!value || value === 'Baseline' || value === 'N/A') {
+    return 'text-slate-400';
   }
+  
+  const isPositive = value.includes('+') || value.toLowerCase().includes('more') || 
+                     value.toLowerCase().includes('faster') || value.toLowerCase().includes('better');
+  const isNegative = value.includes('-') || value.toLowerCase().includes('less') || 
+                     value.toLowerCase().includes('slower') || value.toLowerCase().includes('worse');
+  const isHigher = value.toLowerCase().includes('higher');
+  const isLower = value.toLowerCase().includes('lower');
+
+  if (invertColors) {
+    // For churn/risk/effort - lower is green, higher is red
+    if (isNegative || isLower) return 'text-emerald-400';
+    if (isPositive || isHigher) return 'text-red-400';
+  } else {
+    // For revenue/conversion - higher is green, lower is red
+    if (isPositive || isHigher) return 'text-emerald-400';
+    if (isNegative || isLower) return 'text-red-400';
+  }
+  return 'text-slate-400';
 };
 
 // Get ending type label
@@ -36,16 +50,17 @@ const getEndingTypeStyle = (type) => {
 };
 
 /**
- * Netflix-Style Ending Inspect Drawer
- * Right-side drawer for viewing full scenario details
- * Professional copy matching Netflix vibe
+ * Delta-First Ending Inspect Drawer
+ * Shows ONLY deltas compared to baseline - NO absolute values
+ * Professional Netflix-like experience
  */
 const EndingInspectDrawer = memo(({ 
   scenario, 
   isOpen, 
   onClose, 
   onChoose,
-  isChosen = false
+  isChosen = false,
+  baselineName = 'Recommended Path'
 }) => {
   // Handle ESC key and body scroll
   useEffect(() => {
@@ -65,7 +80,9 @@ const EndingInspectDrawer = memo(({
   if (!isOpen || !scenario) return null;
 
   const impl = scenario.implementation || {};
+  const deltas = scenario.deltas || {};
   const typeLabel = getEndingTypeLabel(scenario.type);
+  const isBaseline = scenario.isBaseline || scenario.type === 'balanced';
 
   return (
     <>
@@ -122,87 +139,96 @@ const EndingInspectDrawer = memo(({
 
         {/* Content */}
         <div className="p-5 space-y-6">
-          {/* Summary */}
-          <div className="p-4 bg-slate-900/50 border border-slate-800/30 rounded-xl">
-            <p className="text-sm text-slate-300 leading-relaxed">{scenario.summary}</p>
+          {/* Compared to Banner */}
+          <div className="bg-slate-900/50 border border-slate-800/30 rounded-xl p-4">
+            <p className="text-xs text-slate-500 mb-1">Compared to</p>
+            <p className="text-sm font-medium text-white flex items-center gap-2">
+              <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              {baselineName}
+            </p>
           </div>
 
-          {/* Key Metrics Grid */}
+          {/* DELTA TABLE - PRIMARY CONTENT */}
           <div>
-            <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3">Key Metrics</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Revenue Impact</p>
-                <p className="text-sm font-medium text-emerald-400">{scenario.revenueImpact}</p>
+            <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              What Changes
+            </h3>
+            
+            {isBaseline ? (
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
+                <div className="flex items-center gap-2 text-emerald-400 mb-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium">This is the Baseline</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  All other scenarios are compared against this path. No deltas to show.
+                </p>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Churn Impact</p>
-                <p className="text-sm text-slate-300">{scenario.churnImpact}</p>
+            ) : (
+              <div className="bg-slate-900/50 border border-slate-800/30 rounded-xl overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-slate-800/30">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Metric</th>
+                      <th className="px-4 py-2.5 text-right text-xs font-medium text-slate-500">Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/30">
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-slate-300">Revenue Impact</td>
+                      <td className={`px-4 py-3 text-sm font-medium text-right ${getDeltaStyle(deltas.revenue)}`}>
+                        {deltas.revenue || '—'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-slate-300">Churn Impact</td>
+                      <td className={`px-4 py-3 text-sm font-medium text-right ${getDeltaStyle(deltas.churn, true)}`}>
+                        {deltas.churn || '—'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-slate-300">Risk Level</td>
+                      <td className={`px-4 py-3 text-sm font-medium text-right ${getDeltaStyle(deltas.risk, true)}`}>
+                        {deltas.risk || '—'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-slate-300">Time to Impact</td>
+                      <td className={`px-4 py-3 text-sm font-medium text-right ${getDeltaStyle(deltas.time)}`}>
+                        {deltas.time || '—'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-slate-300">Execution Effort</td>
+                      <td className={`px-4 py-3 text-sm font-medium text-right ${getDeltaStyle(deltas.effort, true)}`}>
+                        {deltas.effort || '—'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Risk Level</p>
-                <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded border ${getRiskStyle(scenario.riskLevel)}`}>
-                  {scenario.riskLevel}
-                </span>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Time to Impact</p>
-                <p className="text-sm text-slate-300">{scenario.timeToImpact}</p>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Delta vs Baseline Section */}
-          {scenario.deltas && !scenario.isBaseline && (
+          {/* Why This Changes - Qualitative Explanation */}
+          {impl.whatChangesVsBaseline && !isBaseline && (
             <div>
-              <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3">Delta vs Baseline</h3>
-              <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Revenue</span>
-                    <span className={`text-sm font-medium ${scenario.deltas.revenueDelta?.includes('+') || scenario.deltas.revenueDelta?.toLowerCase().includes('more') ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {scenario.deltas.revenueDelta || '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Churn</span>
-                    <span className={`text-sm font-medium ${scenario.deltas.churnDelta?.includes('-') || scenario.deltas.churnDelta?.toLowerCase().includes('better') ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {scenario.deltas.churnDelta || '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Risk</span>
-                    <span className={`text-sm font-medium ${scenario.deltas.riskDelta?.toLowerCase() === 'lower' ? 'text-emerald-400' : scenario.deltas.riskDelta?.toLowerCase() === 'higher' ? 'text-red-400' : 'text-slate-400'}`}>
-                      {scenario.deltas.riskDelta || '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Time</span>
-                    <span className="text-sm font-medium text-slate-300">
-                      {scenario.deltas.timeDelta || '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between col-span-2">
-                    <span className="text-xs text-slate-400">Effort</span>
-                    <span className={`text-sm font-medium ${scenario.deltas.effortDelta?.toLowerCase() === 'lower' ? 'text-emerald-400' : scenario.deltas.effortDelta?.toLowerCase() === 'higher' ? 'text-amber-400' : 'text-slate-400'}`}>
-                      {scenario.deltas.effortDelta || '—'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Baseline Indicator */}
-          {scenario.isBaseline && (
-            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-sm font-medium">This is the baseline scenario</span>
-              </div>
-              <p className="text-xs text-slate-500 mt-2">All other scenarios show deltas compared to this path.</p>
+                Why This Changes
+              </h3>
+              <p className="text-sm text-slate-300 leading-relaxed bg-slate-900/30 border border-slate-800/30 rounded-lg p-4">
+                {impl.whatChangesVsBaseline}
+              </p>
             </div>
           )}
 
@@ -225,25 +251,6 @@ const EndingInspectDrawer = memo(({
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {/* Operational implications */}
-          {impl.operationalImplications && impl.operationalImplications.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                </svg>
-                Operational implications
-              </h3>
-              <div className="space-y-2">
-                {impl.operationalImplications.map((item, i) => (
-                  <div key={i} className="bg-slate-900/50 rounded-lg p-3">
-                    <p className="text-sm text-slate-300">{item}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -348,4 +355,3 @@ const EndingInspectDrawer = memo(({
 EndingInspectDrawer.displayName = 'EndingInspectDrawer';
 
 export default EndingInspectDrawer;
-

@@ -470,15 +470,24 @@ const EpisodeCard = memo(({
               ) : scenarios.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                    {scenarios.map((scenario) => (
-                      <EndingCard
-                        key={scenario.id}
-                        scenario={scenario}
-                        isChosen={chosenScenario === scenario.id}
-                        onInspect={handleInspect}
-                        onChoose={handleChooseClick}
-                      />
-                    ))}
+                    {scenarios.map((scenario) => {
+                      // Baseline priority: chosen scenario > recommended > first
+                      const baselineId = chosenScenario || 
+                        scenarios.find(s => s.isRecommended)?.id || 
+                        scenarios.find(s => s.type === 'balanced')?.id;
+                      const isBaseline = scenario.id === baselineId;
+                      
+                      return (
+                        <EndingCard
+                          key={scenario.id}
+                          scenario={scenario}
+                          isChosen={chosenScenario === scenario.id}
+                          isBaseline={isBaseline}
+                          onInspect={handleInspect}
+                          onChoose={handleChooseClick}
+                        />
+                      );
+                    })}
                   </div>
                   {!chosenScenario && (
                     <p className="text-xs text-slate-500 text-center italic">
@@ -506,6 +515,96 @@ const EpisodeCard = memo(({
               )}
             </div>
 
+            {/* Decision Timeline / Story */}
+            <div className="border-t border-slate-800/40 p-5">
+              <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Decision Timeline
+              </h4>
+              <div className="relative pl-4 space-y-3 before:absolute before:left-1 before:top-1 before:bottom-1 before:w-0.5 before:bg-slate-800/50">
+                {/* Verdict Created */}
+                <div className="relative flex items-start gap-3">
+                  <div className="absolute -left-3 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/30 mt-1.5" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-white">Verdict Created</p>
+                    <p className="text-[10px] text-slate-500">
+                      {createdDate ? createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Scenarios Explored */}
+                {scenarios.length > 0 && (
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-3 w-2 h-2 rounded-full bg-violet-500 ring-2 ring-violet-500/30 mt-1.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-white">Scenarios Explored</p>
+                      <p className="text-[10px] text-slate-500">{scenarios.length} alternate endings generated</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Path Chosen */}
+                {chosenScenario && (
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-3 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-blue-500/30 mt-1.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-white">Path Chosen</p>
+                      <p className="text-[10px] text-slate-500">{chosenScenarioName}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Outcome Tracking */}
+                {outcomeStatus.hasOutcome && (
+                  <div className="relative flex items-start gap-3">
+                    <div className={`absolute -left-3 w-2 h-2 rounded-full ${outcomeStatus.isComplete ? 'bg-amber-500' : 'bg-slate-500'} ring-2 ${outcomeStatus.isComplete ? 'ring-amber-500/30' : 'ring-slate-500/30'} mt-1.5`} />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-white">
+                        {outcomeStatus.isComplete ? 'Outcome Recorded' : 'Outcome Tracking Started'}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {outcomeStatus.isComplete ? 'KPIs tracked and saved' : 'Awaiting KPI measurements'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Next Step */}
+                {!chosenScenario && scenarios.length > 0 && (
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-3 w-2 h-2 rounded-full bg-slate-700 ring-2 ring-slate-700/30 mt-1.5 animate-pulse" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-slate-500">Next: Choose a path</p>
+                      <p className="text-[10px] text-slate-600">Select an ending to proceed</p>
+                    </div>
+                  </div>
+                )}
+                
+                {!chosenScenario && scenarios.length === 0 && (
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-3 w-2 h-2 rounded-full bg-slate-700 ring-2 ring-slate-700/30 mt-1.5 animate-pulse" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-slate-500">Next: Generate endings</p>
+                      <p className="text-[10px] text-slate-600">Explore alternate strategic paths</p>
+                    </div>
+                  </div>
+                )}
+                
+                {chosenScenario && !outcomeStatus.hasOutcome && (
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-3 w-2 h-2 rounded-full bg-slate-700 ring-2 ring-slate-700/30 mt-1.5 animate-pulse" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-slate-500">Next: Track outcome</p>
+                      <p className="text-[10px] text-slate-600">Measure KPIs and record results</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Outcome Panel */}
             <div className="border-t border-slate-800/40 p-5">
               <OutcomePanel 
@@ -525,6 +624,12 @@ const EpisodeCard = memo(({
           onClose={handleCloseDrawer}
           onChoose={handleChooseClick}
           isChosen={drawerScenario ? chosenScenario === drawerScenario.id : false}
+          baselineName={
+            chosenScenarioName || 
+            scenarios.find(s => s.isRecommended)?.name || 
+            scenarios.find(s => s.type === 'balanced')?.name ||
+            'Recommended Path'
+          }
         />
 
         {/* Choose Confirmation Modal */}

@@ -179,9 +179,12 @@ func main() {
 	
 	// Wire learning service into verdict service for prompt injection
 	verdictService.SetLearningService(learningService)
+	
+	// Export handler
+	exportHandler := handler.NewExportHandler(decisionV2Repo, scenarioService, outcomeService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, scenarioHandler, outcomeHandler, learningHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, scenarioHandler, outcomeHandler, learningHandler, exportHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

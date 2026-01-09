@@ -474,6 +474,24 @@ export const learningApi = {
   refresh: () => postJson('/api/v2/learning/refresh'),
 };
 
+// Export API (decision reports)
+export const exportApi = {
+  // Export decision as JSON download
+  exportJSON: (decisionId) => {
+    window.open(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/json`, '_blank');
+  },
+  
+  // Export decision as Markdown download
+  exportMarkdown: (decisionId) => {
+    window.open(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/markdown`, '_blank');
+  },
+  
+  // Open HTML export (for browser print to PDF)
+  openHTML: (decisionId) => {
+    window.open(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/html`, '_blank');
+  },
+};
+
 // PATCH request with JSON body
 export const patchJson = async (path, body = {}, options = {}) => {
   const url = `${API_BASE_URL}${path}`;

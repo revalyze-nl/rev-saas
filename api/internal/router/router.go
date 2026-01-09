@@ -35,6 +35,7 @@ func NewRouter(
 	scenarioHandler *handler.ScenarioHandler,
 	outcomeHandler *handler.OutcomeHandler,
 	learningHandler *handler.LearningHandler,
+	exportHandler *handler.ExportHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -124,6 +125,11 @@ func NewRouter(
 	// Learning (cross-decision memory)
 	apiv2.HandleFunc("/learning/indicators", learningHandler.GetLearningIndicators).Methods(http.MethodGet)
 	apiv2.HandleFunc("/learning/refresh", learningHandler.RefreshInsights).Methods(http.MethodPost)
+	
+	// Export (decision reports)
+	apiv2.HandleFunc("/decisions/{id}/export/json", exportHandler.ExportDecisionJSON).Methods(http.MethodGet)
+	apiv2.HandleFunc("/decisions/{id}/export/markdown", exportHandler.ExportDecisionMarkdown).Methods(http.MethodGet)
+	apiv2.HandleFunc("/decisions/{id}/export/html", exportHandler.ExportDecisionHTML).Methods(http.MethodGet)
 
 	// Pricing V2 (auto-import from website)
 	api.HandleFunc("/pricing-v2/discover", pricingV2Handler.Discover).Methods(http.MethodPost)

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,6 +18,9 @@ import (
 	mongorepo "rev-saas-api/internal/repository/mongo"
 	"rev-saas-api/internal/service"
 )
+
+// Revalyze logo as base64 PNG (purple lightning bolt icon)
+const revalyzeLogo = "iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEsklEQVR4nO2ZW4hVVRjHf+OMl9FydMYZx0sXp0ZNzSwrK7OLayJBEUQPvURBLxE99NALQdBDENFDL0EPvfQQQRAEQUQQRERERBBBZJqWZWmaaY5jjpfxMjP9+Na0OWeftfbae58zc/QPi3P2Wt/6vv9a37r7QC/+d6gAPgTOA38Co/I/fgVYDDQC9+W+r0YD8ATwGnAI+B24BHQCp4EjwBbg3e4K4DLwGfA28C7wNvA+8AHwIfAx8AnwWe7/T0v/NrANeB94D3gXeIe/8R7wIfAJ8BnwOfAF8FXue/N5G/gAeA94F3gHeJu/8S7wPvBh7nv7/TnwJfA18E3ue/N5C/gA+CT3vY29A3wMfA58CXwNfJP73nzeAj4EPsl9b3/vAB8DnwNfAl8D3+S+t7+3gA+BT3Lf29+7wMfA58CXwNfAN7nvze9N4APgk9z35vMO8DHwOfAl8DXwTe5787sTeBf4JPe9+b0NfAx8DnwJfA18k/ve/O4E3gU+yX1vfm8BHwGfA18BXwPf5L43v9uBd4FPct+b31vAR8DnwFfA18A3ue/N7zbgHeCT3Pfmdxvwbq6u+bwF3AG8D3yS+76c/G4HPgA+zX1vPrcB7wGf5L4vJ78bgfeBT3Pfl5Pf9cD7wKe578vJ7wbgA+DT3Pfl5Hcd8B7wae77cvK7DvgA+DT3fbn5XQe8B3ya+76c/K4FPgA+zX1fbn7XAO8Bn+a+Lze/a4APgE9z35eb31XA+8Cnue/Lze8q4H3g09z35eZ3BfA+8Gnu+3LzuwJ4D/g09325+V0GvA98mvu+3PwuA94DPs19X25+lwLvA5/mvi8nv0uA94FPc9+Xk9/FwAfAp7nvy8nvIuB94NPc9+XkdyHwAfBp7vty8rsAeB/4NPd9OflNBD4APs19X05+5wMfAJ/mvi8nv/OA94FPc9+Xk985wPvAp7nvy8nvbOB94NPc9+XkdxbwHvBp7vty8jsTeA/4NPd9OfmdAbwHfJr7vpz8Tgc+AD7NfV9OfqcB7wGf5r4vJ79TgPeAT3Pfl5PfycB7wKe578vJ70TgPeDT3Pfl5DcO+AD4NPd9OfmNBd4DPs19X05+Y4D3gE9z35eT32jgPeDT3Pfl5DcKeA/4NPd9OfmNBN4DPs19X05+I4B3gU9z35eT3zDgXeDT3Pfl5DcUeJe/8Wnu+3LyOwZ4l7/xae77cvI7GngX+DT3fTn5HQW8A3ya+76c/IYA7wCf5r4vJ7/BwDvAp7nvy8lvEPAO8Gnu+3LyGwi8A3ya+76c/AYA7wCf5r4vJ78+wDvAp7nvy8mvN/AO8Gnu+3Ly6wW8A3ya+76c/HoC7wCf5r4vJ78ewNvAJ7nvy8mvO/A28Enue/O7HXgL+CT3vfm9DbwFfJL73vyuB94CPsl9b343Am8Cn+S+N7+bgTeBT3Lfm9/NwBvAJ7nvze824A3gk9z35ncr8DrwSe5787sFeBX4JPe9+d0MvAJ8kvve/G4CXgE+yX1vftcBLwMf5743v2uBl4CPct+b3zXAi8BHue/N72rgBeCj3PfmdzXwPPBR7nvzuxJ4Dvgo9735/RfVKFP0A8AAAAAASUVORK5CYII="
 
 // ExportHandler handles decision export functionality
 type ExportHandler struct {
@@ -88,13 +92,17 @@ func (h *ExportHandler) ExportDecisionPDF(w http.ResponseWriter, r *http.Request
 	// Get outcome
 	outcome, _ := h.outcomeService.GetOutcome(r.Context(), decisionID, user.ID)
 
+	log.Printf("[export] Building PDF for decision: %s, company: %s", decisionID.Hex(), decision.CompanyName)
+
 	// Build PDF
-	pdfBytes, err := buildPremiumPDF(decision, scenarios, outcome)
+	pdfBytes, err := buildComprehensivePDF(decision, scenarios, outcome)
 	if err != nil {
 		log.Printf("[export] PDF generation error: %v", err)
 		writeJSONError(w, "failed to generate PDF", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("[export] PDF generated successfully, size: %d bytes", len(pdfBytes))
 
 	// Send PDF
 	filename := fmt.Sprintf("decision-report-%s.pdf", sanitizeExportFilename(decision.CompanyName))
@@ -104,302 +112,551 @@ func (h *ExportHandler) ExportDecisionPDF(w http.ResponseWriter, r *http.Request
 	w.Write(pdfBytes)
 }
 
-func buildPremiumPDF(decision *model.DecisionV2, scenarios *model.ScenarioSet, outcome *model.MeasurableOutcome) ([]byte, error) {
+// PDF Colors
+var (
+	colorPrimary  = []int{139, 92, 246}   // Purple
+	colorDark     = []int{15, 23, 42}     // Dark blue
+	colorGray     = []int{100, 116, 139}  // Gray
+	colorLightBg  = []int{241, 245, 249}  // Light gray bg
+	colorGreen    = []int{16, 185, 129}   // Green
+	colorRed      = []int{239, 68, 68}    // Red
+	colorAmber    = []int{245, 158, 11}   // Amber
+	colorBlue     = []int{59, 130, 246}   // Blue
+)
+
+func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.ScenarioSet, outcome *model.MeasurableOutcome) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
-	pdf.SetMargins(20, 20, 20)
-	pdf.AddPage()
-
-	// Colors
-	primaryColor := []int{139, 92, 246}    // Purple
-	darkColor := []int{15, 23, 42}          // Dark blue
-	grayColor := []int{100, 116, 139}       // Gray
-	lightGray := []int{241, 245, 249}       // Light gray bg
-	greenColor := []int{16, 185, 129}       // Green
-	redColor := []int{239, 68, 68}          // Red
-
-	currentDate := time.Now().Format("Jan 02, 2006")
+	pdf.SetMargins(20, 15, 20)
+	pdf.SetAutoPageBreak(true, 20)
+	
 	pageWidth := 170.0
+	currentDate := time.Now().Format("Jan 02, 2006")
 
-	// === HEADER ===
-	// Logo text
-	pdf.SetFont("Helvetica", "B", 24)
-	pdf.SetTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-	pdf.CellFormat(100, 10, "Revalyze", "", 0, "L", false, 0, "")
+	// Add logo image
+	logoData, _ := base64.StdEncoding.DecodeString(revalyzeLogo)
+	pdf.RegisterImageOptionsReader("logo", gofpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(logoData))
+
+	// === PAGE 1: Cover & Executive Summary ===
+	pdf.AddPage()
 	
-	// Date
+	// Header with logo
+	pdf.ImageOptions("logo", 20, 15, 12, 12, false, gofpdf.ImageOptions{}, 0, "")
+	pdf.SetXY(34, 17)
+	pdf.SetFont("Helvetica", "B", 20)
+	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.CellFormat(80, 8, "Revalyze", "", 0, "L", false, 0, "")
+	
 	pdf.SetFont("Helvetica", "", 10)
-	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-	pdf.CellFormat(70, 10, currentDate, "", 1, "R", false, 0, "")
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	pdf.CellFormat(56, 8, currentDate, "", 1, "R", false, 0, "")
 	
-	pdf.Ln(5)
+	pdf.Ln(8)
 	
-	// Divider line
-	pdf.SetDrawColor(primaryColor[0], primaryColor[1], primaryColor[2])
-	pdf.SetLineWidth(0.5)
+	// Divider
+	pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.SetLineWidth(0.8)
 	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
 	pdf.Ln(10)
 
-	// === TITLE ===
-	pdf.SetFont("Helvetica", "B", 22)
-	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+	// Title
+	pdf.SetFont("Helvetica", "B", 24)
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 	pdf.CellFormat(pageWidth, 10, "Decision Intelligence Report", "", 1, "L", false, 0, "")
 	
 	pdf.SetFont("Helvetica", "", 11)
-	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-	pdf.CellFormat(pageWidth, 6, "Strategic analysis and recommendations based on AI-powered insights.", "", 1, "L", false, 0, "")
-	pdf.Ln(10)
-
-	// === COMPANY INFO BOX ===
-	pdf.SetFillColor(lightGray[0], lightGray[1], lightGray[2])
-	pdf.RoundedRect(20, pdf.GetY(), pageWidth, 18, 3, "1234", "F")
-	
-	pdf.SetXY(25, pdf.GetY()+4)
-	pdf.SetFont("Helvetica", "B", 14)
-	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-	pdf.CellFormat(100, 6, decision.CompanyName, "", 0, "L", false, 0, "")
-	
-	pdf.SetFont("Helvetica", "", 10)
-	pdf.SetTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-	pdf.CellFormat(60, 6, decision.WebsiteURL, "", 1, "R", false, 0, "")
-	pdf.Ln(12)
-
-	// === EXECUTIVE SUMMARY ===
-	drawSectionHeader(pdf, "Executive Summary", darkColor, primaryColor)
-	
-	pdf.SetFont("Helvetica", "B", 12)
-	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-	pdf.MultiCell(pageWidth, 6, decision.Verdict.Headline, "", "L", false)
-	pdf.Ln(3)
-	
-	pdf.SetFont("Helvetica", "", 10)
-	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-	pdf.MultiCell(pageWidth, 5, decision.Verdict.Summary, "", "L", false)
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	pdf.CellFormat(pageWidth, 6, "Strategic analysis and recommendations based on AI-powered insights", "", 1, "L", false, 0, "")
 	pdf.Ln(8)
 
-	// === DECISION SNAPSHOT ===
+	// Company Info Box
+	pdf.SetFillColor(colorLightBg[0], colorLightBg[1], colorLightBg[2])
+	pdf.RoundedRect(20, pdf.GetY(), pageWidth, 16, 3, "1234", "F")
+	pdf.SetXY(25, pdf.GetY()+4)
+	pdf.SetFont("Helvetica", "B", 13)
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	pdf.CellFormat(100, 6, decision.CompanyName, "", 0, "L", false, 0, "")
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.CellFormat(45, 6, decision.WebsiteURL, "", 1, "R", false, 0, "")
+	pdf.Ln(10)
+
+	// Executive Summary Section
+	drawSection(pdf, "Executive Summary", pageWidth)
+	
+	pdf.SetFont("Helvetica", "B", 13)
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	pdf.MultiCell(pageWidth, 6, decision.Verdict.Headline, "", "L", false)
+	pdf.Ln(2)
+	
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	pdf.MultiCell(pageWidth, 5, decision.Verdict.Summary, "", "L", false)
+	pdf.Ln(6)
+
+	// Decision Snapshot
 	if decision.Verdict.DecisionSnapshot != nil {
-		drawSectionHeader(pdf, "Decision Snapshot", darkColor, primaryColor)
+		drawSection(pdf, "Decision Snapshot (30-Second Overview)", pageWidth)
+		drawSnapshotTable(pdf, decision.Verdict.DecisionSnapshot)
+		pdf.Ln(6)
+	}
+
+	// If You Proceed
+	if decision.Verdict.IfYouProceed != nil {
+		drawSection(pdf, "If You Proceed With This Decision", pageWidth)
 		
-		ds := decision.Verdict.DecisionSnapshot
+		if len(decision.Verdict.IfYouProceed.ExpectedUpside) > 0 {
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
+			pdf.CellFormat(pageWidth, 5, "Expected Upside:", "", 1, "L", false, 0, "")
+			drawBulletList(pdf, decision.Verdict.IfYouProceed.ExpectedUpside, colorDark)
+		}
 		
-		// Table header
-		pdf.SetFillColor(lightGray[0], lightGray[1], lightGray[2])
+		if len(decision.Verdict.IfYouProceed.SecondaryEffects) > 0 {
+			pdf.Ln(2)
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetTextColor(colorBlue[0], colorBlue[1], colorBlue[2])
+			pdf.CellFormat(pageWidth, 5, "Secondary Positive Effects:", "", 1, "L", false, 0, "")
+			drawBulletList(pdf, decision.Verdict.IfYouProceed.SecondaryEffects, colorGray)
+		}
+		pdf.Ln(4)
+	}
+
+	// If You Do Not Act
+	if decision.Verdict.IfYouDoNotAct != nil {
+		checkPageBreak(pdf, 50)
+		drawSection(pdf, "If You Do NOT Take Action", pageWidth)
+		
+		ina := decision.Verdict.IfYouDoNotAct
+		
+		if ina.WhatStagnates != "" {
+			pdf.SetFont("Helvetica", "B", 9)
+			pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
+			pdf.CellFormat(35, 5, "What Stagnates:", "", 0, "L", false, 0, "")
+			pdf.SetFont("Helvetica", "", 9)
+			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+			pdf.MultiCell(pageWidth-35, 5, ina.WhatStagnates, "", "L", false)
+		}
+		
+		if ina.CompetitorAdvantage != "" {
+			pdf.SetFont("Helvetica", "B", 9)
+			pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
+			pdf.CellFormat(35, 5, "Competitors Gain:", "", 0, "L", false, 0, "")
+			pdf.SetFont("Helvetica", "", 9)
+			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+			pdf.MultiCell(pageWidth-35, 5, ina.CompetitorAdvantage, "", "L", false)
+		}
+		
+		if ina.FutureDifficulty != "" {
+			pdf.SetFont("Helvetica", "B", 9)
+			pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
+			pdf.CellFormat(35, 5, "Future Difficulty:", "", 0, "L", false, 0, "")
+			pdf.SetFont("Helvetica", "", 9)
+			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+			pdf.MultiCell(pageWidth-35, 5, ina.FutureDifficulty, "", "L", false)
+		}
+		pdf.Ln(4)
+	}
+
+	// Alternatives Considered
+	if len(decision.Verdict.AlternativesConsidered) > 0 {
+		checkPageBreak(pdf, 40)
+		drawSection(pdf, "Alternatives Considered and Rejected", pageWidth)
+		
+		for i, alt := range decision.Verdict.AlternativesConsidered {
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+			pdf.CellFormat(pageWidth, 5, fmt.Sprintf("%d. %s", i+1, alt.Name), "", 1, "L", false, 0, "")
+			
+			pdf.SetFont("Helvetica", "I", 9)
+			pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+			pdf.MultiCell(pageWidth, 4, "Why rejected: "+alt.WhyNotSelected, "", "L", false)
+			pdf.Ln(2)
+		}
+		pdf.Ln(2)
+	}
+
+	// Risk Analysis
+	if decision.Verdict.RiskAnalysis != nil {
+		checkPageBreak(pdf, 45)
+		drawSection(pdf, "Risk and Trade-off Analysis", pageWidth)
+		
+		ra := decision.Verdict.RiskAnalysis
+		
+		// Risk badge
+		riskColor := colorAmber
+		if strings.ToLower(ra.RiskLevel) == "low" {
+			riskColor = colorGreen
+		} else if strings.ToLower(ra.RiskLevel) == "high" {
+			riskColor = colorRed
+		}
+		
+		pdf.SetFillColor(riskColor[0], riskColor[1], riskColor[2])
+		pdf.SetTextColor(255, 255, 255)
 		pdf.SetFont("Helvetica", "B", 9)
-		pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+		badgeW := float64(len(ra.RiskLevel)*3 + 16)
+		pdf.RoundedRect(20, pdf.GetY(), badgeW, 6, 2, "1234", "F")
+		pdf.SetXY(20, pdf.GetY())
+		pdf.CellFormat(badgeW, 6, strings.ToUpper(ra.RiskLevel)+" RISK", "", 1, "C", false, 0, "")
+		pdf.Ln(3)
 		
-		colWidths := []float64{42.5, 42.5, 42.5, 42.5}
-		headers := []string{"REVENUE IMPACT", "RISK LEVEL", "TIME TO IMPACT", "EFFORT"}
+		drawLabelValue(pdf, "Who is Affected:", ra.WhoIsAffected, pageWidth)
+		drawLabelValue(pdf, "How It Manifests:", ra.HowItManifests, pageWidth)
+		drawLabelValue(pdf, "Why Acceptable:", ra.WhyAcceptable, pageWidth)
+		pdf.Ln(4)
+	}
+
+	// Why This Fits Your Company
+	if decision.Verdict.WhyThisFits != nil {
+		checkPageBreak(pdf, 50)
+		drawSection(pdf, "Why This Decision Fits Your Company", pageWidth)
 		
-		for i, header := range headers {
-			pdf.CellFormat(colWidths[i], 8, header, "", 0, "C", true, 0, "")
+		wtf := decision.Verdict.WhyThisFits
+		
+		if wtf.CompanyStageReason != "" {
+			drawLabelValue(pdf, "Company Stage:", wtf.CompanyStageReason, pageWidth)
 		}
-		pdf.Ln(-1)
-		
-		// Table values
-		pdf.SetFont("Helvetica", "B", 11)
-		
-		// Revenue - green
-		pdf.SetTextColor(greenColor[0], greenColor[1], greenColor[2])
-		pdf.CellFormat(colWidths[0], 10, ds.RevenueImpactRange, "", 0, "C", false, 0, "")
-		
-		// Risk - color based on level
-		riskColor := grayColor
-		if strings.ToLower(ds.PrimaryRiskLevel) == "low" {
-			riskColor = greenColor
-		} else if strings.ToLower(ds.PrimaryRiskLevel) == "high" {
-			riskColor = redColor
-		} else if strings.ToLower(ds.PrimaryRiskLevel) == "medium" {
-			riskColor = []int{245, 158, 11} // Amber
+		if wtf.BusinessModelReason != "" {
+			drawLabelValue(pdf, "Business Model:", wtf.BusinessModelReason, pageWidth)
 		}
-		pdf.SetTextColor(riskColor[0], riskColor[1], riskColor[2])
-		pdf.CellFormat(colWidths[1], 10, ds.PrimaryRiskLevel, "", 0, "C", false, 0, "")
-		
-		// Time - dark
-		pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-		pdf.CellFormat(colWidths[2], 10, ds.TimeToImpact, "", 0, "C", false, 0, "")
-		
-		// Effort - color based
-		effortColor := grayColor
-		if strings.ToLower(ds.ExecutionEffort) == "low" {
-			effortColor = greenColor
-		} else if strings.ToLower(ds.ExecutionEffort) == "high" {
-			effortColor = redColor
+		if wtf.MarketSegmentReason != "" {
+			drawLabelValue(pdf, "Market Segment:", wtf.MarketSegmentReason, pageWidth)
 		}
-		pdf.SetTextColor(effortColor[0], effortColor[1], effortColor[2])
-		pdf.CellFormat(colWidths[3], 10, ds.ExecutionEffort, "", 1, "C", false, 0, "")
+		if wtf.PrimaryKPIReason != "" {
+			drawLabelValue(pdf, "Primary KPI:", wtf.PrimaryKPIReason, pageWidth)
+		}
+		pdf.Ln(4)
+	}
+
+	// Execution Checklist
+	if decision.Verdict.ExecutionChecklist != nil {
+		checkPageBreak(pdf, 60)
+		drawSection(pdf, "Execution Checklist", pageWidth)
 		
+		ec := decision.Verdict.ExecutionChecklist
+		
+		if len(ec.Next14Days) > 0 {
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
+			pdf.CellFormat(pageWidth, 5, "Next 14 Days:", "", 1, "L", false, 0, "")
+			drawChecklistItems(pdf, ec.Next14Days)
+		}
+		
+		if len(ec.Next30To60Days) > 0 {
+			pdf.Ln(2)
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetTextColor(colorBlue[0], colorBlue[1], colorBlue[2])
+			pdf.CellFormat(pageWidth, 5, "Next 30-60 Days:", "", 1, "L", false, 0, "")
+			drawChecklistItems(pdf, ec.Next30To60Days)
+		}
+		
+		if len(ec.SuccessMetrics) > 0 {
+			pdf.Ln(2)
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+			pdf.CellFormat(pageWidth, 5, "Success Metrics to Monitor:", "", 1, "L", false, 0, "")
+			drawBulletList(pdf, ec.SuccessMetrics, colorDark)
+		}
+		pdf.Ln(4)
+	}
+
+	// === SCENARIOS SECTION ===
+	if scenarios != nil && len(scenarios.Scenarios) > 0 {
+		pdf.AddPage()
+		
+		// Section header
+		pdf.ImageOptions("logo", 20, 15, 10, 10, false, gofpdf.ImageOptions{}, 0, "")
+		pdf.SetXY(32, 17)
+		pdf.SetFont("Helvetica", "B", 16)
+		pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+		pdf.CellFormat(80, 6, "Revalyze", "", 0, "L", false, 0, "")
+		pdf.SetFont("Helvetica", "", 10)
+		pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+		pdf.CellFormat(58, 6, "Strategic Scenarios", "", 1, "R", false, 0, "")
 		pdf.Ln(8)
-	}
-
-	// === CHOSEN SCENARIO ===
-	if scenarios != nil && decision.ChosenScenarioID != nil && *decision.ChosenScenarioID != "" {
-		for _, sc := range scenarios.Scenarios {
-			if string(sc.ScenarioID) == *decision.ChosenScenarioID {
-				drawSectionHeader(pdf, "Chosen Strategic Path", darkColor, primaryColor)
-				
-				// Scenario badge
-				pdf.SetFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
-				pdf.SetTextColor(255, 255, 255)
-				pdf.SetFont("Helvetica", "B", 8)
-				pdf.RoundedRect(20, pdf.GetY(), 35, 6, 2, "1234", "F")
-				pdf.SetXY(20, pdf.GetY())
-				pdf.CellFormat(35, 6, "SELECTED STRATEGY", "", 1, "C", false, 0, "")
-				pdf.Ln(3)
-				
-				// Scenario title
-				pdf.SetFont("Helvetica", "B", 12)
-				pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-				pdf.CellFormat(pageWidth, 6, sc.Title, "", 1, "L", false, 0, "")
-				pdf.Ln(2)
-				
-				// Scenario summary
-				pdf.SetFont("Helvetica", "", 10)
-				pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-				pdf.MultiCell(pageWidth, 5, sc.Summary, "", "L", false)
-				pdf.Ln(3)
-				
-				// Mini metrics
-				if sc.Metrics.RevenueImpactRange != "" {
-					pdf.SetFont("Helvetica", "", 9)
-					pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-					pdf.CellFormat(30, 5, "Revenue:", "", 0, "L", false, 0, "")
-					pdf.SetTextColor(greenColor[0], greenColor[1], greenColor[2])
-					pdf.SetFont("Helvetica", "B", 9)
-					pdf.CellFormat(50, 5, sc.Metrics.RevenueImpactRange, "", 0, "L", false, 0, "")
-					
-					pdf.SetFont("Helvetica", "", 9)
-					pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-					pdf.CellFormat(30, 5, "Churn:", "", 0, "L", false, 0, "")
-					pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-					pdf.SetFont("Helvetica", "B", 9)
-					pdf.CellFormat(50, 5, sc.Metrics.ChurnImpactRange, "", 1, "L", false, 0, "")
-				}
-				
-				pdf.Ln(8)
-				break
-			}
-		}
-	}
-
-	// === OUTCOME KPIs ===
-	if outcome != nil && len(outcome.KPIs) > 0 {
-		// Check if we need a new page
-		if pdf.GetY() > 220 {
-			pdf.AddPage()
-		}
 		
-		drawSectionHeader(pdf, "Outcome Tracking", darkColor, primaryColor)
+		pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+		pdf.SetLineWidth(0.5)
+		pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
+		pdf.Ln(8)
+		
+		pdf.SetFont("Helvetica", "B", 18)
+		pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+		pdf.CellFormat(pageWidth, 8, "Alternative Strategic Paths", "", 1, "L", false, 0, "")
+		pdf.SetFont("Helvetica", "", 10)
+		pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+		pdf.CellFormat(pageWidth, 5, "AI-generated scenarios based on your decision context", "", 1, "L", false, 0, "")
+		pdf.Ln(8)
+
+		// Each scenario
+		for _, sc := range scenarios.Scenarios {
+			checkPageBreak(pdf, 70)
+			
+			// Scenario card
+			isChosen := decision.ChosenScenarioID != nil && string(sc.ScenarioID) == *decision.ChosenScenarioID
+			isRecommended := sc.ScenarioID == "balanced"
+			
+			// Background
+			if isChosen {
+				pdf.SetFillColor(139, 92, 246) // Purple bg for chosen
+				pdf.RoundedRect(20, pdf.GetY(), pageWidth, 6, 2, "12", "F")
+				pdf.SetTextColor(255, 255, 255)
+			} else if isRecommended {
+				pdf.SetFillColor(16, 185, 129) // Green bg for recommended
+				pdf.RoundedRect(20, pdf.GetY(), pageWidth, 6, 2, "12", "F")
+				pdf.SetTextColor(255, 255, 255)
+			} else {
+				pdf.SetFillColor(colorLightBg[0], colorLightBg[1], colorLightBg[2])
+				pdf.RoundedRect(20, pdf.GetY(), pageWidth, 6, 2, "12", "F")
+				pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+			}
+			
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.SetXY(25, pdf.GetY()+1)
+			badgeText := sc.Title
+			if isChosen {
+				badgeText = "✓ CHOSEN: " + sc.Title
+			} else if isRecommended {
+				badgeText = "★ RECOMMENDED: " + sc.Title
+			}
+			pdf.CellFormat(pageWidth-10, 5, badgeText, "", 1, "L", false, 0, "")
+			pdf.Ln(2)
+			
+			// Summary
+			pdf.SetFont("Helvetica", "", 9)
+			pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+			pdf.MultiCell(pageWidth, 4, sc.Summary, "", "L", false)
+			pdf.Ln(2)
+			
+			// Metrics row
+			pdf.SetFont("Helvetica", "", 8)
+			pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+			metricsText := fmt.Sprintf("Revenue: %s  |  Churn: %s  |  Risk: %s  |  Time: %s  |  Effort: %s",
+				sc.Metrics.RevenueImpactRange,
+				sc.Metrics.ChurnImpactRange,
+				sc.Metrics.RiskLabel,
+				sc.Metrics.TimeToImpact,
+				sc.Metrics.ExecutionEffort)
+			pdf.CellFormat(pageWidth, 4, metricsText, "", 1, "L", false, 0, "")
+			
+			// Trade-offs
+			if len(sc.Tradeoffs) > 0 {
+				pdf.Ln(1)
+				pdf.SetFont("Helvetica", "I", 8)
+				pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+				for _, t := range sc.Tradeoffs {
+					pdf.CellFormat(5, 4, "•", "", 0, "L", false, 0, "")
+					pdf.MultiCell(pageWidth-5, 4, t, "", "L", false)
+				}
+			}
+			
+			pdf.Ln(6)
+		}
+	}
+
+	// === OUTCOME SECTION ===
+	if outcome != nil && len(outcome.KPIs) > 0 {
+		checkPageBreak(pdf, 80)
+		pdf.Ln(4)
+		
+		drawSection(pdf, "Outcome Tracking", pageWidth)
 		
 		// Status badge
 		statusText := "PENDING"
-		statusColor := grayColor
+		statusColor := colorGray
 		switch outcome.Status {
 		case model.OutcomeStatusAchieved:
 			statusText = "ACHIEVED"
-			statusColor = greenColor
+			statusColor = colorGreen
 		case model.OutcomeStatusMissed:
 			statusText = "MISSED"
-			statusColor = redColor
+			statusColor = colorRed
 		case model.OutcomeStatusInProgress:
 			statusText = "IN PROGRESS"
-			statusColor = []int{59, 130, 246} // Blue
+			statusColor = colorBlue
 		}
 		
 		pdf.SetFillColor(statusColor[0], statusColor[1], statusColor[2])
 		pdf.SetTextColor(255, 255, 255)
 		pdf.SetFont("Helvetica", "B", 8)
-		badgeWidth := float64(len(statusText)*2 + 10)
+		badgeWidth := float64(len(statusText)*2 + 12)
 		pdf.RoundedRect(20, pdf.GetY(), badgeWidth, 6, 2, "1234", "F")
 		pdf.SetXY(20, pdf.GetY())
 		pdf.CellFormat(badgeWidth, 6, statusText, "", 1, "C", false, 0, "")
-		pdf.Ln(5)
+		pdf.Ln(4)
 		
 		// KPI Table
-		pdf.SetFillColor(lightGray[0], lightGray[1], lightGray[2])
-		pdf.SetFont("Helvetica", "B", 9)
-		pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-		
-		kpiColWidths := []float64{50, 30, 30, 30, 30}
-		kpiHeaders := []string{"KPI", "BASELINE", "TARGET", "ACTUAL", "DELTA"}
-		
-		for i, header := range kpiHeaders {
-			pdf.CellFormat(kpiColWidths[i], 8, header, "", 0, "C", true, 0, "")
-		}
-		pdf.Ln(-1)
-		
-		// KPI rows
-		for _, kpi := range outcome.KPIs {
-			pdf.SetFont("Helvetica", "", 10)
-			pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-			pdf.CellFormat(kpiColWidths[0], 8, string(kpi.Key), "B", 0, "L", false, 0, "")
-			pdf.CellFormat(kpiColWidths[1], 8, fmt.Sprintf("%.1f", kpi.Baseline), "B", 0, "C", false, 0, "")
-			pdf.CellFormat(kpiColWidths[2], 8, fmt.Sprintf("%.1f", kpi.Target), "B", 0, "C", false, 0, "")
-			
-			// Actual
-			actualStr := "-"
-			if kpi.Actual != nil {
-				actualStr = fmt.Sprintf("%.1f", *kpi.Actual)
-			}
-			pdf.CellFormat(kpiColWidths[3], 8, actualStr, "B", 0, "C", false, 0, "")
-			
-			// Delta with color
-			deltaStr := "-"
-			if kpi.DeltaPct != nil {
-				if *kpi.DeltaPct > 0 {
-					pdf.SetTextColor(greenColor[0], greenColor[1], greenColor[2])
-					deltaStr = fmt.Sprintf("+%.1f%%", *kpi.DeltaPct)
-				} else if *kpi.DeltaPct < 0 {
-					pdf.SetTextColor(redColor[0], redColor[1], redColor[2])
-					deltaStr = fmt.Sprintf("%.1f%%", *kpi.DeltaPct)
-				} else {
-					deltaStr = "0%"
-				}
-			}
-			pdf.SetFont("Helvetica", "B", 10)
-			pdf.CellFormat(kpiColWidths[4], 8, deltaStr, "B", 1, "C", false, 0, "")
-		}
-		
-		pdf.Ln(8)
+		drawKPITable(pdf, outcome.KPIs, pageWidth)
 	}
 
 	// === FOOTER ===
-	pdf.SetY(-30)
-	pdf.SetDrawColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.SetY(-25)
+	pdf.SetDrawColor(colorGray[0], colorGray[1], colorGray[2])
 	pdf.SetLineWidth(0.2)
 	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
-	pdf.Ln(5)
-	
-	pdf.SetFont("Helvetica", "", 9)
-	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-	pdf.CellFormat(pageWidth, 5, "Generated by", "", 1, "C", false, 0, "")
-	
-	pdf.SetFont("Helvetica", "B", 10)
-	pdf.SetTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-	pdf.CellFormat(pageWidth, 5, "Revalyze - AI-Powered Decision Intelligence", "", 1, "C", false, 0, "")
+	pdf.Ln(4)
 	
 	pdf.SetFont("Helvetica", "", 8)
-	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
-	pdf.CellFormat(pageWidth, 5, fmt.Sprintf("© %d Revalyze B.V.", time.Now().Year()), "", 1, "C", false, 0, "")
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	pdf.CellFormat(pageWidth, 4, "Generated by", "", 1, "C", false, 0, "")
+	
+	pdf.SetFont("Helvetica", "B", 9)
+	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.CellFormat(pageWidth, 5, "Revalyze - AI-Powered Decision Intelligence", "", 1, "C", false, 0, "")
+	
+	pdf.SetFont("Helvetica", "", 7)
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	pdf.CellFormat(pageWidth, 4, fmt.Sprintf("© %d Revalyze B.V. | www.revalyze.co", time.Now().Year()), "", 1, "C", false, 0, "")
+
+	// Check for errors
+	if pdf.Err() {
+		return nil, fmt.Errorf("PDF creation error: %v", pdf.Error())
+	}
 
 	// Output
 	var buf bytes.Buffer
 	err := pdf.Output(&buf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PDF output error: %v", err)
 	}
+	
 	return buf.Bytes(), nil
 }
 
-func drawSectionHeader(pdf *gofpdf.Fpdf, title string, darkColor, primaryColor []int) {
-	// Small colored bar
-	pdf.SetFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
-	pdf.Rect(20, pdf.GetY(), 3, 7, "F")
-	
+func drawSection(pdf *gofpdf.Fpdf, title string, pageWidth float64) {
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.Rect(20, pdf.GetY(), 3, 6, "F")
 	pdf.SetX(26)
-	pdf.SetFont("Helvetica", "B", 13)
-	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
-	pdf.CellFormat(140, 7, title, "", 1, "L", false, 0, "")
-	pdf.Ln(3)
+	pdf.SetFont("Helvetica", "B", 12)
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	pdf.CellFormat(pageWidth-6, 6, title, "", 1, "L", false, 0, "")
+	pdf.Ln(2)
+}
+
+func drawSnapshotTable(pdf *gofpdf.Fpdf, ds *model.DecisionSnapshotV2) {
+	pdf.SetFillColor(colorLightBg[0], colorLightBg[1], colorLightBg[2])
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	
+	cols := []string{"REVENUE IMPACT", "RISK LEVEL", "TIME TO IMPACT", "EFFORT", "REVERSIBILITY"}
+	colW := 34.0
+	
+	for _, col := range cols {
+		pdf.CellFormat(colW, 7, col, "", 0, "C", true, 0, "")
+	}
+	pdf.Ln(-1)
+	
+	pdf.SetFont("Helvetica", "B", 10)
+	
+	// Revenue - green
+	pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
+	pdf.CellFormat(colW, 8, ds.RevenueImpactRange, "", 0, "C", false, 0, "")
+	
+	// Risk
+	riskColor := colorAmber
+	if strings.ToLower(ds.PrimaryRiskLevel) == "low" {
+		riskColor = colorGreen
+	} else if strings.ToLower(ds.PrimaryRiskLevel) == "high" {
+		riskColor = colorRed
+	}
+	pdf.SetTextColor(riskColor[0], riskColor[1], riskColor[2])
+	pdf.CellFormat(colW, 8, ds.PrimaryRiskLevel, "", 0, "C", false, 0, "")
+	
+	// Time
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	pdf.CellFormat(colW, 8, ds.TimeToImpact, "", 0, "C", false, 0, "")
+	
+	// Effort
+	effortColor := colorGray
+	if strings.ToLower(ds.ExecutionEffort) == "low" {
+		effortColor = colorGreen
+	} else if strings.ToLower(ds.ExecutionEffort) == "high" {
+		effortColor = colorRed
+	}
+	pdf.SetTextColor(effortColor[0], effortColor[1], effortColor[2])
+	pdf.CellFormat(colW, 8, ds.ExecutionEffort, "", 0, "C", false, 0, "")
+	
+	// Reversibility
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	pdf.CellFormat(colW, 8, ds.Reversibility, "", 1, "C", false, 0, "")
+}
+
+func drawBulletList(pdf *gofpdf.Fpdf, items []string, textColor []int) {
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(textColor[0], textColor[1], textColor[2])
+	for _, item := range items {
+		pdf.CellFormat(5, 5, "•", "", 0, "L", false, 0, "")
+		pdf.MultiCell(165, 5, item, "", "L", false)
+	}
+}
+
+func drawChecklistItems(pdf *gofpdf.Fpdf, items []string) {
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	for _, item := range items {
+		pdf.CellFormat(5, 5, "☐", "", 0, "L", false, 0, "")
+		pdf.MultiCell(165, 5, item, "", "L", false)
+	}
+}
+
+func drawLabelValue(pdf *gofpdf.Fpdf, label, value string, pageWidth float64) {
+	if value == "" {
+		return
+	}
+	pdf.SetFont("Helvetica", "B", 9)
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	pdf.CellFormat(35, 5, label, "", 0, "L", false, 0, "")
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+	pdf.MultiCell(pageWidth-35, 5, value, "", "L", false)
+}
+
+func drawKPITable(pdf *gofpdf.Fpdf, kpis []model.OutcomeKPI, pageWidth float64) {
+	pdf.SetFillColor(colorLightBg[0], colorLightBg[1], colorLightBg[2])
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
+	
+	cols := []float64{50, 30, 30, 30, 30}
+	headers := []string{"KPI", "BASELINE", "TARGET", "ACTUAL", "DELTA"}
+	
+	for i, h := range headers {
+		pdf.CellFormat(cols[i], 7, h, "", 0, "C", true, 0, "")
+	}
+	pdf.Ln(-1)
+	
+	for _, kpi := range kpis {
+		pdf.SetFont("Helvetica", "", 9)
+		pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
+		pdf.CellFormat(cols[0], 7, string(kpi.Key), "B", 0, "L", false, 0, "")
+		pdf.CellFormat(cols[1], 7, fmt.Sprintf("%.1f", kpi.Baseline), "B", 0, "C", false, 0, "")
+		pdf.CellFormat(cols[2], 7, fmt.Sprintf("%.1f", kpi.Target), "B", 0, "C", false, 0, "")
+		
+		actualStr := "—"
+		if kpi.Actual != nil {
+			actualStr = fmt.Sprintf("%.1f", *kpi.Actual)
+		}
+		pdf.CellFormat(cols[3], 7, actualStr, "B", 0, "C", false, 0, "")
+		
+		deltaStr := "—"
+		if kpi.DeltaPct != nil {
+			if *kpi.DeltaPct > 0 {
+				pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
+				deltaStr = fmt.Sprintf("+%.1f%%", *kpi.DeltaPct)
+			} else if *kpi.DeltaPct < 0 {
+				pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
+				deltaStr = fmt.Sprintf("%.1f%%", *kpi.DeltaPct)
+			} else {
+				deltaStr = "0%"
+			}
+		}
+		pdf.SetFont("Helvetica", "B", 9)
+		pdf.CellFormat(cols[4], 7, deltaStr, "B", 1, "C", false, 0, "")
+	}
+}
+
+func checkPageBreak(pdf *gofpdf.Fpdf, requiredHeight float64) {
+	if pdf.GetY()+requiredHeight > 270 {
+		pdf.AddPage()
+	}
 }
 
 func sanitizeExportFilename(name string) string {

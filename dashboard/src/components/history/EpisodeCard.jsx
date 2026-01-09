@@ -132,6 +132,7 @@ const EpisodeCard = memo(({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [applyingScenario, setApplyingScenario] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(null);
+  const [baselineInfo, setBaselineInfo] = useState({ id: 'balanced', name: 'Balanced (Recommended)' });
 
   // Load outcome status and chosen scenario
   useEffect(() => {
@@ -158,9 +159,23 @@ const EpisodeCard = memo(({
       if (isExpanded && decision && !scenariosLoading && scenarios.length === 0 && decision.hasScenarios !== false) {
         setScenariosLoading(true);
         try {
-          const { data } = await decisionsV2Api.getScenarios(decision.id);
+          const response = await decisionsV2Api.getScenarios(decision.id);
+          const data = response?.data || response;
           const transformed = transformScenarios(data.scenarios);
           setScenarios(transformed);
+          
+          // Set baseline info from API response
+          if (data.baselineScenarioId) {
+            setBaselineInfo({
+              id: data.baselineScenarioId,
+              name: data.baselineScenarioName || 'Balanced (Recommended)',
+            });
+          }
+          
+          // Update chosen scenario from API response
+          if (data.chosenScenarioId) {
+            setChosenScenario(data.chosenScenarioId);
+          }
         } catch (err) {
           if (!err.message?.includes('404') && !err.message?.includes('not found')) {
             console.error('Failed to fetch scenarios:', err);
@@ -471,11 +486,9 @@ const EpisodeCard = memo(({
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     {scenarios.map((scenario) => {
-                      // Baseline priority: chosen scenario > recommended > first
-                      const baselineId = chosenScenario || 
-                        scenarios.find(s => s.isRecommended)?.id || 
-                        scenarios.find(s => s.type === 'balanced')?.id;
-                      const isBaseline = scenario.id === baselineId;
+                      // Baseline from API response, fallback to local detection
+                      const isBaseline = scenario.id === baselineInfo.id || 
+                        (scenario.type === 'balanced' && !baselineInfo.id);
                       
                       return (
                         <EndingCard
@@ -624,12 +637,7 @@ const EpisodeCard = memo(({
           onClose={handleCloseDrawer}
           onChoose={handleChooseClick}
           isChosen={drawerScenario ? chosenScenario === drawerScenario.id : false}
-          baselineName={
-            chosenScenarioName || 
-            scenarios.find(s => s.isRecommended)?.name || 
-            scenarios.find(s => s.type === 'balanced')?.name ||
-            'Recommended Path'
-          }
+          baselineName={baselineInfo.name}
         />
 
         {/* Choose Confirmation Modal */}

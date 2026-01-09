@@ -240,6 +240,11 @@ func (s *ScenarioService) GetScenarios(ctx context.Context, decisionID, userID p
 	return s.scenarioRepo.GetByDecisionID(ctx, decisionID, userID)
 }
 
+// GetDecision retrieves the decision (for baseline lookup)
+func (s *ScenarioService) GetDecision(ctx context.Context, decisionID, userID primitive.ObjectID) (*model.DecisionV2, error) {
+	return s.decisionRepo.GetByIDAndUser(ctx, decisionID, userID)
+}
+
 // GenerateScenarios generates or retrieves scenarios for a decision
 func (s *ScenarioService) GenerateScenarios(ctx context.Context, decisionID, userID primitive.ObjectID, force bool) (*model.ScenarioSet, error) {
 	// Check if scenarios already exist

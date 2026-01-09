@@ -59,13 +59,34 @@ func (h *ScenarioHandler) GetScenarios(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get decision to determine baseline and chosen scenario
+	baselineID := "balanced"
+	baselineName := "Balanced (Recommended)"
+	chosenID := ""
+	
+	decision, err := h.scenarioService.GetDecision(r.Context(), decisionID, user.ID)
+	if err == nil && decision != nil && decision.ChosenScenarioID != nil && *decision.ChosenScenarioID != "" {
+		chosenID = *decision.ChosenScenarioID
+		baselineID = chosenID
+		// Find chosen scenario name
+		for _, sc := range scenarios.Scenarios {
+			if string(sc.ScenarioID) == chosenID {
+				baselineName = sc.Title
+				break
+			}
+		}
+	}
+
 	response := model.ScenarioSetResponse{
-		ID:         scenarios.ID,
-		DecisionID: scenarios.DecisionID,
-		Version:    scenarios.Version,
-		Scenarios:  scenarios.Scenarios,
-		ModelMeta:  scenarios.ModelMeta,
-		CreatedAt:  scenarios.CreatedAt,
+		ID:                   scenarios.ID,
+		DecisionID:           scenarios.DecisionID,
+		Version:              scenarios.Version,
+		Scenarios:            scenarios.Scenarios,
+		ModelMeta:            scenarios.ModelMeta,
+		CreatedAt:            scenarios.CreatedAt,
+		BaselineScenarioID:   baselineID,
+		BaselineScenarioName: baselineName,
+		ChosenScenarioID:     chosenID,
 	}
 
 	writeJSONScenario(w, response, http.StatusOK)

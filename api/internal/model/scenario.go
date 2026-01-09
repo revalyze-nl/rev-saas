@@ -127,6 +127,11 @@ type ScenarioSetResponse struct {
 	Scenarios  []ScenarioItem     `json:"scenarios"`
 	ModelMeta  ScenarioModelMeta  `json:"modelMeta"`
 	CreatedAt  time.Time          `json:"createdAt"`
+	
+	// Baseline info for delta comparison
+	BaselineScenarioID   string `json:"baselineScenarioId,omitempty"`   // "balanced" or chosen scenario
+	BaselineScenarioName string `json:"baselineScenarioName,omitempty"` // Human-readable name
+	ChosenScenarioID     string `json:"chosenScenarioId,omitempty"`     // Currently chosen scenario
 }
 
 // OpenAI response types for structured JSON parsing

@@ -14,9 +14,24 @@ type PlanLimits struct {
 	// AI Insight Credits system
 	MonthlyAICredits   int  // AI Insight Credits per month (each AI action = 1 credit)
 	SimulationsEnabled bool // Whether pricing simulations are available on this plan
+
+	// Decision Intelligence limits (new system)
+	DecisionsPerMonth int // Maximum decisions per month
+	ScenariosPerMonth int // Maximum scenarios per month
+
+	// Feature flags
+	Features PlanFeatures
 }
 
-// Plan limits configuration (hardcoded)
+// PlanFeatures defines feature access for a plan
+type PlanFeatures struct {
+	OutcomeKPIs      bool // Can track measurable KPIs in outcomes (Growth+)
+	DecisionTimeline bool // Can see full decision timeline/episodes (Growth+)
+	Learning         bool // Cross-decision learning and patterns (Enterprise)
+	Exports          bool // PDF/report exports (Enterprise)
+}
+
+// Plan limits configuration (hardcoded) - SINGLE SOURCE OF TRUTH
 var planLimitsConfig = map[string]PlanLimits{
 	model.PlanFree: {
 		MaxCompetitors:      1,
@@ -28,6 +43,15 @@ var planLimitsConfig = map[string]PlanLimits{
 		// AI Insight Credits
 		MonthlyAICredits:   3,
 		SimulationsEnabled: false,
+		// Decision Intelligence limits
+		DecisionsPerMonth: 3,
+		ScenariosPerMonth: 3,
+		Features: PlanFeatures{
+			OutcomeKPIs:      false, // Notes-only outcomes
+			DecisionTimeline: false,
+			Learning:         false,
+			Exports:          false,
+		},
 	},
 	model.PlanStarter: {
 		MaxCompetitors:      3,
@@ -39,6 +63,15 @@ var planLimitsConfig = map[string]PlanLimits{
 		// AI Insight Credits
 		MonthlyAICredits:   5,
 		SimulationsEnabled: false,
+		// Decision Intelligence limits
+		DecisionsPerMonth: 3,
+		ScenariosPerMonth: 3,
+		Features: PlanFeatures{
+			OutcomeKPIs:      false, // Notes-only outcomes
+			DecisionTimeline: false,
+			Learning:         false,
+			Exports:          false,
+		},
 	},
 	model.PlanGrowth: {
 		MaxCompetitors:      5,
@@ -50,6 +83,15 @@ var planLimitsConfig = map[string]PlanLimits{
 		// AI Insight Credits
 		MonthlyAICredits:   20,
 		SimulationsEnabled: true,
+		// Decision Intelligence limits
+		DecisionsPerMonth: 10,
+		ScenariosPerMonth: 10,
+		Features: PlanFeatures{
+			OutcomeKPIs:      true, // Can track measurable KPIs
+			DecisionTimeline: true, // Decision timeline/episodes
+			Learning:         false,
+			Exports:          false,
+		},
 	},
 	model.PlanEnterprise: {
 		MaxCompetitors:      10,
@@ -61,6 +103,15 @@ var planLimitsConfig = map[string]PlanLimits{
 		// AI Insight Credits
 		MonthlyAICredits:   100,
 		SimulationsEnabled: true,
+		// Decision Intelligence limits
+		DecisionsPerMonth: 50,
+		ScenariosPerMonth: 50,
+		Features: PlanFeatures{
+			OutcomeKPIs:      true,
+			DecisionTimeline: true,
+			Learning:         true, // Cross-decision learning
+			Exports:          true, // PDF/reports
+		},
 	},
 	model.PlanAdmin: {
 		MaxCompetitors:      0,
@@ -72,6 +123,15 @@ var planLimitsConfig = map[string]PlanLimits{
 		// AI Insight Credits - unlimited for admin
 		MonthlyAICredits:   9999,
 		SimulationsEnabled: true,
+		// Decision Intelligence limits - unlimited
+		DecisionsPerMonth: 0, // 0 = unlimited when IsUnlimited=true
+		ScenariosPerMonth: 0,
+		Features: PlanFeatures{
+			OutcomeKPIs:      true,
+			DecisionTimeline: true,
+			Learning:         true,
+			Exports:          true,
+		},
 	},
 	model.PlanInvestor: {
 		MaxCompetitors:      0,
@@ -83,6 +143,15 @@ var planLimitsConfig = map[string]PlanLimits{
 		// AI Insight Credits - unlimited for investor (same as admin)
 		MonthlyAICredits:   9999,
 		SimulationsEnabled: true,
+		// Decision Intelligence limits - unlimited
+		DecisionsPerMonth: 0,
+		ScenariosPerMonth: 0,
+		Features: PlanFeatures{
+			OutcomeKPIs:      true,
+			DecisionTimeline: true,
+			Learning:         true,
+			Exports:          true,
+		},
 	},
 }
 

@@ -16,12 +16,14 @@ import (
 // OutcomeHandler handles outcome-related endpoints
 type OutcomeHandler struct {
 	outcomeService *service.OutcomeService
+	limitsService  *service.LimitsService
 }
 
 // NewOutcomeHandler creates a new outcome handler
-func NewOutcomeHandler(outcomeService *service.OutcomeService) *OutcomeHandler {
+func NewOutcomeHandler(outcomeService *service.OutcomeService, limitsService *service.LimitsService) *OutcomeHandler {
 	return &OutcomeHandler{
 		outcomeService: outcomeService,
+		limitsService:  limitsService,
 	}
 }
 
@@ -155,6 +157,21 @@ func (h *OutcomeHandler) UpdateKPIActual(w http.ResponseWriter, r *http.Request)
 	if user == nil {
 		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
+	}
+
+	// Check feature gating - KPIs require Growth+ plan
+	if h.limitsService != nil {
+		limitResult := h.limitsService.CanUseOutcomeKPIs(user)
+		if !limitResult.Allowed {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    limitResult.ErrorCode,
+				"message": limitResult.Reason,
+				"plan":    limitResult.Plan,
+			})
+			return
+		}
 	}
 
 	vars := mux.Vars(r)

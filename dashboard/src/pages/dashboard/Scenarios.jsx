@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { decisionsV2Api } from '../../lib/apiClient';
+import { decisionsV2Api, PlanLimitError } from '../../lib/apiClient';
+import { useUsage } from '../../context/UsageContext';
 import { 
   getOutcome, 
   getChosenScenario, 
@@ -949,6 +950,7 @@ const Scenarios = ({
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { canGenerateScenarios, limits, used, refetch: refetchUsage } = useUsage();
   
   // Core state
   const [selectedDecision, setSelectedDecision] = useState(null);
@@ -959,6 +961,7 @@ const Scenarios = ({
   const [generating, setGenerating] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState(null);
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
   
   // Chosen scenario state (from localStorage)
   const [chosenScenario, setChosenScenario] = useState(null);
@@ -1066,12 +1069,16 @@ const Scenarios = ({
     
     setGenerating(true);
     setError(null);
+    setShowLimitWarning(false);
     try {
       const { data: scenarioData } = await decisionsV2Api.generateScenarios(selectedDecision.id, force);
       const transformedScenarios = transformScenarios(scenarioData.scenarios);
       setScenarios(transformedScenarios);
       setScenariosExist(true);
       setScenarioCreatedAt(scenarioData.createdAt);
+      
+      // Refetch usage after successful generation
+      refetchUsage();
       
       // Clear chosen scenario on regenerate
       if (force) {
@@ -1081,12 +1088,20 @@ const Scenarios = ({
       }
     } catch (err) {
       console.error('Failed to generate scenarios:', err);
+      
+      // Handle plan limit error
+      if (err instanceof PlanLimitError || err.name === 'PlanLimitError') {
+        setShowLimitWarning(true);
+        setError(null);
+        return;
+      }
+      
       setError('Failed to generate scenarios: ' + err.message);
     } finally {
       setGenerating(false);
       setShowRegenerateModal(false);
     }
-  }, [selectedDecision]);
+  }, [selectedDecision, refetchUsage]);
 
   // Open apply confirmation modal
   const handleApplyClick = useCallback((scenario) => {
@@ -1437,9 +1452,43 @@ const Scenarios = ({
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
             AI will generate 4 strategic paths: Aggressive, Balanced, Conservative, and Do Nothing — each with specific metrics and implementation details.
           </p>
+          
+          {/* Plan Limit Warning */}
+          {(showLimitWarning || !canGenerateScenarios()) && (
+            <div className="max-w-md mx-auto mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-left">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <p className="text-sm text-amber-400 font-medium">
+                    You've reached your monthly limit
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Upgrade to Growth to generate more scenarios, or continue next month.
+                  </p>
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      onClick={() => navigate('/settings/billing')}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Upgrade plan
+                    </button>
+                    <button
+                      onClick={() => navigate('/billing')}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      View plans
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <button
             onClick={() => handleGenerateScenarios(false)}
-            disabled={generating}
+            disabled={generating || !canGenerateScenarios()}
             className="px-8 py-3 bg-violet-500 hover:bg-violet-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1447,6 +1496,13 @@ const Scenarios = ({
             </svg>
             Generate Scenarios
           </button>
+          
+          {/* Usage indicator */}
+          {limits?.scenarios_per_month && (
+            <p className="text-xs text-slate-500 mt-4">
+              {used?.scenarios_this_month || 0} of {limits.scenarios_per_month} scenarios used this month
+            </p>
+          )}
         </div>
       )}
 

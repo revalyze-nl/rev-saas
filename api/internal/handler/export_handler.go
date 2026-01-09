@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,7 @@ type ExportHandler struct {
 	decisionRepo    *mongorepo.DecisionV2Repository
 	scenarioService *service.ScenarioService
 	outcomeService  *service.OutcomeService
+	limitsService   *service.LimitsService
 }
 
 // NewExportHandler creates a new export handler
@@ -32,11 +34,13 @@ func NewExportHandler(
 	decisionRepo *mongorepo.DecisionV2Repository,
 	scenarioService *service.ScenarioService,
 	outcomeService *service.OutcomeService,
+	limitsService *service.LimitsService,
 ) *ExportHandler {
 	return &ExportHandler{
 		decisionRepo:    decisionRepo,
 		scenarioService: scenarioService,
 		outcomeService:  outcomeService,
+		limitsService:   limitsService,
 	}
 }
 
@@ -61,6 +65,21 @@ func (h *ExportHandler) ExportDecisionPDF(w http.ResponseWriter, r *http.Request
 	if user == nil {
 		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
+	}
+
+	// Check feature gating - Exports require Enterprise plan
+	if h.limitsService != nil {
+		limitResult := h.limitsService.CanUseExports(user)
+		if !limitResult.Allowed {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    limitResult.ErrorCode,
+				"message": limitResult.Reason,
+				"plan":    limitResult.Plan,
+			})
+			return
+		}
 	}
 
 	vars := mux.Vars(r)

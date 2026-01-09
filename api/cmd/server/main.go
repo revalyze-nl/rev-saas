@@ -93,6 +93,9 @@ func main() {
 	analysisService := service.NewAnalysisService(analysisRepo, planRepo, competitorRepo, businessMetricsRepo)
 	businessMetricsService := service.NewBusinessMetricsService(businessMetricsRepo)
 	limitsService := service.NewLimitsService(userRepo, planRepo, competitorRepo, analysisRepo)
+	// Set decision and scenario repos for limit checking
+	limitsService.SetDecisionRepo(decisionV2Repo)
+	limitsService.SetScenarioRepo(scenarioRepo)
 	competitorV2Service := service.NewCompetitorV2Service(competitorV2Repo, userRepo, cfg.OpenAIAPIKey, limitsService)
 	pricingV2Service := service.NewPricingV2Service(pricingV2Repo, cfg.OpenAIAPIKey)
 	aiPricingService := service.NewAIPricingService(cfg.OpenAIAPIKey)
@@ -167,21 +170,21 @@ func main() {
 	demoHandler := handler.NewDemoHandler(demoService)
 	verdictHandler := handler.NewVerdictHandler(verdictService, decisionRepo)
 	decisionHandler := handler.NewDecisionHandler(decisionRepo)
-	decisionV2Handler := handler.NewDecisionV2Handler(decisionV2Service)
+	decisionV2Handler := handler.NewDecisionV2Handler(decisionV2Service, limitsService)
 	workspaceProfileHandler := handler.NewWorkspaceProfileHandler(workspaceProfileService)
-	scenarioHandler := handler.NewScenarioHandler(scenarioService)
-	outcomeHandler := handler.NewOutcomeHandler(outcomeService)
+	scenarioHandler := handler.NewScenarioHandler(scenarioService, limitsService)
+	outcomeHandler := handler.NewOutcomeHandler(outcomeService, limitsService)
 	
 	// Learning service and handler
 	learningRepo := mongorepo.NewLearningRepository(db)
 	learningService := service.NewLearningService(learningRepo)
-	learningHandler := handler.NewLearningHandler(learningService)
+	learningHandler := handler.NewLearningHandler(learningService, limitsService)
 	
 	// Wire learning service into verdict service for prompt injection
 	verdictService.SetLearningService(learningService)
 	
 	// Export handler
-	exportHandler := handler.NewExportHandler(decisionV2Repo, scenarioService, outcomeService)
+	exportHandler := handler.NewExportHandler(decisionV2Repo, scenarioService, outcomeService, limitsService)
 
 	// Create router
 	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, scenarioHandler, outcomeHandler, learningHandler, exportHandler, authMiddleware)

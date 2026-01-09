@@ -51,6 +51,30 @@ export class LimitError extends Error {
   }
 }
 
+// Custom error class for plan limit errors (new decision intelligence limits)
+export class PlanLimitError extends Error {
+  constructor(code, message, plan, limit, used) {
+    super(message || code);
+    this.name = 'PlanLimitError';
+    this.code = code;
+    this.message = message;
+    this.plan = plan;
+    this.limit = limit;
+    this.used = used;
+  }
+}
+
+// Custom error class for feature gating errors
+export class FeatureLockedError extends Error {
+  constructor(code, message, plan) {
+    super(message || code);
+    this.name = 'FeatureLockedError';
+    this.code = code;
+    this.message = message;
+    this.plan = plan;
+  }
+}
+
 // Custom error class for AI credits errors
 export class AICreditsError extends Error {
   constructor(code, message) {
@@ -92,6 +116,33 @@ const fetchWithError = async (url, options = {}) => {
             data.limit,
             data.current
           );
+        }
+      }
+      
+      // Check for plan limit errors (402 - Payment Required)
+      if (response.status === 402 && typeof data === 'object' && data.code) {
+        const planLimitCodes = ['PLAN_LIMIT_DECISIONS', 'PLAN_LIMIT_SCENARIOS'];
+        if (planLimitCodes.includes(data.code)) {
+          throw new PlanLimitError(
+            data.code,
+            data.message,
+            data.plan,
+            data.limit,
+            data.used
+          );
+        }
+      }
+      
+      // Check for feature locked errors (403 with feature code)
+      if (response.status === 403 && typeof data === 'object' && data.code) {
+        const featureLockedCodes = [
+          'FEATURE_LOCKED_OUTCOME_KPIS',
+          'FEATURE_LOCKED_DECISION_TIMELINE',
+          'FEATURE_LOCKED_LEARNING',
+          'FEATURE_LOCKED_EXPORTS'
+        ];
+        if (featureLockedCodes.includes(data.code)) {
+          throw new FeatureLockedError(data.code, data.message, data.plan);
         }
       }
       
@@ -604,6 +655,11 @@ export const decisionsApi = {
   compare: (ids) => getJson(`/api/decisions/compare?ids=${ids.join(',')}`),
 };
 
+// Usage API for plan limits
+export const usageApi = {
+  get: () => getJson('/api/usage'),
+};
+
 export default {
   postJson,
   getJson,
@@ -631,6 +687,9 @@ export default {
   decisionsApi,
   decisionsV2Api,
   workspaceApi,
+  usageApi,
   AICreditsError,
+  PlanLimitError,
+  FeatureLockedError,
 };
 

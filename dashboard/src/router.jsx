@@ -8,6 +8,7 @@ import { BusinessMetricsProvider } from './context/BusinessMetricsContext';
 import { AiCreditsProvider } from './context/AiCreditsContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { DemoProvider } from './context/DemoContext';
+import { UsageProvider } from './context/UsageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -24,23 +25,25 @@ import VerifyEmail from './pages/VerifyEmail';
 
 // Wrapper component to provide all contexts for dashboard
 const DashboardWithProviders = () => (
-  <AiCreditsProvider>
-    <CompetitorsProvider>
-      <PlansProvider>
-        <AnalysisProvider>
-          <SettingsProvider>
-            <BusinessMetricsProvider>
-              <DemoProvider>
-                <OnboardingProvider>
-                  <DashboardLayout />
-                </OnboardingProvider>
-              </DemoProvider>
-            </BusinessMetricsProvider>
-          </SettingsProvider>
-        </AnalysisProvider>
-      </PlansProvider>
-    </CompetitorsProvider>
-  </AiCreditsProvider>
+  <UsageProvider>
+    <AiCreditsProvider>
+      <CompetitorsProvider>
+        <PlansProvider>
+          <AnalysisProvider>
+            <SettingsProvider>
+              <BusinessMetricsProvider>
+                <DemoProvider>
+                  <OnboardingProvider>
+                    <DashboardLayout />
+                  </OnboardingProvider>
+                </DemoProvider>
+              </BusinessMetricsProvider>
+            </SettingsProvider>
+          </AnalysisProvider>
+        </PlansProvider>
+      </CompetitorsProvider>
+    </AiCreditsProvider>
+  </UsageProvider>
 );
 
 // Protected dashboard wrapper

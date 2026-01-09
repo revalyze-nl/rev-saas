@@ -12,12 +12,14 @@ import (
 // LearningHandler handles learning-related endpoints
 type LearningHandler struct {
 	learningService *service.LearningService
+	limitsService   *service.LimitsService
 }
 
 // NewLearningHandler creates a new learning handler
-func NewLearningHandler(learningService *service.LearningService) *LearningHandler {
+func NewLearningHandler(learningService *service.LearningService, limitsService *service.LimitsService) *LearningHandler {
 	return &LearningHandler{
 		learningService: learningService,
+		limitsService:   limitsService,
 	}
 }
 
@@ -27,6 +29,21 @@ func (h *LearningHandler) GetLearningIndicators(w http.ResponseWriter, r *http.R
 	if user == nil {
 		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
+	}
+
+	// Check feature gating - Learning requires Enterprise plan
+	if h.limitsService != nil {
+		limitResult := h.limitsService.CanUseLearning(user)
+		if !limitResult.Allowed {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    limitResult.ErrorCode,
+				"message": limitResult.Reason,
+				"plan":    limitResult.Plan,
+			})
+			return
+		}
 	}
 
 	companyStage := r.URL.Query().Get("companyStage")

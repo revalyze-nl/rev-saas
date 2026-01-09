@@ -441,6 +441,15 @@ func (r *DecisionV2Repository) GetScenariosExistenceForDecisions(ctx context.Con
 	return result, nil
 }
 
+// CountByUserSince counts decisions created by a user since a given time
+func (r *DecisionV2Repository) CountByUserSince(ctx context.Context, userID primitive.ObjectID, since time.Time) (int64, error) {
+	return r.collection.CountDocuments(ctx, bson.M{
+		"user_id":    userID,
+		"created_at": bson.M{"$gte": since},
+		"is_deleted": bson.M{"$ne": true},
+	})
+}
+
 // Helper to get outcome summary from a full decision
 func getOutcomeSummaryFromDecision(d model.DecisionV2) string {
 	if len(d.Outcomes) == 0 {

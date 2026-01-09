@@ -23,12 +23,14 @@ func writeJSONScenario(w http.ResponseWriter, data interface{}, status int) {
 // ScenarioHandler handles scenario-related endpoints
 type ScenarioHandler struct {
 	scenarioService *service.ScenarioService
+	limitsService   *service.LimitsService
 }
 
 // NewScenarioHandler creates a new scenario handler
-func NewScenarioHandler(scenarioService *service.ScenarioService) *ScenarioHandler {
+func NewScenarioHandler(scenarioService *service.ScenarioService, limitsService *service.LimitsService) *ScenarioHandler {
 	return &ScenarioHandler{
 		scenarioService: scenarioService,
+		limitsService:   limitsService,
 	}
 }
 
@@ -111,6 +113,28 @@ func (h *ScenarioHandler) GenerateScenarios(w http.ResponseWriter, r *http.Reque
 	if r.Body != nil && r.ContentLength > 0 {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSONError(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Check if scenarios already exist for this decision (idempotent behavior)
+	// Only check limit if force=true or no existing scenarios
+	existingScenarios, _ := h.scenarioService.GetScenarios(r.Context(), decisionID, user.ID)
+	needsGeneration := existingScenarios == nil || req.Force
+
+	// Check plan limit for scenarios only when actually generating new ones
+	if needsGeneration && h.limitsService != nil {
+		limitResult := h.limitsService.CanGenerateScenarios(r.Context(), user)
+		if !limitResult.Allowed {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusPaymentRequired) // 402
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    limitResult.ErrorCode,
+				"message": limitResult.Reason,
+				"limit":   limitResult.Limit,
+				"used":    limitResult.Current,
+				"plan":    limitResult.Plan,
+			})
 			return
 		}
 	}

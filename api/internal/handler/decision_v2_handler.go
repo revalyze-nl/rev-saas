@@ -26,12 +26,16 @@ func writeJSONDV2(w http.ResponseWriter, data interface{}, status int) {
 
 // DecisionV2Handler handles decision v2 API requests
 type DecisionV2Handler struct {
-	service *service.DecisionV2Service
+	service       *service.DecisionV2Service
+	limitsService *service.LimitsService
 }
 
 // NewDecisionV2Handler creates a new handler
-func NewDecisionV2Handler(svc *service.DecisionV2Service) *DecisionV2Handler {
-	return &DecisionV2Handler{service: svc}
+func NewDecisionV2Handler(svc *service.DecisionV2Service, limitsService *service.LimitsService) *DecisionV2Handler {
+	return &DecisionV2Handler{
+		service:       svc,
+		limitsService: limitsService,
+	}
 }
 
 // Create handles POST /api/v2/decisions
@@ -40,6 +44,23 @@ func (h *DecisionV2Handler) Create(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
+	}
+
+	// Check plan limit for decisions
+	if h.limitsService != nil {
+		limitResult := h.limitsService.CanCreateDecision(r.Context(), user)
+		if !limitResult.Allowed {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusPaymentRequired) // 402
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    limitResult.ErrorCode,
+				"message": limitResult.Reason,
+				"limit":   limitResult.Limit,
+				"used":    limitResult.Current,
+				"plan":    limitResult.Plan,
+			})
+			return
+		}
 	}
 
 	var req service.CreateDecisionRequest

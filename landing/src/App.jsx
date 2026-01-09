@@ -5,6 +5,7 @@ import ProblemSection from './components/ProblemSection'
 import SolutionSection from './components/SolutionSection'
 import WhySection from './components/WhySection'
 import PricingTeaser from './components/PricingTeaser'
+import FAQSection from './components/FAQSection'
 import FinalCTA from './components/FinalCTA'
 import Footer from './components/Footer'
 import Privacy from './pages/Privacy'
@@ -22,6 +23,7 @@ function HomePage() {
       <SolutionSection />
       <WhySection />
       <PricingTeaser />
+      <FAQSection />
       <FinalCTA />
     </>
   )

@@ -149,6 +149,115 @@ func (h *OutcomeHandler) UpdateOutcome(w http.ResponseWriter, r *http.Request) {
 	writeJSONOutcome(w, response, http.StatusOK)
 }
 
+// UpdateKPIActual handles PATCH /api/v2/decisions/:id/outcome/kpi/:kpiKey
+func (h *OutcomeHandler) UpdateKPIActual(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	decisionID, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		writeJSONError(w, "invalid decision ID", http.StatusBadRequest)
+		return
+	}
+
+	kpiKey := vars["kpiKey"]
+	if kpiKey == "" {
+		writeJSONError(w, "KPI key is required", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Actual float64 `json:"actual"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("[outcome-handler] Updating KPI %s actual to %.2f for decision %s", kpiKey, req.Actual, decisionID.Hex())
+
+	outcome, err := h.outcomeService.UpdateKPIActual(r.Context(), decisionID, user.ID, kpiKey, req.Actual)
+	if err != nil {
+		log.Printf("[outcome-handler] update KPI error: %v", err)
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response := model.MeasurableOutcomeResponse{
+		ID:               outcome.ID,
+		VerdictID:        outcome.VerdictID,
+		ChosenScenarioID: outcome.ChosenScenarioID,
+		Status:           outcome.Status,
+		HorizonDays:      outcome.HorizonDays,
+		KPIs:             outcome.KPIs,
+		EvidenceLinks:    outcome.EvidenceLinks,
+		Summary:          outcome.Summary,
+		Notes:            outcome.Notes,
+		CreatedAt:        outcome.CreatedAt,
+		UpdatedAt:        outcome.UpdatedAt,
+	}
+
+	writeJSONOutcome(w, response, http.StatusOK)
+}
+
+// UpdateOutcomeStatus handles PATCH /api/v2/decisions/:id/outcome/status
+func (h *OutcomeHandler) UpdateOutcomeStatus(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	decisionID, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		writeJSONError(w, "invalid decision ID", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Status == "" {
+		writeJSONError(w, "status is required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("[outcome-handler] Updating outcome status to %s for decision %s", req.Status, decisionID.Hex())
+
+	outcome, err := h.outcomeService.UpdateOutcomeStatus(r.Context(), decisionID, user.ID, req.Status)
+	if err != nil {
+		log.Printf("[outcome-handler] update status error: %v", err)
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response := model.MeasurableOutcomeResponse{
+		ID:               outcome.ID,
+		VerdictID:        outcome.VerdictID,
+		ChosenScenarioID: outcome.ChosenScenarioID,
+		Status:           outcome.Status,
+		HorizonDays:      outcome.HorizonDays,
+		KPIs:             outcome.KPIs,
+		EvidenceLinks:    outcome.EvidenceLinks,
+		Summary:          outcome.Summary,
+		Notes:            outcome.Notes,
+		CreatedAt:        outcome.CreatedAt,
+		UpdatedAt:        outcome.UpdatedAt,
+	}
+
+	writeJSONOutcome(w, response, http.StatusOK)
+}
+
 // GetDelta handles GET /api/v2/decisions/:id/deltas
 func (h *OutcomeHandler) GetDelta(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())

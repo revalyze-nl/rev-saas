@@ -438,9 +438,17 @@ export const decisionsV2Api = {
   // Get outcome for a decision
   getOutcome: (decisionId) => getJson(`/api/v2/decisions/${decisionId}/outcome`),
 
-  // Update outcome (KPIs, status, evidence)
+  // Update outcome (KPIs, status, evidence, notes)
   updateOutcome: (decisionId, outcomeData) =>
     patchJson(`/api/v2/decisions/${decisionId}/outcome`, outcomeData),
+
+  // Update outcome status only
+  updateOutcomeStatus: (decisionId, status) =>
+    patchJson(`/api/v2/decisions/${decisionId}/outcome/status`, { status }),
+
+  // Update single KPI actual value (auto-computes delta)
+  updateKPIActual: (decisionId, kpiKey, actual) =>
+    patchJson(`/api/v2/decisions/${decisionId}/outcome/kpi/${kpiKey}`, { actual }),
 
   // Get delta between scenarios (for delta view)
   getDelta: (decisionId, params = {}) => {

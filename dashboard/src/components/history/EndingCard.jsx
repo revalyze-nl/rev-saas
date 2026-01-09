@@ -26,16 +26,23 @@ const getEndingTypeStyle = (type) => {
 
 // Delta badge component - shows +/- with color
 const DeltaBadge = ({ label, value, invertColors = false }) => {
-  if (!value || value === 'Baseline' || value === 'N/A') {
-    if (value === 'Baseline') {
-      return (
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-500">{label}</span>
-          <span className="text-slate-400 font-medium">Baseline</span>
-        </div>
-      );
-    }
-    return null;
+  // Always show something, even if value is empty
+  if (!value || value === 'N/A' || value === '') {
+    return (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-slate-500">{label}</span>
+        <span className="text-slate-600">—</span>
+      </div>
+    );
+  }
+  
+  if (value === 'Baseline') {
+    return (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-slate-500">{label}</span>
+        <span className="text-slate-400 font-medium">Baseline</span>
+      </div>
+    );
   }
 
   // Determine if positive or negative
@@ -120,6 +127,14 @@ const EndingCard = memo(({
           </span>
         )}
       </div>
+
+      {/* Scenario Name & Teaser */}
+      {scenario.name && scenario.name !== typeLabel && (
+        <p className="text-xs text-white font-medium mb-1">{scenario.name}</p>
+      )}
+      <p className="text-xs text-slate-400 mb-3 line-clamp-2 min-h-[28px]">
+        {scenario.positioning || scenario.summary || scenario.bestWhen || 'Strategic path to explore'}
+      </p>
 
       {/* Delta Grid - DELTA FIRST, NO ABSOLUTE VALUES */}
       <div className="space-y-1.5 mb-4 py-2 border-y border-slate-800/30">

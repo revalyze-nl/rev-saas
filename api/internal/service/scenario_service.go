@@ -392,6 +392,12 @@ func (s *ScenarioService) generateScenariosViaOpenAI(ctx context.Context, decisi
 
 	content := openAIResp.Choices[0].Message.Content
 	log.Printf("[scenario] OpenAI response received, parsing...")
+	log.Printf("[scenario] Raw content length: %d chars", len(content))
+	if len(content) < 2000 {
+		log.Printf("[scenario] Full content: %s", content)
+	} else {
+		log.Printf("[scenario] Content preview (first 2000): %s", content[:2000])
+	}
 
 	return s.parseScenarioResponse(content)
 }
@@ -546,7 +552,24 @@ func (s *ScenarioService) parseScenarioResponse(jsonStr string) ([]model.Scenari
 	}
 
 	log.Printf("[scenario] Successfully parsed %d scenarios", len(scenarios))
+	
+	// Debug: log first scenario details
+	if len(scenarios) > 0 {
+		sc := scenarios[0]
+		log.Printf("[scenario] First scenario: ID=%s, Title=%s, Positioning=%s, Summary=%s...",
+			sc.ScenarioID, sc.Title, sc.Positioning, truncate(sc.Summary, 50))
+		log.Printf("[scenario] First scenario deltas: Revenue=%s, Churn=%s, Risk=%s",
+			sc.Deltas.RevenueDelta, sc.Deltas.ChurnDelta, sc.Deltas.RiskDelta)
+	}
+	
 	return scenarios, nil
+}
+
+func truncate(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen] + "..."
+	}
+	return s
 }
 
 func minInt(a, b int) int {

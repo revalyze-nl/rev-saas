@@ -140,16 +140,14 @@ func (s *OutcomeService) UpdateOutcome(ctx context.Context, verdictID, userID pr
 		outcome.Status = model.OutcomeStatus(*req.Status)
 	}
 	if req.KPIs != nil {
-		// Compute deltas for KPIs with actuals
+		// Validate KPI count (3-6 for Growth+, 0 for Starter)
+		if len(req.KPIs) > 0 && (len(req.KPIs) < 3 || len(req.KPIs) > 6) {
+			return nil, fmt.Errorf("KPI count must be between 3 and 6, got %d", len(req.KPIs))
+		}
+		
+		// Compute deltas for KPIs with actuals (auto-calculate deltaPercent)
 		for i := range req.KPIs {
-			if req.KPIs[i].Actual != nil {
-				delta := *req.KPIs[i].Actual - req.KPIs[i].Baseline
-				req.KPIs[i].Delta = &delta
-				if req.KPIs[i].Baseline != 0 {
-					deltaPct := (delta / req.KPIs[i].Baseline) * 100
-					req.KPIs[i].DeltaPct = &deltaPct
-				}
-			}
+			s.computeKPIDelta(&req.KPIs[i])
 		}
 		outcome.KPIs = req.KPIs
 	}
@@ -393,6 +391,97 @@ func (s *OutcomeService) getUnitForKPI(key model.KPIKey) model.KPIUnit {
 		return model.KPIUnitCount
 	default:
 		return model.KPIUnitPercent
+	}
+}
+
+// UpdateKPIActual updates a single KPI's actual value and auto-computes delta
+func (s *OutcomeService) UpdateKPIActual(ctx context.Context, verdictID, userID primitive.ObjectID, kpiKey string, actual float64) (*model.MeasurableOutcome, error) {
+	outcome, err := s.outcomeRepo.GetByVerdictID(ctx, verdictID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get outcome: %w", err)
+	}
+	if outcome == nil {
+		return nil, fmt.Errorf("outcome not found - apply a scenario first")
+	}
+
+	// Find and update the KPI
+	found := false
+	for i := range outcome.KPIs {
+		if string(outcome.KPIs[i].Key) == kpiKey {
+			outcome.KPIs[i].Actual = &actual
+			s.computeKPIDelta(&outcome.KPIs[i])
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("KPI with key '%s' not found in outcome", kpiKey)
+	}
+
+	// Update in database
+	if err := s.outcomeRepo.Update(ctx, outcome); err != nil {
+		return nil, fmt.Errorf("failed to update outcome: %w", err)
+	}
+
+	// Check if outcome is now complete
+	if s.isOutcomeComplete(outcome) {
+		if err := s.decisionRepo.UpdateEpisodeStatus(ctx, verdictID, userID, "outcome_saved"); err != nil {
+			log.Printf("[outcome] Warning: failed to update episode status: %v", err)
+		}
+	}
+
+	log.Printf("[outcome] Updated KPI %s actual to %.2f for verdict %s", kpiKey, actual, verdictID.Hex())
+	return outcome, nil
+}
+
+// UpdateOutcomeStatus updates just the outcome status
+func (s *OutcomeService) UpdateOutcomeStatus(ctx context.Context, verdictID, userID primitive.ObjectID, status string) (*model.MeasurableOutcome, error) {
+	if !model.IsValidOutcomeStatus(status) {
+		return nil, fmt.Errorf("invalid outcome status: %s", status)
+	}
+
+	outcome, err := s.outcomeRepo.GetByVerdictID(ctx, verdictID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get outcome: %w", err)
+	}
+	if outcome == nil {
+		return nil, fmt.Errorf("outcome not found")
+	}
+
+	outcome.Status = model.OutcomeStatus(status)
+
+	if err := s.outcomeRepo.Update(ctx, outcome); err != nil {
+		return nil, fmt.Errorf("failed to update outcome: %w", err)
+	}
+
+	// Update episode status if achieved/missed
+	if status == "achieved" || status == "missed" {
+		if err := s.decisionRepo.UpdateEpisodeStatus(ctx, verdictID, userID, "outcome_saved"); err != nil {
+			log.Printf("[outcome] Warning: failed to update episode status: %v", err)
+		}
+	}
+
+	return outcome, nil
+}
+
+// computeKPIDelta auto-calculates delta and deltaPct for a KPI
+// Formula: delta = actual - baseline, deltaPct = ((actual - baseline) / baseline) * 100
+func (s *OutcomeService) computeKPIDelta(kpi *model.OutcomeKPI) {
+	if kpi.Actual == nil {
+		kpi.Delta = nil
+		kpi.DeltaPct = nil
+		return
+	}
+	
+	delta := *kpi.Actual - kpi.Baseline
+	kpi.Delta = &delta
+	
+	if kpi.Baseline != 0 {
+		deltaPct := (delta / kpi.Baseline) * 100
+		kpi.DeltaPct = &deltaPct
+	} else {
+		kpi.DeltaPct = nil
 	}
 }
 

@@ -116,6 +116,8 @@ func NewRouter(
 	apiv2.HandleFunc("/decisions/{id}/scenarios/{scenarioId}/apply", outcomeHandler.ApplyScenario).Methods(http.MethodPost)
 	apiv2.HandleFunc("/decisions/{id}/outcome", outcomeHandler.GetOutcome).Methods(http.MethodGet)
 	apiv2.HandleFunc("/decisions/{id}/outcome", outcomeHandler.UpdateOutcome).Methods(http.MethodPatch)
+	apiv2.HandleFunc("/decisions/{id}/outcome/status", outcomeHandler.UpdateOutcomeStatus).Methods(http.MethodPatch)
+	apiv2.HandleFunc("/decisions/{id}/outcome/kpi/{kpiKey}", outcomeHandler.UpdateKPIActual).Methods(http.MethodPatch)
 	apiv2.HandleFunc("/decisions/{id}/deltas", outcomeHandler.GetDelta).Methods(http.MethodGet)
 
 	// Pricing V2 (auto-import from website)

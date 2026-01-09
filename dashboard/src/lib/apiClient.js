@@ -460,6 +460,20 @@ export const decisionsV2Api = {
   },
 };
 
+// Learning API (cross-decision memory)
+export const learningApi = {
+  // Get learning indicators for a given context
+  getIndicators: (companyStage, primaryKpi) => {
+    const params = new URLSearchParams();
+    if (companyStage) params.append('companyStage', companyStage);
+    if (primaryKpi) params.append('primaryKpi', primaryKpi);
+    return getJson(`/api/v2/learning/indicators?${params.toString()}`);
+  },
+  
+  // Refresh insights (admin only)
+  refresh: () => postJson('/api/v2/learning/refresh'),
+};
+
 // PATCH request with JSON body
 export const patchJson = async (path, body = {}, options = {}) => {
   const url = `${API_BASE_URL}${path}`;

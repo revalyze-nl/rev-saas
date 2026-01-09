@@ -189,8 +189,9 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.`
 
 // VerdictService handles AI-powered pricing verdicts
 type VerdictService struct {
-	openAIKey  string
-	httpClient *http.Client
+	openAIKey       string
+	httpClient      *http.Client
+	learningService *LearningService
 }
 
 // NewVerdictService creates a new VerdictService
@@ -201,6 +202,11 @@ func NewVerdictService(openAIKey string) *VerdictService {
 			Timeout: 150 * time.Second, // Increased for premium analysis
 		},
 	}
+}
+
+// SetLearningService sets the learning service for historical context injection
+func (s *VerdictService) SetLearningService(ls *LearningService) {
+	s.learningService = ls
 }
 
 // GenerateVerdict analyzes a website and returns a pricing verdict

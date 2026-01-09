@@ -34,6 +34,7 @@ func NewRouter(
 	workspaceProfileHandler *handler.WorkspaceProfileHandler,
 	scenarioHandler *handler.ScenarioHandler,
 	outcomeHandler *handler.OutcomeHandler,
+	learningHandler *handler.LearningHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -119,6 +120,10 @@ func NewRouter(
 	apiv2.HandleFunc("/decisions/{id}/outcome/status", outcomeHandler.UpdateOutcomeStatus).Methods(http.MethodPatch)
 	apiv2.HandleFunc("/decisions/{id}/outcome/kpi/{kpiKey}", outcomeHandler.UpdateKPIActual).Methods(http.MethodPatch)
 	apiv2.HandleFunc("/decisions/{id}/deltas", outcomeHandler.GetDelta).Methods(http.MethodGet)
+
+	// Learning (cross-decision memory)
+	apiv2.HandleFunc("/learning/indicators", learningHandler.GetLearningIndicators).Methods(http.MethodGet)
+	apiv2.HandleFunc("/learning/refresh", learningHandler.RefreshInsights).Methods(http.MethodPost)
 
 	// Pricing V2 (auto-import from website)
 	api.HandleFunc("/pricing-v2/discover", pricingV2Handler.Discover).Methods(http.MethodPost)

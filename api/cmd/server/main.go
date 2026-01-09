@@ -171,9 +171,17 @@ func main() {
 	workspaceProfileHandler := handler.NewWorkspaceProfileHandler(workspaceProfileService)
 	scenarioHandler := handler.NewScenarioHandler(scenarioService)
 	outcomeHandler := handler.NewOutcomeHandler(outcomeService)
+	
+	// Learning service and handler
+	learningRepo := mongorepo.NewLearningRepository(db)
+	learningService := service.NewLearningService(learningRepo)
+	learningHandler := handler.NewLearningHandler(learningService)
+	
+	// Wire learning service into verdict service for prompt injection
+	verdictService.SetLearningService(learningService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, scenarioHandler, outcomeHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, scenarioHandler, outcomeHandler, learningHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

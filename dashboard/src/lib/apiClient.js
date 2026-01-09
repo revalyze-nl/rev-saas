@@ -474,23 +474,86 @@ export const learningApi = {
   refresh: () => postJson('/api/v2/learning/refresh'),
 };
 
-// Export API (decision reports)
+// Export API (decision reports) - uses fetch with auth token
 export const exportApi = {
   // Export decision as JSON download
-  exportJSON: (decisionId) => {
-    window.open(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/json`, '_blank');
+  exportJSON: async (decisionId) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/json`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `decision_${decisionId}.json`;
+      downloadExportBlob(blob, filename);
+    } catch (err) {
+      console.error('Export JSON failed:', err);
+      throw err;
+    }
   },
   
   // Export decision as Markdown download
-  exportMarkdown: (decisionId) => {
-    window.open(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/markdown`, '_blank');
+  exportMarkdown: async (decisionId) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/markdown`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `decision_${decisionId}.md`;
+      downloadExportBlob(blob, filename);
+    } catch (err) {
+      console.error('Export Markdown failed:', err);
+      throw err;
+    }
   },
   
-  // Open HTML export (for browser print to PDF)
-  openHTML: (decisionId) => {
-    window.open(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/html`, '_blank');
+  // Open HTML export (for browser print to PDF) - opens in new tab with content
+  openHTML: async (decisionId) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/html`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const html = await response.text();
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(html);
+        newWindow.document.close();
+      }
+    } catch (err) {
+      console.error('Export HTML failed:', err);
+      throw err;
+    }
   },
 };
+
+// Helper to trigger file download from blob
+function downloadExportBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 // PATCH request with JSON body
 export const patchJson = async (path, body = {}, options = {}) => {

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { decisionsV2Api } from '../lib/apiClient';
+import { exportApi } from '../lib/apiClient';
 
 /**
  * ExportButton - Premium PDF export for decisions
- * Opens a styled HTML page that auto-triggers browser print dialog
+ * Downloads PDF directly to user's device
  */
 export default function ExportButton({ decisionId, decisionTitle }) {
   const [loading, setLoading] = useState(false);
@@ -13,7 +13,7 @@ export default function ExportButton({ decisionId, decisionTitle }) {
     
     setLoading(true);
     try {
-      await decisionsV2Api.openHTML(decisionId);
+      await exportApi.downloadPDF(decisionId);
     } catch (error) {
       console.error('PDF export failed:', error);
     } finally {

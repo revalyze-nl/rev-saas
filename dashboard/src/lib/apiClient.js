@@ -518,8 +518,8 @@ export const exportApi = {
     }
   },
   
-  // Open HTML export (for browser print to PDF) - opens in new tab with content
-  openHTML: async (decisionId) => {
+  // Download PDF export directly
+  downloadPDF: async (decisionId) => {
     try {
       const token = getToken();
       const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/html`, {
@@ -530,14 +530,11 @@ export const exportApi = {
       
       if (!response.ok) throw new Error('Export failed');
       
-      const html = await response.text();
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(html);
-        newWindow.document.close();
-      }
+      const blob = await response.blob();
+      const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `decision-report-${decisionId}.pdf`;
+      downloadExportBlob(blob, filename);
     } catch (err) {
-      console.error('Export HTML failed:', err);
+      console.error('PDF export failed:', err);
       throw err;
     }
   },

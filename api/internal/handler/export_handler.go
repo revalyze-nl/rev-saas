@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jung-kurt/gofpdf"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"rev-saas-api/internal/middleware"
@@ -47,8 +48,13 @@ func (h *ExportHandler) ExportDecisionMarkdown(w http.ResponseWriter, r *http.Re
 	writeJSONError(w, "Markdown export disabled. Use PDF export instead.", http.StatusNotImplemented)
 }
 
-// ExportDecisionHTML handles GET /api/v2/decisions/:id/export/html (for PDF via browser print)
+// ExportDecisionHTML handles GET /api/v2/decisions/:id/export/html - Now returns PDF
 func (h *ExportHandler) ExportDecisionHTML(w http.ResponseWriter, r *http.Request) {
+	h.ExportDecisionPDF(w, r)
+}
+
+// ExportDecisionPDF handles GET /api/v2/decisions/:id/export/pdf
+func (h *ExportHandler) ExportDecisionPDF(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if user == nil {
 		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
@@ -82,696 +88,318 @@ func (h *ExportHandler) ExportDecisionHTML(w http.ResponseWriter, r *http.Reques
 	// Get outcome
 	outcome, _ := h.outcomeService.GetOutcome(r.Context(), decisionID, user.ID)
 
-	// Build premium HTML
-	html := buildPremiumPDFExport(decision, scenarios, outcome)
+	// Build PDF
+	pdfBytes, err := buildPremiumPDF(decision, scenarios, outcome)
+	if err != nil {
+		log.Printf("[export] PDF generation error: %v", err)
+		writeJSONError(w, "failed to generate PDF", http.StatusInternalServerError)
+		return
+	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(html))
+	// Send PDF
+	filename := fmt.Sprintf("decision-report-%s.pdf", sanitizeExportFilename(decision.CompanyName))
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+	w.Write(pdfBytes)
 }
 
-func buildPremiumPDFExport(decision *model.DecisionV2, scenarios *model.ScenarioSet, outcome *model.MeasurableOutcome) string {
-	var buf bytes.Buffer
-	
+func buildPremiumPDF(decision *model.DecisionV2, scenarios *model.ScenarioSet, outcome *model.MeasurableOutcome) ([]byte, error) {
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.SetMargins(20, 20, 20)
+	pdf.AddPage()
+
+	// Colors
+	primaryColor := []int{139, 92, 246}    // Purple
+	darkColor := []int{15, 23, 42}          // Dark blue
+	grayColor := []int{100, 116, 139}       // Gray
+	lightGray := []int{241, 245, 249}       // Light gray bg
+	greenColor := []int{16, 185, 129}       // Green
+	redColor := []int{239, 68, 68}          // Red
+
 	currentDate := time.Now().Format("Jan 02, 2006")
+	pageWidth := 170.0
+
+	// === HEADER ===
+	// Logo text
+	pdf.SetFont("Helvetica", "B", 24)
+	pdf.SetTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+	pdf.CellFormat(100, 10, "Revalyze", "", 0, "L", false, 0, "")
 	
-	buf.WriteString(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decision Report - `)
-	buf.WriteString(decision.CompanyName)
-	buf.WriteString(`</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
-            line-height: 1.6;
-            padding: 0;
-            min-height: 100vh;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 48px 40px;
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-            min-height: 100vh;
-        }
-        
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 48px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .logo-icon svg {
-            width: 24px;
-            height: 24px;
-        }
-        
-        .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .date {
-            font-size: 14px;
-            color: #64748b;
-        }
-        
-        /* Title Section */
-        .title-section {
-            margin-bottom: 40px;
-        }
-        
-        .report-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-bottom: 8px;
-        }
-        
-        .report-subtitle {
-            font-size: 16px;
-            color: #94a3b8;
-        }
-        
-        /* Company Info */
-        .company-info {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 32px;
-        }
-        
-        .company-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #f8fafc;
-            margin-bottom: 4px;
-        }
-        
-        .company-url {
-            font-size: 14px;
-            color: #8b5cf6;
-        }
-        
-        /* Section */
-        .section {
-            margin-bottom: 32px;
-        }
-        
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        
-        .section-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(139, 92, 246, 0.15);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .section-icon svg {
-            width: 18px;
-            height: 18px;
-            color: #8b5cf6;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #f8fafc;
-        }
-        
-        .section-content {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-        }
-        
-        /* Verdict Box */
-        .verdict-headline {
-            font-size: 18px;
-            font-weight: 600;
-            color: #f8fafc;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-        
-        .verdict-summary {
-            font-size: 14px;
-            color: #94a3b8;
-            line-height: 1.7;
-        }
-        
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-top: 20px;
-        }
-        
-        .metric-card {
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 12px;
-            padding: 16px;
-        }
-        
-        .metric-label {
-            font-size: 11px;
-            font-weight: 500;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-        
-        .metric-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #f8fafc;
-        }
-        
-        .metric-value.positive {
-            color: #10b981;
-        }
-        
-        .metric-value.negative {
-            color: #ef4444;
-        }
-        
-        .metric-value.warning {
-            color: #f59e0b;
-        }
-        
-        /* Scenario Card */
-        .scenario-card {
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 16px;
-        }
-        
-        .scenario-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-            color: white;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            margin-bottom: 12px;
-        }
-        
-        .scenario-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #f8fafc;
-            margin-bottom: 8px;
-        }
-        
-        .scenario-summary {
-            font-size: 14px;
-            color: #94a3b8;
-            line-height: 1.6;
-        }
-        
-        /* KPI Table */
-        .kpi-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 16px;
-        }
-        
-        .kpi-table th {
-            text-align: left;
-            font-size: 11px;
-            font-weight: 500;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-        }
-        
-        .kpi-table td {
-            padding: 14px 16px;
-            font-size: 14px;
-            color: #e2e8f0;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.05);
-        }
-        
-        .kpi-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .kpi-name {
-            font-weight: 500;
-        }
-        
-        .delta-positive {
-            color: #10b981;
-            font-weight: 600;
-        }
-        
-        .delta-negative {
-            color: #ef4444;
-            font-weight: 600;
-        }
-        
-        /* Status Badge */
-        .status-badge {
-            display: inline-block;
-            font-size: 12px;
-            font-weight: 500;
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-        
-        .status-achieved {
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
-        }
-        
-        .status-missed {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-        }
-        
-        .status-pending {
-            background: rgba(148, 163, 184, 0.15);
-            color: #94a3b8;
-        }
-        
-        .status-in-progress {
-            background: rgba(59, 130, 246, 0.15);
-            color: #3b82f6;
-        }
-        
-        /* Footer */
-        .footer {
-            margin-top: 48px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
-            text-align: center;
-        }
-        
-        .footer-text {
-            font-size: 12px;
-            color: #64748b;
-            margin-bottom: 4px;
-        }
-        
-        .footer-brand {
-            font-size: 14px;
-            font-weight: 500;
-            color: #8b5cf6;
-        }
-        
-        /* Print Styles */
-        @media print {
-            body {
-                background: white;
-                color: #1e293b;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            .container {
-                background: white;
-                padding: 20px;
-            }
-            
-            .section-content, .company-info, .metric-card, .scenario-card {
-                background: #f8fafc;
-                border-color: #e2e8f0;
-            }
-            
-            .logo-text {
-                color: #8b5cf6;
-                -webkit-text-fill-color: #8b5cf6;
-            }
-            
-            .report-title, .company-name, .section-title, .verdict-headline, .scenario-title {
-                color: #0f172a;
-            }
-            
-            .kpi-table td, .verdict-summary, .scenario-summary {
-                color: #475569;
-            }
-        }
-        
-        @page {
-            margin: 0.5in;
-            size: A4;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-                <span class="logo-text">Revalyze</span>
-            </div>
-            <div class="date">`)
-	buf.WriteString(currentDate)
-	buf.WriteString(`</div>
-        </div>
-        
-        <!-- Title -->
-        <div class="title-section">
-            <h1 class="report-title">Decision Intelligence Report</h1>
-            <p class="report-subtitle">Strategic analysis and recommendations based on AI-powered insights</p>
-        </div>
-        
-        <!-- Company Info -->
-        <div class="company-info">
-            <div class="company-name">`)
-	buf.WriteString(decision.CompanyName)
-	buf.WriteString(`</div>
-            <div class="company-url">`)
-	buf.WriteString(decision.WebsiteURL)
-	buf.WriteString(`</div>
-        </div>
-        
-        <!-- Executive Summary -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-                <h2 class="section-title">Executive Summary</h2>
-            </div>
-            <div class="section-content">
-                <div class="verdict-headline">`)
-	buf.WriteString(decision.Verdict.Headline)
-	buf.WriteString(`</div>
-                <p class="verdict-summary">`)
-	buf.WriteString(decision.Verdict.Summary)
-	buf.WriteString(`</p>
-            </div>
-        </div>
-        
-        <!-- Decision Snapshot -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-                <h2 class="section-title">Decision Snapshot</h2>
-            </div>
-            <div class="section-content">
-                <div class="metrics-grid">`)
+	// Date
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.CellFormat(70, 10, currentDate, "", 1, "R", false, 0, "")
 	
-	// Add metrics if available
+	pdf.Ln(5)
+	
+	// Divider line
+	pdf.SetDrawColor(primaryColor[0], primaryColor[1], primaryColor[2])
+	pdf.SetLineWidth(0.5)
+	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
+	pdf.Ln(10)
+
+	// === TITLE ===
+	pdf.SetFont("Helvetica", "B", 22)
+	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+	pdf.CellFormat(pageWidth, 10, "Decision Intelligence Report", "", 1, "L", false, 0, "")
+	
+	pdf.SetFont("Helvetica", "", 11)
+	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.CellFormat(pageWidth, 6, "Strategic analysis and recommendations based on AI-powered insights.", "", 1, "L", false, 0, "")
+	pdf.Ln(10)
+
+	// === COMPANY INFO BOX ===
+	pdf.SetFillColor(lightGray[0], lightGray[1], lightGray[2])
+	pdf.RoundedRect(20, pdf.GetY(), pageWidth, 18, 3, "1234", "F")
+	
+	pdf.SetXY(25, pdf.GetY()+4)
+	pdf.SetFont("Helvetica", "B", 14)
+	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+	pdf.CellFormat(100, 6, decision.CompanyName, "", 0, "L", false, 0, "")
+	
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+	pdf.CellFormat(60, 6, decision.WebsiteURL, "", 1, "R", false, 0, "")
+	pdf.Ln(12)
+
+	// === EXECUTIVE SUMMARY ===
+	drawSectionHeader(pdf, "Executive Summary", darkColor, primaryColor)
+	
+	pdf.SetFont("Helvetica", "B", 12)
+	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+	pdf.MultiCell(pageWidth, 6, decision.Verdict.Headline, "", "L", false)
+	pdf.Ln(3)
+	
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.MultiCell(pageWidth, 5, decision.Verdict.Summary, "", "L", false)
+	pdf.Ln(8)
+
+	// === DECISION SNAPSHOT ===
 	if decision.Verdict.DecisionSnapshot != nil {
+		drawSectionHeader(pdf, "Decision Snapshot", darkColor, primaryColor)
+		
 		ds := decision.Verdict.DecisionSnapshot
 		
-		// Revenue Impact
-		buf.WriteString(`
-                    <div class="metric-card">
-                        <div class="metric-label">Expected Revenue Impact</div>
-                        <div class="metric-value positive">`)
-		buf.WriteString(ds.RevenueImpactRange)
-		buf.WriteString(`</div>
-                    </div>`)
+		// Table header
+		pdf.SetFillColor(lightGray[0], lightGray[1], lightGray[2])
+		pdf.SetFont("Helvetica", "B", 9)
+		pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
 		
-		// Risk Level
-		riskClass := "warning"
+		colWidths := []float64{42.5, 42.5, 42.5, 42.5}
+		headers := []string{"REVENUE IMPACT", "RISK LEVEL", "TIME TO IMPACT", "EFFORT"}
+		
+		for i, header := range headers {
+			pdf.CellFormat(colWidths[i], 8, header, "", 0, "C", true, 0, "")
+		}
+		pdf.Ln(-1)
+		
+		// Table values
+		pdf.SetFont("Helvetica", "B", 11)
+		
+		// Revenue - green
+		pdf.SetTextColor(greenColor[0], greenColor[1], greenColor[2])
+		pdf.CellFormat(colWidths[0], 10, ds.RevenueImpactRange, "", 0, "C", false, 0, "")
+		
+		// Risk - color based on level
+		riskColor := grayColor
 		if strings.ToLower(ds.PrimaryRiskLevel) == "low" {
-			riskClass = "positive"
+			riskColor = greenColor
 		} else if strings.ToLower(ds.PrimaryRiskLevel) == "high" {
-			riskClass = "negative"
+			riskColor = redColor
+		} else if strings.ToLower(ds.PrimaryRiskLevel) == "medium" {
+			riskColor = []int{245, 158, 11} // Amber
 		}
-		buf.WriteString(`
-                    <div class="metric-card">
-                        <div class="metric-label">Risk Level</div>
-                        <div class="metric-value `)
-		buf.WriteString(riskClass)
-		buf.WriteString(`">`)
-		buf.WriteString(ds.PrimaryRiskLevel)
-		buf.WriteString(`</div>
-                    </div>`)
+		pdf.SetTextColor(riskColor[0], riskColor[1], riskColor[2])
+		pdf.CellFormat(colWidths[1], 10, ds.PrimaryRiskLevel, "", 0, "C", false, 0, "")
 		
-		// Time to Impact
-		buf.WriteString(`
-                    <div class="metric-card">
-                        <div class="metric-label">Time to Impact</div>
-                        <div class="metric-value">`)
-		buf.WriteString(ds.TimeToImpact)
-		buf.WriteString(`</div>
-                    </div>`)
+		// Time - dark
+		pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+		pdf.CellFormat(colWidths[2], 10, ds.TimeToImpact, "", 0, "C", false, 0, "")
 		
-		// Execution Effort
-		effortClass := ""
+		// Effort - color based
+		effortColor := grayColor
 		if strings.ToLower(ds.ExecutionEffort) == "low" {
-			effortClass = "positive"
+			effortColor = greenColor
 		} else if strings.ToLower(ds.ExecutionEffort) == "high" {
-			effortClass = "negative"
+			effortColor = redColor
 		}
-		buf.WriteString(`
-                    <div class="metric-card">
-                        <div class="metric-label">Execution Effort</div>
-                        <div class="metric-value `)
-		buf.WriteString(effortClass)
-		buf.WriteString(`">`)
-		buf.WriteString(ds.ExecutionEffort)
-		buf.WriteString(`</div>
-                    </div>`)
+		pdf.SetTextColor(effortColor[0], effortColor[1], effortColor[2])
+		pdf.CellFormat(colWidths[3], 10, ds.ExecutionEffort, "", 1, "C", false, 0, "")
+		
+		pdf.Ln(8)
 	}
-	
-	buf.WriteString(`
-                </div>
-            </div>
-        </div>`)
-	
-	// Chosen Scenario
+
+	// === CHOSEN SCENARIO ===
 	if scenarios != nil && decision.ChosenScenarioID != nil && *decision.ChosenScenarioID != "" {
 		for _, sc := range scenarios.Scenarios {
 			if string(sc.ScenarioID) == *decision.ChosenScenarioID {
-				buf.WriteString(`
-        
-        <!-- Chosen Path -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <h2 class="section-title">Chosen Strategic Path</h2>
-            </div>
-            <div class="section-content">
-                <div class="scenario-card">
-                    <span class="scenario-badge">Selected Strategy</span>
-                    <div class="scenario-title">`)
-				buf.WriteString(sc.Title)
-				buf.WriteString(`</div>
-                    <p class="scenario-summary">`)
-				buf.WriteString(sc.Summary)
-				buf.WriteString(`</p>
-                    <div class="metrics-grid" style="margin-top: 16px;">
-                        <div class="metric-card">
-                            <div class="metric-label">Revenue Impact</div>
-                            <div class="metric-value positive">`)
-				buf.WriteString(sc.Metrics.RevenueImpactRange)
-				buf.WriteString(`</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Churn Impact</div>
-                            <div class="metric-value">`)
-				buf.WriteString(sc.Metrics.ChurnImpactRange)
-				buf.WriteString(`</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>`)
+				drawSectionHeader(pdf, "Chosen Strategic Path", darkColor, primaryColor)
+				
+				// Scenario badge
+				pdf.SetFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+				pdf.SetTextColor(255, 255, 255)
+				pdf.SetFont("Helvetica", "B", 8)
+				pdf.RoundedRect(20, pdf.GetY(), 35, 6, 2, "1234", "F")
+				pdf.SetXY(20, pdf.GetY())
+				pdf.CellFormat(35, 6, "SELECTED STRATEGY", "", 1, "C", false, 0, "")
+				pdf.Ln(3)
+				
+				// Scenario title
+				pdf.SetFont("Helvetica", "B", 12)
+				pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+				pdf.CellFormat(pageWidth, 6, sc.Title, "", 1, "L", false, 0, "")
+				pdf.Ln(2)
+				
+				// Scenario summary
+				pdf.SetFont("Helvetica", "", 10)
+				pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+				pdf.MultiCell(pageWidth, 5, sc.Summary, "", "L", false)
+				pdf.Ln(3)
+				
+				// Mini metrics
+				if sc.Metrics.RevenueImpactRange != "" {
+					pdf.SetFont("Helvetica", "", 9)
+					pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+					pdf.CellFormat(30, 5, "Revenue:", "", 0, "L", false, 0, "")
+					pdf.SetTextColor(greenColor[0], greenColor[1], greenColor[2])
+					pdf.SetFont("Helvetica", "B", 9)
+					pdf.CellFormat(50, 5, sc.Metrics.RevenueImpactRange, "", 0, "L", false, 0, "")
+					
+					pdf.SetFont("Helvetica", "", 9)
+					pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+					pdf.CellFormat(30, 5, "Churn:", "", 0, "L", false, 0, "")
+					pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+					pdf.SetFont("Helvetica", "B", 9)
+					pdf.CellFormat(50, 5, sc.Metrics.ChurnImpactRange, "", 1, "L", false, 0, "")
+				}
+				
+				pdf.Ln(8)
 				break
 			}
 		}
 	}
-	
-	// Outcome KPIs
+
+	// === OUTCOME KPIs ===
 	if outcome != nil && len(outcome.KPIs) > 0 {
-		statusClass := "status-pending"
-		statusLabel := "Pending"
-		switch outcome.Status {
-		case model.OutcomeStatusAchieved:
-			statusClass = "status-achieved"
-			statusLabel = "Achieved"
-		case model.OutcomeStatusMissed:
-			statusClass = "status-missed"
-			statusLabel = "Missed"
-		case model.OutcomeStatusInProgress:
-			statusClass = "status-in-progress"
-			statusLabel = "In Progress"
+		// Check if we need a new page
+		if pdf.GetY() > 220 {
+			pdf.AddPage()
 		}
 		
-		buf.WriteString(`
-        
-        <!-- Outcome Tracking -->
-        <div class="section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                </div>
-                <h2 class="section-title">Outcome Tracking</h2>
-            </div>
-            <div class="section-content">
-                <div style="margin-bottom: 16px;">
-                    <span class="status-badge `)
-		buf.WriteString(statusClass)
-		buf.WriteString(`">`)
-		buf.WriteString(statusLabel)
-		buf.WriteString(`</span>
-                </div>
-                <table class="kpi-table">
-                    <thead>
-                        <tr>
-                            <th>KPI</th>
-                            <th>Baseline</th>
-                            <th>Target</th>
-                            <th>Actual</th>
-                            <th>Delta</th>
-                        </tr>
-                    </thead>
-                    <tbody>`)
+		drawSectionHeader(pdf, "Outcome Tracking", darkColor, primaryColor)
 		
+		// Status badge
+		statusText := "PENDING"
+		statusColor := grayColor
+		switch outcome.Status {
+		case model.OutcomeStatusAchieved:
+			statusText = "ACHIEVED"
+			statusColor = greenColor
+		case model.OutcomeStatusMissed:
+			statusText = "MISSED"
+			statusColor = redColor
+		case model.OutcomeStatusInProgress:
+			statusText = "IN PROGRESS"
+			statusColor = []int{59, 130, 246} // Blue
+		}
+		
+		pdf.SetFillColor(statusColor[0], statusColor[1], statusColor[2])
+		pdf.SetTextColor(255, 255, 255)
+		pdf.SetFont("Helvetica", "B", 8)
+		badgeWidth := float64(len(statusText)*2 + 10)
+		pdf.RoundedRect(20, pdf.GetY(), badgeWidth, 6, 2, "1234", "F")
+		pdf.SetXY(20, pdf.GetY())
+		pdf.CellFormat(badgeWidth, 6, statusText, "", 1, "C", false, 0, "")
+		pdf.Ln(5)
+		
+		// KPI Table
+		pdf.SetFillColor(lightGray[0], lightGray[1], lightGray[2])
+		pdf.SetFont("Helvetica", "B", 9)
+		pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+		
+		kpiColWidths := []float64{50, 30, 30, 30, 30}
+		kpiHeaders := []string{"KPI", "BASELINE", "TARGET", "ACTUAL", "DELTA"}
+		
+		for i, header := range kpiHeaders {
+			pdf.CellFormat(kpiColWidths[i], 8, header, "", 0, "C", true, 0, "")
+		}
+		pdf.Ln(-1)
+		
+		// KPI rows
 		for _, kpi := range outcome.KPIs {
-			actual := "—"
-			deltaStr := "—"
-			deltaClass := ""
+			pdf.SetFont("Helvetica", "", 10)
+			pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+			pdf.CellFormat(kpiColWidths[0], 8, string(kpi.Key), "B", 0, "L", false, 0, "")
+			pdf.CellFormat(kpiColWidths[1], 8, fmt.Sprintf("%.1f", kpi.Baseline), "B", 0, "C", false, 0, "")
+			pdf.CellFormat(kpiColWidths[2], 8, fmt.Sprintf("%.1f", kpi.Target), "B", 0, "C", false, 0, "")
 			
+			// Actual
+			actualStr := "-"
 			if kpi.Actual != nil {
-				actual = fmt.Sprintf("%.1f", *kpi.Actual)
+				actualStr = fmt.Sprintf("%.1f", *kpi.Actual)
 			}
+			pdf.CellFormat(kpiColWidths[3], 8, actualStr, "B", 0, "C", false, 0, "")
+			
+			// Delta with color
+			deltaStr := "-"
 			if kpi.DeltaPct != nil {
 				if *kpi.DeltaPct > 0 {
+					pdf.SetTextColor(greenColor[0], greenColor[1], greenColor[2])
 					deltaStr = fmt.Sprintf("+%.1f%%", *kpi.DeltaPct)
-					deltaClass = "delta-positive"
 				} else if *kpi.DeltaPct < 0 {
+					pdf.SetTextColor(redColor[0], redColor[1], redColor[2])
 					deltaStr = fmt.Sprintf("%.1f%%", *kpi.DeltaPct)
-					deltaClass = "delta-negative"
 				} else {
 					deltaStr = "0%"
 				}
 			}
-			
-			buf.WriteString(`
-                        <tr>
-                            <td class="kpi-name">`)
-			buf.WriteString(string(kpi.Key))
-			buf.WriteString(`</td>
-                            <td>`)
-			buf.WriteString(fmt.Sprintf("%.1f", kpi.Baseline))
-			buf.WriteString(`</td>
-                            <td>`)
-			buf.WriteString(fmt.Sprintf("%.1f", kpi.Target))
-			buf.WriteString(`</td>
-                            <td>`)
-			buf.WriteString(actual)
-			buf.WriteString(`</td>
-                            <td class="`)
-			buf.WriteString(deltaClass)
-			buf.WriteString(`">`)
-			buf.WriteString(deltaStr)
-			buf.WriteString(`</td>
-                        </tr>`)
+			pdf.SetFont("Helvetica", "B", 10)
+			pdf.CellFormat(kpiColWidths[4], 8, deltaStr, "B", 1, "C", false, 0, "")
 		}
 		
-		buf.WriteString(`
-                    </tbody>
-                </table>
-            </div>
-        </div>`)
+		pdf.Ln(8)
 	}
+
+	// === FOOTER ===
+	pdf.SetY(-30)
+	pdf.SetDrawColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.SetLineWidth(0.2)
+	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
+	pdf.Ln(5)
 	
-	// Footer
-	buf.WriteString(`
-        
-        <!-- Footer -->
-        <div class="footer">
-            <p class="footer-text">Generated by</p>
-            <p class="footer-brand">Revalyze - AI-Powered Decision Intelligence</p>
-            <p class="footer-text" style="margin-top: 8px;">© `)
-	buf.WriteString(fmt.Sprintf("%d", time.Now().Year()))
-	buf.WriteString(` Revalyze B.V.</p>
-        </div>
-    </div>
-    
-    <script>
-        // Auto-open print dialog
-        window.onload = function() {
-            setTimeout(function() {
-                window.print();
-            }, 500);
-        };
-    </script>
-</body>
-</html>`)
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.CellFormat(pageWidth, 5, "Generated by", "", 1, "C", false, 0, "")
 	
-	return buf.String()
+	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+	pdf.CellFormat(pageWidth, 5, "Revalyze - AI-Powered Decision Intelligence", "", 1, "C", false, 0, "")
+	
+	pdf.SetFont("Helvetica", "", 8)
+	pdf.SetTextColor(grayColor[0], grayColor[1], grayColor[2])
+	pdf.CellFormat(pageWidth, 5, fmt.Sprintf("© %d Revalyze B.V.", time.Now().Year()), "", 1, "C", false, 0, "")
+
+	// Output
+	var buf bytes.Buffer
+	err := pdf.Output(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func drawSectionHeader(pdf *gofpdf.Fpdf, title string, darkColor, primaryColor []int) {
+	// Small colored bar
+	pdf.SetFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+	pdf.Rect(20, pdf.GetY(), 3, 7, "F")
+	
+	pdf.SetX(26)
+	pdf.SetFont("Helvetica", "B", 13)
+	pdf.SetTextColor(darkColor[0], darkColor[1], darkColor[2])
+	pdf.CellFormat(140, 7, title, "", 1, "L", false, 0, "")
+	pdf.Ln(3)
 }
 
 func sanitizeExportFilename(name string) string {

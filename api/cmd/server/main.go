@@ -79,6 +79,9 @@ func main() {
 	decisionRepo := mongorepo.NewDecisionRepository(db)
 	decisionV2Repo := mongorepo.NewDecisionV2Repository(db)
 	workspaceProfileRepo := mongorepo.NewWorkspaceProfileRepository(db)
+	scenarioRepo := mongorepo.NewScenarioRepository(db)
+	outcomeRepo := mongorepo.NewOutcomeRepository(db)
+	scenarioDeltaRepo := mongorepo.NewScenarioDeltaRepository(db)
 
 	// Initialize services
 	jwtService := service.NewJWTService(cfg.JWTSecret)
@@ -131,9 +134,15 @@ func main() {
 	verdictService := service.NewVerdictService(cfg.OpenAIAPIKey)
 
 	// Decision V2 services (versioned decisions with context resolution)
-	inferenceService := service.NewInferenceService()
+	inferenceService := service.NewInferenceService(verdictService)
 	workspaceProfileService := service.NewWorkspaceProfileService(workspaceProfileRepo)
 	decisionV2Service := service.NewDecisionV2Service(decisionV2Repo, workspaceProfileRepo, inferenceService)
+
+	// Scenario service (AI-generated strategic scenarios)
+	scenarioService := service.NewScenarioService(cfg.OpenAIAPIKey, scenarioRepo, decisionV2Repo)
+
+	// Outcome service (measurable outcomes with KPI tracking)
+	outcomeService := service.NewOutcomeService(outcomeRepo, decisionV2Repo, scenarioRepo, scenarioDeltaRepo)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtService, userRepo)
@@ -160,9 +169,11 @@ func main() {
 	decisionHandler := handler.NewDecisionHandler(decisionRepo)
 	decisionV2Handler := handler.NewDecisionV2Handler(decisionV2Service)
 	workspaceProfileHandler := handler.NewWorkspaceProfileHandler(workspaceProfileService)
+	scenarioHandler := handler.NewScenarioHandler(scenarioService)
+	outcomeHandler := handler.NewOutcomeHandler(outcomeService)
 
 	// Create router
-	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, authMiddleware)
+	r := router.NewRouter(healthHandler, authHandler, planHandler, competitorHandler, competitorV2Handler, pricingV2Handler, analysisHandler, analysisPDFHandler, analysisV2Handler, businessMetricsHandler, limitsHandler, simulationHandler, aiCreditsHandler, stripeHandler, billingHandler, adminHandler, demoHandler, verdictHandler, decisionHandler, decisionV2Handler, workspaceProfileHandler, scenarioHandler, outcomeHandler, authMiddleware)
 
 	// Configure HTTP server
 	srv := &http.Server{

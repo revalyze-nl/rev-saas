@@ -15,81 +15,177 @@ import (
 	"rev-saas-api/internal/model"
 )
 
-const verdictSystemPrompt = `You are an AI Pricing Verdict Engine for SaaS founders.
+const verdictSystemPrompt = `You are a Premium Decision Intelligence Engine for founders and executives.
 
-Your job is NOT to analyze endlessly.
-Your job is to deliver ONE confident pricing verdict.
+You generate PAID, EXECUTIVE-GRADE strategic verdicts that justify a subscription.
+This is NOT a free ChatGPT answer. This is a board-level decision document.
 
-The user has already provided a company website.
-You must infer everything else yourself:
-- Product positioning
-- Target customer sophistication
-- Competitive landscape
-- Monetization maturity
-- Willingness to pay
-
-Do NOT ask questions.
-Do NOT provide multiple options.
-Do NOT explain your reasoning process.
-Do NOT hedge.
-
-Think like a senior pricing partner who says:
-"This is the move. Here's why. Here's what happens next."
+CRITICAL PRINCIPLES:
+- Do NOT simplify or shorten
+- Do NOT generate generic strategy text
+- Every insight must feel company-specific
+- Reduce cognitive load while maximizing perceived value
+- Each section must add NEW information (no repetition)
 
 ---
 
-CONTEXT:
-- Company type: SaaS
-- Market: Competitive B2B SaaS
-- Goal: Increase revenue without destroying long-term retention
-- Output will be shown directly to founders and investors
-- Tone must feel expensive, confident, and decisive
+## PERSONALIZATION REQUIREMENT
+
+You MUST explicitly surface WHY this decision is specific to THIS company.
+Inject visible personalization cues such as:
+- "Based on your pricing page structure..."
+- "Given your current company stage..."
+- "Compared to competitors with similar positioning..."
+- "Because your primary KPI appears to be..."
+- "Your market positioning suggests..."
+
+Infer company context from:
+- Website content and messaging
+- Pricing structure (if visible)
+- Market positioning signals
+- Product maturity indicators
 
 ---
 
-OUTPUT FORMAT (STRICT JSON, NO EXTRA TEXT):
+## OUTPUT FORMAT (STRICT JSON, NO EXTRA TEXT):
 
 {
-  "headline": "Imperative, strategic pricing decision (max 12 words)",
-  "summary": "1–2 sentences describing the strategic move and its outcome",
-  "confidence": "High | Medium | Low",
-  "cta": "Short decisive CTA text (e.g. 'Proceed with this decision')",
-
-  "why_this_decision": [
-    "Reason 1 grounded in market or competition",
-    "Reason 2 grounded in customer value perception",
-    "Reason 3 grounded in revenue or positioning leverage"
-  ],
-
-  "what_to_expect": {
-    "risk_level": "Low | Medium | High",
-    "description": "1 sentence describing realistic downside or resistance"
+  "decision_snapshot": {
+    "revenue_impact_range": "Concrete range like +15–25% or +$50K–120K ARR",
+    "primary_risk_level": "Low | Medium | High",
+    "primary_risk_explain": "One sentence explaining the primary risk",
+    "time_to_impact": "Specific timeframe like 30–90 days",
+    "execution_effort": "Low | Medium | High",
+    "reversibility": "High | Medium | Low"
   },
-
-  "supporting_details": {
-    "expected_revenue_impact": "Concrete percentage range",
-    "churn_outlook": "Short, honest expectation",
-    "market_positioning": "1 sentence describing how this repositions the company"
+  "personalization_signals": {
+    "pricing_page_insight": "Based on your pricing page structure... (specific observation)",
+    "company_stage_insight": "Given your current company stage... (inferred stage + implication)",
+    "competitor_insight": "Compared to competitors with similar positioning... (competitive context)",
+    "kpi_insight": "Because your primary KPI appears to be... (inferred KPI + why it matters)",
+    "market_position_insight": "Your market positioning suggests... (positioning observation)"
+  },
+  "executive_verdict": {
+    "recommendation": "A clear, decisive command. Board-level. Imperative tone. Max 15 words.",
+    "decision_type": "Specific type: Pricing Strategy / Tier Restructure / Value Communication / Market Repositioning",
+    "time_horizon": "30–90 days / 60–120 days / etc.",
+    "scope_of_impact": "Which parts of the business: Revenue, Positioning, Customer Segmentation, etc."
+  },
+  "decision_confidence": {
+    "level": "High | Medium | Low",
+    "explanation": "WHY this confidence level - reference specific signals from the website"
+  },
+  "if_you_proceed": {
+    "expected_upside": [
+      "Specific revenue upside with numbers or ranges",
+      "Positioning advantage gained",
+      "Strategic leverage created",
+      "Customer segment clarity achieved"
+    ],
+    "secondary_effects": [
+      "Upsell path unlocked",
+      "Better qualification of leads",
+      "Future pricing flexibility",
+      "Competitive moat strengthened"
+    ]
+  },
+  "if_you_do_not_act": {
+    "what_stagnates": "What specifically stagnates - revenue ceiling, conversion rates, etc.",
+    "competitor_advantage": "What competitors gain if you delay - be specific",
+    "future_difficulty": "What becomes harder later - switching costs, market perception, etc."
+  },
+  "alternatives_considered": [
+    {
+      "name": "Alternative strategy name",
+      "why_not_selected": "Specific reason why rejected for THIS company"
+    },
+    {
+      "name": "Second alternative",
+      "why_not_selected": "Company-specific rejection reason"
+    },
+    {
+      "name": "Third alternative",
+      "why_not_selected": "Context-aware rejection"
+    }
+  ],
+  "risk_analysis": {
+    "risk_level": "Low | Medium | High",
+    "who_is_affected": "Specific stakeholders: existing customers on plan X, enterprise prospects, etc.",
+    "how_it_manifests": "Concrete manifestation: support tickets, churn in segment Y, etc.",
+    "why_acceptable": "Why manageable: mitigation strategy, reversibility, limited blast radius"
+  },
+  "expected_impact": {
+    "revenue_impact": "Percentage range with confidence: +12–18% MRR within 90 days",
+    "short_term_churn": "Honest assessment: <2% churn risk in first 60 days",
+    "long_term_positioning": "Strategic outcome: Premium market positioning, reduced price sensitivity"
+  },
+  "why_this_fits": {
+    "company_stage_reason": "Start with 'At your stage...' - specific to inferred stage",
+    "business_model_reason": "Start with 'Your business model...' - specific to SaaS/usage/etc.",
+    "market_segment_reason": "Start with 'In your market...' - specific to B2B/SMB/Enterprise",
+    "primary_kpi_reason": "Start with 'Given your focus on...' - tied to inferred KPI"
+  },
+  "execution_checklist": {
+    "next_14_days": [
+      "Specific action 1 with deliverable",
+      "Specific action 2 with owner suggestion",
+      "Specific action 3 with milestone"
+    ],
+    "next_30_to_60_days": [
+      "Medium-term action 1",
+      "Medium-term action 2",
+      "Iteration based on early data"
+    ],
+    "success_metrics": [
+      "KPI 1 to track with target",
+      "KPI 2 with measurement frequency",
+      "Leading indicator to monitor"
+    ]
   }
 }
 
 ---
 
-RULES:
-- Be bold, not safe
-- Avoid generic SaaS advice
-- Avoid phrases like 'it depends'
-- Sound like you've seen this work many times before
-- The verdict should feel worth paying for`
+## DECISION DENSITY RULES
 
-const userPromptTemplate = `Analyze this SaaS company and produce your pricing verdict.
+- No section should repeat information from another section
+- Every bullet point must add NEW insight
+- Use structured bullets, not paragraphs
+- Be specific: numbers, percentages, timeframes
+- Avoid hedge words: "might", "could", "potentially"
+
+---
+
+## STYLE RULES
+
+- No emojis
+- No marketing fluff
+- No "AI language" or disclaimers
+- Write like a $500/hour strategy consultant
+- Confident but not arrogant
+- Company-specific, not generic
+
+---
+
+## QUALITY CHECK
+
+Before responding, verify:
+1. Would a founder forward this to their board?
+2. Is every section company-specific?
+3. Does the execution checklist have concrete next steps?
+4. Is the decision snapshot scannable in 30 seconds?
+
+If any answer is NO, improve the output.`
+
+const userPromptTemplate = `Generate a Premium Decision Intelligence verdict for this company.
 
 Website: %s
 
 Website Content:
 %s
 
-Return ONLY valid JSON with your verdict.`
+IMPORTANT: Every insight must be specific to THIS company based on the website content above.
+Return ONLY valid JSON. No markdown, no code blocks, no explanation.`
 
 // VerdictService handles AI-powered pricing verdicts
 type VerdictService struct {
@@ -102,7 +198,7 @@ func NewVerdictService(openAIKey string) *VerdictService {
 	return &VerdictService{
 		openAIKey: openAIKey,
 		httpClient: &http.Client{
-			Timeout: 90 * time.Second,
+			Timeout: 150 * time.Second, // Increased for premium analysis
 		},
 	}
 }
@@ -124,7 +220,7 @@ func (s *VerdictService) GenerateVerdict(ctx context.Context, websiteURL string)
 		websiteURL = "https://" + websiteURL
 	}
 
-	log.Printf("[verdict] Generating verdict for: %s", websiteURL)
+	log.Printf("[verdict] Generating premium verdict for: %s", websiteURL)
 
 	// Fetch website content
 	websiteText, err := s.fetchWebsiteContent(ctx, websiteURL)
@@ -143,13 +239,16 @@ func (s *VerdictService) GenerateVerdict(ctx context.Context, websiteURL string)
 		return s.getFallbackVerdict(websiteURL), nil
 	}
 
+	log.Printf("[verdict] OpenAI response received, parsing...")
+
 	// Parse response
 	verdict, err := s.parseVerdictResponse(verdictJSON, websiteURL)
 	if err != nil {
-		log.Printf("[verdict] Failed to parse response: %v", err)
+		log.Printf("[verdict] Failed to parse response: %v, raw response: %s", err, verdictJSON)
 		return s.getFallbackVerdict(websiteURL), nil
 	}
 
+	log.Printf("[verdict] Premium verdict generated successfully")
 	return verdict, nil
 }
 
@@ -182,9 +281,9 @@ func (s *VerdictService) fetchWebsiteContent(ctx context.Context, url string) (s
 	// Extract text from HTML
 	text := s.extractTextFromHTML(string(body))
 
-	// Truncate if too long (keep ~8k chars for context window)
-	if len(text) > 8000 {
-		text = text[:8000] + "\n[Content truncated...]"
+	// Truncate if too long (keep ~12k chars for better context)
+	if len(text) > 12000 {
+		text = text[:12000] + "\n[Content truncated...]"
 	}
 
 	return text, nil
@@ -238,8 +337,8 @@ func (s *VerdictService) callOpenAI(ctx context.Context, websiteURL, websiteText
 			{"role": "system", "content": verdictSystemPrompt},
 			{"role": "user", "content": userPrompt},
 		},
-		"temperature": 0.5,
-		"max_tokens":  2000,
+		"temperature": 0.7,  // Higher for more creative, company-specific insights
+		"max_tokens":  4500, // Increased for premium verbose output
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
@@ -296,6 +395,20 @@ func (s *VerdictService) callOpenAI(ctx context.Context, websiteURL, websiteText
 	return apiResp.Choices[0].Message.Content, nil
 }
 
+// cleanJSONTrailingCommas removes trailing commas before } or ] which are invalid in JSON
+// OpenAI sometimes generates JSON with trailing commas
+func cleanJSONTrailingCommas(jsonStr string) string {
+	// Remove trailing commas before }
+	re1 := regexp.MustCompile(`,\s*}`)
+	jsonStr = re1.ReplaceAllString(jsonStr, "}")
+
+	// Remove trailing commas before ]
+	re2 := regexp.MustCompile(`,\s*]`)
+	jsonStr = re2.ReplaceAllString(jsonStr, "]")
+
+	return jsonStr
+}
+
 // parseVerdictResponse parses the OpenAI JSON response into a VerdictResponse
 func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*model.VerdictResponse, error) {
 	// Clean up response (remove markdown code blocks if present)
@@ -305,27 +418,93 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 	jsonStr = strings.TrimSuffix(jsonStr, "```")
 	jsonStr = strings.TrimSpace(jsonStr)
 
+	// Clean trailing commas (OpenAI sometimes generates invalid JSON)
+	jsonStr = cleanJSONTrailingCommas(jsonStr)
+
 	var openAIResp model.OpenAIVerdictResponse
 	if err := json.Unmarshal([]byte(jsonStr), &openAIResp); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	// Convert to VerdictResponse
+	// Map alternatives
+	alternatives := make([]model.AlternativeConsidered, 0, len(openAIResp.AlternativesConsidered))
+	for _, alt := range openAIResp.AlternativesConsidered {
+		alternatives = append(alternatives, model.AlternativeConsidered{
+			Name:           alt.Name,
+			WhyNotSelected: alt.WhyNotSelected,
+		})
+	}
+
+	// Convert to VerdictResponse with premium fields
 	verdict := &model.VerdictResponse{
-		WebsiteURL:      websiteURL,
-		Headline:        openAIResp.Headline,
-		Summary:         openAIResp.Summary,
-		Confidence:      openAIResp.Confidence,
-		CTA:             openAIResp.CTA,
-		WhyThisDecision: openAIResp.WhyThisDecision,
+		WebsiteURL: websiteURL,
+		// Legacy fields for V1 compatibility
+		Headline:   openAIResp.ExecutiveVerdict.Recommendation,
+		Summary:    fmt.Sprintf("%s decision with %s time horizon. %s", openAIResp.ExecutiveVerdict.DecisionType, openAIResp.ExecutiveVerdict.TimeHorizon, openAIResp.ExecutiveVerdict.ScopeOfImpact),
+		Confidence: openAIResp.DecisionConfidence.Level,
+		CTA:        "Proceed with this decision",
+		WhyThisDecision: []string{
+			openAIResp.DecisionConfidence.Explanation,
+			openAIResp.WhyThisFits.CompanyStageReason,
+			openAIResp.WhyThisFits.BusinessModelReason,
+		},
 		WhatToExpect: model.VerdictExpectations{
-			RiskLevel:   openAIResp.WhatToExpect.RiskLevel,
-			Description: openAIResp.WhatToExpect.Description,
+			RiskLevel:   openAIResp.RiskAnalysis.RiskLevel,
+			Description: openAIResp.RiskAnalysis.HowItManifests,
 		},
 		SupportingDetails: model.VerdictSupportDetails{
-			ExpectedRevenueImpact: openAIResp.SupportingDetails.ExpectedRevenueImpact,
-			ChurnOutlook:          openAIResp.SupportingDetails.ChurnOutlook,
-			MarketPositioning:     openAIResp.SupportingDetails.MarketPositioning,
+			ExpectedRevenueImpact: openAIResp.ExpectedImpact.RevenueImpact,
+			ChurnOutlook:          openAIResp.ExpectedImpact.ShortTermChurn,
+			MarketPositioning:     openAIResp.ExpectedImpact.LongTermPositioning,
+		},
+		// Premium V2 fields
+		DecisionSnapshot: &model.DecisionSnapshot{
+			RevenueImpactRange: openAIResp.DecisionSnapshot.RevenueImpactRange,
+			PrimaryRiskLevel:   openAIResp.DecisionSnapshot.PrimaryRiskLevel,
+			PrimaryRiskExplain: openAIResp.DecisionSnapshot.PrimaryRiskExplain,
+			TimeToImpact:       openAIResp.DecisionSnapshot.TimeToImpact,
+			ExecutionEffort:    openAIResp.DecisionSnapshot.ExecutionEffort,
+			Reversibility:      openAIResp.DecisionSnapshot.Reversibility,
+		},
+		PersonalizationSignals: &model.PersonalizationSignals{
+			PricingPageInsight:    openAIResp.PersonalizationSignals.PricingPageInsight,
+			CompanyStageInsight:   openAIResp.PersonalizationSignals.CompanyStageInsight,
+			CompetitorInsight:     openAIResp.PersonalizationSignals.CompetitorInsight,
+			KPIInsight:            openAIResp.PersonalizationSignals.KPIInsight,
+			MarketPositionInsight: openAIResp.PersonalizationSignals.MarketPositionInsight,
+		},
+		ExecutiveVerdict: &model.ExecutiveVerdict{
+			Recommendation: openAIResp.ExecutiveVerdict.Recommendation,
+			DecisionType:   openAIResp.ExecutiveVerdict.DecisionType,
+			TimeHorizon:    openAIResp.ExecutiveVerdict.TimeHorizon,
+			ScopeOfImpact:  openAIResp.ExecutiveVerdict.ScopeOfImpact,
+		},
+		IfYouProceed: &model.IfYouProceed{
+			ExpectedUpside:   openAIResp.IfYouProceed.ExpectedUpside,
+			SecondaryEffects: openAIResp.IfYouProceed.SecondaryEffects,
+		},
+		IfYouDoNotAct: &model.IfYouDoNotAct{
+			WhatStagnates:       openAIResp.IfYouDoNotAct.WhatStagnates,
+			CompetitorAdvantage: openAIResp.IfYouDoNotAct.CompetitorAdvantage,
+			FutureDifficulty:    openAIResp.IfYouDoNotAct.FutureDifficulty,
+		},
+		AlternativesConsidered: alternatives,
+		RiskAnalysis: &model.RiskAnalysis{
+			RiskLevel:      openAIResp.RiskAnalysis.RiskLevel,
+			WhoIsAffected:  openAIResp.RiskAnalysis.WhoIsAffected,
+			HowItManifests: openAIResp.RiskAnalysis.HowItManifests,
+			WhyAcceptable:  openAIResp.RiskAnalysis.WhyAcceptable,
+		},
+		WhyThisFits: &model.WhyThisFits{
+			CompanyStageReason:  openAIResp.WhyThisFits.CompanyStageReason,
+			BusinessModelReason: openAIResp.WhyThisFits.BusinessModelReason,
+			MarketSegmentReason: openAIResp.WhyThisFits.MarketSegmentReason,
+			PrimaryKPIReason:    openAIResp.WhyThisFits.PrimaryKPIReason,
+		},
+		ExecutionChecklist: &model.ExecutionChecklist{
+			Next14Days:     openAIResp.ExecutionChecklist.Next14Days,
+			Next30To60Days: openAIResp.ExecutionChecklist.Next30To60Days,
+			SuccessMetrics: openAIResp.ExecutionChecklist.SuccessMetrics,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -337,23 +516,73 @@ func (s *VerdictService) parseVerdictResponse(jsonStr, websiteURL string) (*mode
 func (s *VerdictService) getFallbackVerdict(websiteURL string) *model.VerdictResponse {
 	return &model.VerdictResponse{
 		WebsiteURL: websiteURL,
-		Headline:   "Review Your Current Pricing Structure",
-		Summary:    "We need more data to provide a specific recommendation. Consider a manual pricing audit.",
+		Headline:   "Manual Strategic Review Required",
+		Summary:    "Insufficient data to generate an automated verdict. A strategic consultant should review the company's positioning manually.",
 		Confidence: "Low",
 		CTA:        "Request manual analysis",
 		WhyThisDecision: []string{
 			"Website content could not be fully analyzed",
-			"Limited observable signals available for pricing assessment",
-			"Manual review of your pricing page is recommended",
+			"Limited observable signals available for strategic assessment",
+			"Manual review of positioning and pricing is recommended",
 		},
 		WhatToExpect: model.VerdictExpectations{
 			RiskLevel:   "Low",
 			Description: "No immediate action required until a full analysis can be completed.",
 		},
 		SupportingDetails: model.VerdictSupportDetails{
-			ExpectedRevenueImpact: "Unable to assess without website data",
-			ChurnOutlook:          "Unable to assess without website data",
-			MarketPositioning:     "Unable to assess without website data",
+			ExpectedRevenueImpact: "Unable to assess without sufficient data",
+			ChurnOutlook:          "Unable to assess without sufficient data",
+			MarketPositioning:     "Unable to assess without sufficient data",
+		},
+		DecisionSnapshot: &model.DecisionSnapshot{
+			RevenueImpactRange: "Unable to assess",
+			PrimaryRiskLevel:   "Low",
+			PrimaryRiskExplain: "No risk from waiting for manual analysis",
+			TimeToImpact:       "1-2 weeks for manual review",
+			ExecutionEffort:    "Low",
+			Reversibility:      "High",
+		},
+		PersonalizationSignals: &model.PersonalizationSignals{
+			PricingPageInsight:    "Pricing page could not be analyzed",
+			CompanyStageInsight:   "Company stage could not be determined",
+			CompetitorInsight:     "Competitive positioning requires manual review",
+			KPIInsight:            "Primary KPI could not be inferred",
+			MarketPositionInsight: "Market position requires manual analysis",
+		},
+		ExecutiveVerdict: &model.ExecutiveVerdict{
+			Recommendation: "Conduct a manual strategic review before making pricing decisions",
+			DecisionType:   "Strategic Assessment",
+			TimeHorizon:    "1-2 weeks",
+			ScopeOfImpact:  "Initial discovery phase only",
+		},
+		IfYouProceed: &model.IfYouProceed{
+			ExpectedUpside:   []string{"Clear understanding of current market position", "Identified optimization opportunities"},
+			SecondaryEffects: []string{"Foundation for data-driven decisions"},
+		},
+		IfYouDoNotAct: &model.IfYouDoNotAct{
+			WhatStagnates:       "Strategic clarity remains limited",
+			CompetitorAdvantage: "Competitors with better data may outmaneuver you",
+			FutureDifficulty:    "Decisions made without data may be harder to reverse",
+		},
+		AlternativesConsidered: []model.AlternativeConsidered{
+			{Name: "Proceed with automated analysis", WhyNotSelected: "Insufficient data quality for confident recommendation"},
+		},
+		RiskAnalysis: &model.RiskAnalysis{
+			RiskLevel:      "Low",
+			WhoIsAffected:  "Decision-makers waiting for strategic guidance",
+			HowItManifests: "Delayed strategic action",
+			WhyAcceptable:  "Better to delay than to act on incomplete information",
+		},
+		WhyThisFits: &model.WhyThisFits{
+			CompanyStageReason:  "Manual review appropriate for all stages when data is limited",
+			BusinessModelReason: "Applicable across business models",
+			MarketSegmentReason: "Market-agnostic recommendation",
+			PrimaryKPIReason:    "Foundational step before KPI optimization",
+		},
+		ExecutionChecklist: &model.ExecutionChecklist{
+			Next14Days:     []string{"Schedule manual strategy review", "Gather internal metrics not visible on website"},
+			Next30To60Days: []string{"Complete manual analysis", "Return for AI-powered verdict with better data"},
+			SuccessMetrics: []string{"Manual review completed", "Data gaps identified and filled"},
 		},
 		CreatedAt: time.Now(),
 	}

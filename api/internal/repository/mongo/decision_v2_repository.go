@@ -159,19 +159,21 @@ func (r *DecisionV2Repository) List(ctx context.Context, userID primitive.Object
 	items := make([]model.DecisionListItemV2, len(decisions))
 	for i, d := range decisions {
 		items[i] = model.DecisionListItemV2{
-			ID:              d.ID,
-			CompanyName:     d.CompanyName,
-			WebsiteURL:      d.WebsiteURL,
-			VerdictHeadline: d.Verdict.Headline,
-			VerdictSummary:  d.Verdict.Summary,
-			ConfidenceScore: d.Verdict.ConfidenceScore,
-			ConfidenceLabel: d.Verdict.ConfidenceLabel,
-			RiskScore:       d.Verdict.WhatToExpect.RiskScore,
-			RiskLabel:       d.Verdict.WhatToExpect.RiskLabel,
-			Status:          d.Status,
-			Context:         d.Context,
-			OutcomeSummary:  getOutcomeSummaryFromDecision(d),
-			CreatedAt:       d.CreatedAt,
+			ID:               d.ID,
+			CompanyName:      d.CompanyName,
+			WebsiteURL:       d.WebsiteURL,
+			VerdictHeadline:  d.Verdict.Headline,
+			VerdictSummary:   d.Verdict.Summary,
+			ConfidenceScore:  d.Verdict.ConfidenceScore,
+			ConfidenceLabel:  d.Verdict.ConfidenceLabel,
+			RiskScore:        d.Verdict.WhatToExpect.RiskScore,
+			RiskLabel:        d.Verdict.WhatToExpect.RiskLabel,
+			Status:           d.Status,
+			Context:          d.Context,
+			OutcomeSummary:   getOutcomeSummaryFromDecision(d),
+			HasScenarios:     d.ScenariosID != nil,
+			ChosenScenarioID: d.ChosenScenarioID,
+			CreatedAt:        d.CreatedAt,
 		}
 	}
 
@@ -356,6 +358,87 @@ func (r *DecisionV2Repository) SoftDelete(ctx context.Context, id, userID primit
 		bson.M{"$set": bson.M{"is_deleted": true, "deleted_at": now}},
 	)
 	return err
+}
+
+// LinkScenarios links a scenario set to a decision
+func (r *DecisionV2Repository) LinkScenarios(ctx context.Context, id, userID, scenariosID primitive.ObjectID) error {
+	now := time.Now()
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": id, "user_id": userID, "is_deleted": bson.M{"$ne": true}},
+		bson.M{"$set": bson.M{"scenarios_id": scenariosID, "updated_at": now}},
+	)
+	return err
+}
+
+// SetChosenScenario sets the chosen scenario for a decision
+func (r *DecisionV2Repository) SetChosenScenario(ctx context.Context, id, userID primitive.ObjectID, scenarioID string) error {
+	now := time.Now()
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": id, "user_id": userID, "is_deleted": bson.M{"$ne": true}},
+		bson.M{"$set": bson.M{
+			"chosen_scenario_id": scenarioID,
+			"chosen_scenario_at": now,
+			"episode_status":     "path_chosen",
+			"updated_at":         now,
+		}},
+	)
+	return err
+}
+
+// UpdateEpisodeStatus updates the episode status of a decision
+func (r *DecisionV2Repository) UpdateEpisodeStatus(ctx context.Context, id, userID primitive.ObjectID, episodeStatus string) error {
+	now := time.Now()
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": id, "user_id": userID, "is_deleted": bson.M{"$ne": true}},
+		bson.M{"$set": bson.M{
+			"episode_status": episodeStatus,
+			"updated_at":     now,
+		}},
+	)
+	return err
+}
+
+// LinkOutcome links a measurable outcome to a decision
+func (r *DecisionV2Repository) LinkOutcome(ctx context.Context, id, userID, outcomeID primitive.ObjectID) error {
+	now := time.Now()
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": id, "user_id": userID, "is_deleted": bson.M{"$ne": true}},
+		bson.M{"$set": bson.M{
+			"outcome_id": outcomeID,
+			"updated_at": now,
+		}},
+	)
+	return err
+}
+
+// GetScenariosExistenceForDecisions returns a map of decision IDs to whether they have scenarios
+func (r *DecisionV2Repository) GetScenariosExistenceForDecisions(ctx context.Context, userID primitive.ObjectID, decisionIDs []primitive.ObjectID) (map[primitive.ObjectID]bool, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{
+		"_id":        bson.M{"$in": decisionIDs},
+		"user_id":    userID,
+		"is_deleted": bson.M{"$ne": true},
+	}, options.Find().SetProjection(bson.M{"_id": 1, "scenarios_id": 1}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	result := make(map[primitive.ObjectID]bool)
+	for cursor.Next(ctx) {
+		var doc struct {
+			ID          primitive.ObjectID  `bson:"_id"`
+			ScenariosID *primitive.ObjectID `bson:"scenarios_id"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+		result[doc.ID] = doc.ScenariosID != nil
+	}
+	return result, nil
 }
 
 // Helper to get outcome summary from a full decision

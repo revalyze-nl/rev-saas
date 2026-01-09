@@ -69,6 +69,75 @@ type SupportingDetailsV2 struct {
 	MarketPositioning     string `json:"marketPositioning" bson:"market_positioning"`
 }
 
+// DecisionSnapshotV2 provides a 30-second overview at the top
+type DecisionSnapshotV2 struct {
+	RevenueImpactRange string `json:"revenueImpactRange" bson:"revenue_impact_range"`
+	PrimaryRiskLevel   string `json:"primaryRiskLevel" bson:"primary_risk_level"`
+	PrimaryRiskExplain string `json:"primaryRiskExplain" bson:"primary_risk_explain"`
+	TimeToImpact       string `json:"timeToImpact" bson:"time_to_impact"`
+	ExecutionEffort    string `json:"executionEffort" bson:"execution_effort"`
+	Reversibility      string `json:"reversibility" bson:"reversibility"`
+}
+
+// PersonalizationSignalsV2 contains explicit personalization cues
+type PersonalizationSignalsV2 struct {
+	PricingPageInsight    string `json:"pricingPageInsight" bson:"pricing_page_insight"`
+	CompanyStageInsight   string `json:"companyStageInsight" bson:"company_stage_insight"`
+	CompetitorInsight     string `json:"competitorInsight" bson:"competitor_insight"`
+	KPIInsight            string `json:"kpiInsight" bson:"kpi_insight"`
+	MarketPositionInsight string `json:"marketPositionInsight" bson:"market_position_insight"`
+}
+
+// ExecutionChecklistV2 provides operational next steps
+type ExecutionChecklistV2 struct {
+	Next14Days     []string `json:"next14Days" bson:"next_14_days"`
+	Next30To60Days []string `json:"next30To60Days" bson:"next_30_to_60_days"`
+	SuccessMetrics []string `json:"successMetrics" bson:"success_metrics"`
+}
+
+// ExecutiveVerdictV2 contains the board-level decision summary
+type ExecutiveVerdictV2 struct {
+	Recommendation string `json:"recommendation" bson:"recommendation"`
+	DecisionType   string `json:"decisionType" bson:"decision_type"`
+	TimeHorizon    string `json:"timeHorizon" bson:"time_horizon"`
+	ScopeOfImpact  string `json:"scopeOfImpact" bson:"scope_of_impact"`
+}
+
+// IfYouProceedV2 describes expected outcomes if decision is taken
+type IfYouProceedV2 struct {
+	ExpectedUpside   []string `json:"expectedUpside" bson:"expected_upside"`
+	SecondaryEffects []string `json:"secondaryEffects" bson:"secondary_effects"`
+}
+
+// IfYouDoNotActV2 describes opportunity cost and inaction risks
+type IfYouDoNotActV2 struct {
+	WhatStagnates       string `json:"whatStagnates" bson:"what_stagnates"`
+	CompetitorAdvantage string `json:"competitorAdvantage" bson:"competitor_advantage"`
+	FutureDifficulty    string `json:"futureDifficulty" bson:"future_difficulty"`
+}
+
+// AlternativeConsideredV2 represents a rejected alternative
+type AlternativeConsideredV2 struct {
+	Name           string `json:"name" bson:"name"`
+	WhyNotSelected string `json:"whyNotSelected" bson:"why_not_selected"`
+}
+
+// RiskAnalysisV2 contains detailed risk assessment
+type RiskAnalysisV2 struct {
+	RiskLevel      string `json:"riskLevel" bson:"risk_level"`
+	WhoIsAffected  string `json:"whoIsAffected" bson:"who_is_affected"`
+	HowItManifests string `json:"howItManifests" bson:"how_it_manifests"`
+	WhyAcceptable  string `json:"whyAcceptable" bson:"why_acceptable"`
+}
+
+// WhyThisFitsV2 explains personalization anchors
+type WhyThisFitsV2 struct {
+	CompanyStageReason  string `json:"companyStageReason" bson:"company_stage_reason"`
+	BusinessModelReason string `json:"businessModelReason" bson:"business_model_reason"`
+	MarketSegmentReason string `json:"marketSegmentReason" bson:"market_segment_reason"`
+	PrimaryKPIReason    string `json:"primaryKpiReason" bson:"primary_kpi_reason"`
+}
+
 // VerdictV2 represents the AI-generated verdict with numeric confidence
 type VerdictV2 struct {
 	Headline          string              `json:"headline" bson:"headline"`
@@ -79,6 +148,17 @@ type VerdictV2 struct {
 	WhyThisDecision   []string            `json:"whyThisDecision" bson:"why_this_decision"`
 	WhatToExpect      WhatToExpectV2      `json:"whatToExpect" bson:"what_to_expect"`
 	SupportingDetails SupportingDetailsV2 `json:"supportingDetails" bson:"supporting_details"`
+	// Premium V2 fields - Decision Snapshot (30-second overview)
+	DecisionSnapshot       *DecisionSnapshotV2       `json:"decisionSnapshot,omitempty" bson:"decision_snapshot,omitempty"`
+	PersonalizationSignals *PersonalizationSignalsV2 `json:"personalizationSignals,omitempty" bson:"personalization_signals,omitempty"`
+	ExecutiveVerdict       *ExecutiveVerdictV2       `json:"executiveVerdict,omitempty" bson:"executive_verdict,omitempty"`
+	IfYouProceed           *IfYouProceedV2           `json:"ifYouProceed,omitempty" bson:"if_you_proceed,omitempty"`
+	IfYouDoNotAct          *IfYouDoNotActV2          `json:"ifYouDoNotAct,omitempty" bson:"if_you_do_not_act,omitempty"`
+	AlternativesConsidered []AlternativeConsideredV2 `json:"alternativesConsidered,omitempty" bson:"alternatives_considered,omitempty"`
+	RiskAnalysis           *RiskAnalysisV2          `json:"riskAnalysis,omitempty" bson:"risk_analysis,omitempty"`
+	WhyThisFits            *WhyThisFitsV2           `json:"whyThisFits,omitempty" bson:"why_this_fits,omitempty"`
+	ExecutionChecklist     *ExecutionChecklistV2    `json:"executionChecklist,omitempty" bson:"execution_checklist,omitempty"`
+	ExecutionNote          string                   `json:"executionNote,omitempty" bson:"execution_note,omitempty"`
 }
 
 // VerdictVersion represents a versioned snapshot of verdict
@@ -182,6 +262,15 @@ type DecisionV2 struct {
 	InferenceArtifacts *InferenceArtifacts `json:"inferenceArtifacts,omitempty" bson:"inference_artifacts,omitempty"`
 	InferenceSignals   []InferenceSignal   `json:"inferenceSignals,omitempty" bson:"inference_signals,omitempty"`
 
+	// Scenarios
+	ScenariosID      *primitive.ObjectID `json:"scenariosId,omitempty" bson:"scenarios_id,omitempty"`
+	ChosenScenarioID *string             `json:"chosenScenarioId,omitempty" bson:"chosen_scenario_id,omitempty"`
+	ChosenScenarioAt *time.Time          `json:"chosenScenarioAt,omitempty" bson:"chosen_scenario_at,omitempty"`
+
+	// Measurable Outcome
+	OutcomeID     *primitive.ObjectID `json:"outcomeId,omitempty" bson:"outcome_id,omitempty"`
+	EpisodeStatus string              `json:"episodeStatus" bson:"episode_status"` // draft, explored, path_chosen, outcome_saved
+
 	// Soft delete
 	IsDeleted bool       `json:"isDeleted" bson:"is_deleted"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty" bson:"deleted_at,omitempty"`
@@ -202,9 +291,19 @@ type DecisionListItemV2 struct {
 	RiskScore       float64            `json:"riskScore" bson:"risk_score"`
 	RiskLabel       string             `json:"riskLabel" bson:"risk_label"`
 	Status          string             `json:"status" bson:"status"`
+	EpisodeStatus   string             `json:"episodeStatus" bson:"episode_status"`
 	Context         DecisionContextV2  `json:"context" bson:"context"`
 	OutcomeSummary  string             `json:"outcomeSummary,omitempty" bson:"outcome_summary,omitempty"`
-	CreatedAt       time.Time          `json:"createdAt" bson:"created_at"`
+	// Scenario info
+	HasScenarios     bool    `json:"hasScenarios" bson:"-"`
+	ScenariosCount   int     `json:"scenariosCount" bson:"-"`
+	ChosenScenarioID *string `json:"chosenScenarioId,omitempty" bson:"chosen_scenario_id,omitempty"`
+	ChosenScenarioName string `json:"chosenScenarioName,omitempty" bson:"-"`
+	// Outcome info
+	HasOutcome     bool   `json:"hasOutcome" bson:"-"`
+	OutcomeStatus  string `json:"outcomeStatus,omitempty" bson:"-"`
+	CreatedAt      time.Time `json:"createdAt" bson:"created_at"`
+	UpdatedAt      time.Time `json:"updatedAt" bson:"updated_at"`
 }
 
 // Request/Response types

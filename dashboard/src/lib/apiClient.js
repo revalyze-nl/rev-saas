@@ -418,6 +418,38 @@ export const decisionsV2Api = {
 
   // Compare 2-3 decisions
   compare: (ids) => postJson('/api/v2/decisions/compare', { ids }),
+
+  // Scenarios API
+  // Get scenarios for a decision
+  getScenarios: (decisionId) => getJson(`/api/v2/decisions/${decisionId}/scenarios`),
+
+  // Generate scenarios for a decision (idempotent - returns existing if available)
+  generateScenarios: (decisionId, force = false) => 
+    postJson(`/api/v2/decisions/${decisionId}/scenarios/generate`, { force }),
+
+  // Set chosen scenario for a decision ("Apply this scenario")
+  setChosenScenario: (decisionId, scenarioId) => 
+    patchJson(`/api/v2/decisions/${decisionId}/chosen-scenario`, { chosenScenarioId: scenarioId }),
+
+  // Apply a scenario and create/update outcome
+  applyScenario: (decisionId, scenarioId) =>
+    postJson(`/api/v2/decisions/${decisionId}/scenarios/${scenarioId}/apply`, {}),
+
+  // Get outcome for a decision
+  getOutcome: (decisionId) => getJson(`/api/v2/decisions/${decisionId}/outcome`),
+
+  // Update outcome (KPIs, status, evidence)
+  updateOutcome: (decisionId, outcomeData) =>
+    patchJson(`/api/v2/decisions/${decisionId}/outcome`, outcomeData),
+
+  // Get delta between scenarios (for delta view)
+  getDelta: (decisionId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.baselineScenarioId) queryParams.append('baselineScenarioId', params.baselineScenarioId);
+    if (params.candidateScenarioId) queryParams.append('candidateScenarioId', params.candidateScenarioId);
+    const queryString = queryParams.toString();
+    return getJson(`/api/v2/decisions/${decisionId}/deltas${queryString ? `?${queryString}` : ''}`);
+  },
 };
 
 // PATCH request with JSON body

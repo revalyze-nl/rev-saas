@@ -10,12 +10,14 @@ import (
 
 // InferenceService handles website scraping and AI inference
 type InferenceService struct {
-	// TODO: Add dependencies (HTTP client, AI client, etc.)
+	verdictService *VerdictService
 }
 
 // NewInferenceService creates a new inference service
-func NewInferenceService() *InferenceService {
-	return &InferenceService{}
+func NewInferenceService(verdictService *VerdictService) *InferenceService {
+	return &InferenceService{
+		verdictService: verdictService,
+	}
 }
 
 // InferContextFromWebsite scrapes the website and infers context
@@ -52,42 +54,194 @@ func (s *InferenceService) InferContextFromWebsite(ctx context.Context, websiteU
 	return &InferenceResult{}, artifacts, nil
 }
 
-// GenerateVerdict generates an AI verdict based on context
-// TODO: Implement actual AI verdict generation
+// GenerateVerdict generates an AI verdict based on context using OpenAI
 func (s *InferenceService) GenerateVerdict(ctx context.Context, websiteURL string, resolvedContext model.DecisionContextV2) (*model.VerdictV2, *model.ModelMetaV2, error) {
-	// STUB: Return placeholder verdict
-	// In production, this would call the AI service
+	startTime := time.Now()
+
+	// Use VerdictService to generate verdict via OpenAI
+	v1Response, err := s.verdictService.GenerateVerdict(ctx, websiteURL)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Convert V1 VerdictResponse to V2 VerdictV2 format
+	confidenceScore := mapConfidenceToScore(v1Response.Confidence)
+	riskScore := mapRiskToScore(v1Response.WhatToExpect.RiskLevel)
+
+	// Map risk analysis - prefer premium riskAnalysis, fallback to whatToExpect
+	var riskAnalysis *model.RiskAnalysisV2
+	if v1Response.RiskAnalysis != nil {
+		riskAnalysis = &model.RiskAnalysisV2{
+			RiskLevel:      v1Response.RiskAnalysis.RiskLevel,
+			WhoIsAffected:  v1Response.RiskAnalysis.WhoIsAffected,
+			HowItManifests: v1Response.RiskAnalysis.HowItManifests,
+			WhyAcceptable:  v1Response.RiskAnalysis.WhyAcceptable,
+		}
+	}
 
 	verdict := &model.VerdictV2{
-		Headline:        "Analysis pending implementation",
-		Summary:         "AI verdict generation not yet implemented. This is a placeholder.",
-		ConfidenceScore: 0.5,
-		ConfidenceLabel: model.ConfidenceLabelFromScore(0.5),
-		CTA:             "Complete AI integration to receive actionable recommendations.",
-		WhyThisDecision: []string{
-			"Placeholder reason 1",
-			"Placeholder reason 2",
-		},
+		Headline:        v1Response.Headline,
+		Summary:         v1Response.Summary,
+		ConfidenceScore: confidenceScore,
+		ConfidenceLabel: model.ConfidenceLabelFromScore(confidenceScore),
+		CTA:             v1Response.CTA,
+		WhyThisDecision: v1Response.WhyThisDecision,
 		WhatToExpect: model.WhatToExpectV2{
-			RiskScore:   0.5,
-			RiskLabel:   model.RiskLabelFromScore(0.5),
-			Description: "Risk assessment pending AI integration.",
+			RiskScore:   riskScore,
+			RiskLabel:   model.RiskLabelFromScore(riskScore),
+			Description: v1Response.WhatToExpect.Description,
 		},
 		SupportingDetails: model.SupportingDetailsV2{
-			ExpectedRevenueImpact: "To be determined",
-			ChurnOutlook:          "To be determined",
-			MarketPositioning:     "To be determined",
+			ExpectedRevenueImpact: v1Response.SupportingDetails.ExpectedRevenueImpact,
+			ChurnOutlook:          v1Response.SupportingDetails.ChurnOutlook,
+			MarketPositioning:     v1Response.SupportingDetails.MarketPositioning,
 		},
+		// Premium V2 fields
+		DecisionSnapshot:       mapDecisionSnapshot(v1Response.DecisionSnapshot),
+		PersonalizationSignals: mapPersonalizationSignals(v1Response.PersonalizationSignals),
+		ExecutiveVerdict:       mapExecutiveVerdict(v1Response.ExecutiveVerdict),
+		IfYouProceed:           mapIfYouProceed(v1Response.IfYouProceed),
+		IfYouDoNotAct:          mapIfYouDoNotAct(v1Response.IfYouDoNotAct),
+		AlternativesConsidered: mapAlternatives(v1Response.AlternativesConsidered),
+		RiskAnalysis:           riskAnalysis,
+		WhyThisFits:            mapWhyThisFits(v1Response.WhyThisFits),
+		ExecutionChecklist:     mapExecutionChecklist(v1Response.ExecutionChecklist),
+		ExecutionNote:          v1Response.ExecutionNote,
 	}
 
 	meta := &model.ModelMetaV2{
-		ModelName:           "stub",
-		PromptVersion:       "0.0",
-		InferenceDurationMs: 0,
-		WebsiteContentHash:  "", // TODO: Hash scraped content
+		ModelName:           "gpt-4o-mini",
+		PromptVersion:       "2.0-premium",
+		InferenceDurationMs: time.Since(startTime).Milliseconds(),
 	}
 
 	return verdict, meta, nil
+}
+
+// Helper functions to map premium V1 fields to V2
+func mapDecisionSnapshot(ds *model.DecisionSnapshot) *model.DecisionSnapshotV2 {
+	if ds == nil {
+		return nil
+	}
+	return &model.DecisionSnapshotV2{
+		RevenueImpactRange: ds.RevenueImpactRange,
+		PrimaryRiskLevel:   ds.PrimaryRiskLevel,
+		PrimaryRiskExplain: ds.PrimaryRiskExplain,
+		TimeToImpact:       ds.TimeToImpact,
+		ExecutionEffort:    ds.ExecutionEffort,
+		Reversibility:      ds.Reversibility,
+	}
+}
+
+func mapPersonalizationSignals(ps *model.PersonalizationSignals) *model.PersonalizationSignalsV2 {
+	if ps == nil {
+		return nil
+	}
+	return &model.PersonalizationSignalsV2{
+		PricingPageInsight:    ps.PricingPageInsight,
+		CompanyStageInsight:   ps.CompanyStageInsight,
+		CompetitorInsight:     ps.CompetitorInsight,
+		KPIInsight:            ps.KPIInsight,
+		MarketPositionInsight: ps.MarketPositionInsight,
+	}
+}
+
+func mapExecutionChecklist(ec *model.ExecutionChecklist) *model.ExecutionChecklistV2 {
+	if ec == nil {
+		return nil
+	}
+	return &model.ExecutionChecklistV2{
+		Next14Days:     ec.Next14Days,
+		Next30To60Days: ec.Next30To60Days,
+		SuccessMetrics: ec.SuccessMetrics,
+	}
+}
+
+func mapExecutiveVerdict(ev *model.ExecutiveVerdict) *model.ExecutiveVerdictV2 {
+	if ev == nil {
+		return nil
+	}
+	return &model.ExecutiveVerdictV2{
+		Recommendation: ev.Recommendation,
+		DecisionType:   ev.DecisionType,
+		TimeHorizon:    ev.TimeHorizon,
+		ScopeOfImpact:  ev.ScopeOfImpact,
+	}
+}
+
+func mapIfYouProceed(p *model.IfYouProceed) *model.IfYouProceedV2 {
+	if p == nil {
+		return nil
+	}
+	return &model.IfYouProceedV2{
+		ExpectedUpside:   p.ExpectedUpside,
+		SecondaryEffects: p.SecondaryEffects,
+	}
+}
+
+func mapIfYouDoNotAct(d *model.IfYouDoNotAct) *model.IfYouDoNotActV2 {
+	if d == nil {
+		return nil
+	}
+	return &model.IfYouDoNotActV2{
+		WhatStagnates:       d.WhatStagnates,
+		CompetitorAdvantage: d.CompetitorAdvantage,
+		FutureDifficulty:    d.FutureDifficulty,
+	}
+}
+
+func mapAlternatives(alts []model.AlternativeConsidered) []model.AlternativeConsideredV2 {
+	if alts == nil {
+		return nil
+	}
+	result := make([]model.AlternativeConsideredV2, len(alts))
+	for i, alt := range alts {
+		result[i] = model.AlternativeConsideredV2{
+			Name:           alt.Name,
+			WhyNotSelected: alt.WhyNotSelected,
+		}
+	}
+	return result
+}
+
+func mapWhyThisFits(w *model.WhyThisFits) *model.WhyThisFitsV2 {
+	if w == nil {
+		return nil
+	}
+	return &model.WhyThisFitsV2{
+		CompanyStageReason:  w.CompanyStageReason,
+		BusinessModelReason: w.BusinessModelReason,
+		MarketSegmentReason: w.MarketSegmentReason,
+		PrimaryKPIReason:    w.PrimaryKPIReason,
+	}
+}
+
+// mapConfidenceToScore converts confidence string to numeric score
+func mapConfidenceToScore(confidence string) float64 {
+	switch strings.ToLower(confidence) {
+	case "high":
+		return 0.85
+	case "medium":
+		return 0.65
+	case "low":
+		return 0.35
+	default:
+		return 0.5
+	}
+}
+
+// mapRiskToScore converts risk string to numeric score
+func mapRiskToScore(risk string) float64 {
+	switch strings.ToLower(risk) {
+	case "high":
+		return 0.8
+	case "medium":
+		return 0.5
+	case "low":
+		return 0.2
+	default:
+		return 0.5
+	}
 }
 
 // ExtractCompanyName extracts company name from URL

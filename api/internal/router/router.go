@@ -32,6 +32,8 @@ func NewRouter(
 	decisionHandler *handler.DecisionHandler,
 	decisionV2Handler *handler.DecisionV2Handler,
 	workspaceProfileHandler *handler.WorkspaceProfileHandler,
+	scenarioHandler *handler.ScenarioHandler,
+	outcomeHandler *handler.OutcomeHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -104,6 +106,17 @@ func NewRouter(
 	apiv2.HandleFunc("/decisions/{id}/status", decisionV2Handler.UpdateStatus).Methods(http.MethodPut)
 	apiv2.HandleFunc("/decisions/{id}/outcomes", decisionV2Handler.AddOutcome).Methods(http.MethodPost)
 	apiv2.HandleFunc("/decisions/{id}/outcomes/effective", decisionV2Handler.GetEffectiveOutcomes).Methods(http.MethodGet)
+
+	// Scenarios (linked to decisions)
+	apiv2.HandleFunc("/decisions/{id}/scenarios", scenarioHandler.GetScenarios).Methods(http.MethodGet)
+	apiv2.HandleFunc("/decisions/{id}/scenarios/generate", scenarioHandler.GenerateScenarios).Methods(http.MethodPost)
+	apiv2.HandleFunc("/decisions/{id}/chosen-scenario", scenarioHandler.SetChosenScenario).Methods(http.MethodPatch)
+
+	// Outcome management (linked to decisions)
+	apiv2.HandleFunc("/decisions/{id}/scenarios/{scenarioId}/apply", outcomeHandler.ApplyScenario).Methods(http.MethodPost)
+	apiv2.HandleFunc("/decisions/{id}/outcome", outcomeHandler.GetOutcome).Methods(http.MethodGet)
+	apiv2.HandleFunc("/decisions/{id}/outcome", outcomeHandler.UpdateOutcome).Methods(http.MethodPatch)
+	apiv2.HandleFunc("/decisions/{id}/deltas", outcomeHandler.GetDelta).Methods(http.MethodGet)
 
 	// Pricing V2 (auto-import from website)
 	api.HandleFunc("/pricing-v2/discover", pricingV2Handler.Discover).Methods(http.MethodPost)

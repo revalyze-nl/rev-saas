@@ -3,12 +3,28 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"rev-saas-api/internal/model"
 	mongorepo "rev-saas-api/internal/repository/mongo"
+)
+
+// recentRequests tracks recent create requests to prevent duplicates
+type recentRequest struct {
+	userID     string
+	url        string
+	timestamp  time.Time
+	decisionID primitive.ObjectID // Store the decision ID for returning on duplicate
+}
+
+var (
+	recentRequestsMu    sync.Mutex
+	recentRequestsCache = make(map[string]recentRequest)
+	rateLimitDuration   = 60 * time.Second // Block duplicate requests within 60 seconds
 )
 
 // DecisionV2Service handles decision operations with versioning
@@ -31,6 +47,47 @@ func NewDecisionV2Service(
 	}
 }
 
+// checkRateLimit checks if this request is a duplicate and returns the existing decision ID if so
+func checkRateLimit(userID, url string) (bool, primitive.ObjectID) {
+	recentRequestsMu.Lock()
+	defer recentRequestsMu.Unlock()
+
+	key := userID + ":" + url
+	now := time.Now()
+
+	// Clean old entries
+	for k, v := range recentRequestsCache {
+		if now.Sub(v.timestamp) > rateLimitDuration {
+			delete(recentRequestsCache, k)
+		}
+	}
+
+	// Check if recent request exists
+	if req, exists := recentRequestsCache[key]; exists {
+		if now.Sub(req.timestamp) < rateLimitDuration {
+			log.Printf("[decision-v2] Duplicate request detected for user=%s url=%s (last request %v ago), returning cached decision", 
+				userID, url, now.Sub(req.timestamp))
+			return true, req.decisionID // Return existing decision ID
+		}
+	}
+
+	return false, primitive.NilObjectID // Allow this request
+}
+
+// setRateLimitCache stores the decision ID for future duplicate requests
+func setRateLimitCache(userID, url string, decisionID primitive.ObjectID) {
+	recentRequestsMu.Lock()
+	defer recentRequestsMu.Unlock()
+
+	key := userID + ":" + url
+	recentRequestsCache[key] = recentRequest{
+		userID:     userID,
+		url:        url,
+		timestamp:  time.Now(),
+		decisionID: decisionID,
+	}
+}
+
 // CreateDecisionRequest represents the request to create a new decision
 type CreateDecisionRequest struct {
 	WebsiteURL string                           `json:"websiteUrl"`
@@ -41,6 +98,19 @@ type CreateDecisionRequest struct {
 func (s *DecisionV2Service) CreateDecision(ctx context.Context, userID primitive.ObjectID, req CreateDecisionRequest) (*model.DecisionV2, error) {
 	if req.WebsiteURL == "" {
 		return nil, fmt.Errorf("website URL is required")
+	}
+
+	// Check for duplicate requests - if duplicate, return the existing decision
+	isDuplicate, existingID := checkRateLimit(userID.Hex(), req.WebsiteURL)
+	if isDuplicate && existingID != primitive.NilObjectID {
+		// Return the existing decision instead of error
+		existingDecision, err := s.repo.GetByIDAndUser(ctx, existingID, userID)
+		if err == nil && existingDecision != nil {
+			log.Printf("[decision-v2] Returning cached decision %s for duplicate request", existingID.Hex())
+			return existingDecision, nil
+		}
+		// If we can't find the cached decision, continue with new creation
+		log.Printf("[decision-v2] Cached decision not found, creating new one")
 	}
 
 	// Get workspace defaults
@@ -125,6 +195,9 @@ func (s *DecisionV2Service) CreateDecision(ctx context.Context, userID primitive
 	if err := s.repo.Create(ctx, decision); err != nil {
 		return nil, fmt.Errorf("failed to create decision: %w", err)
 	}
+
+	// Cache the decision ID for duplicate request handling
+	setRateLimitCache(userID.Hex(), req.WebsiteURL, decision.ID)
 
 	return decision, nil
 }

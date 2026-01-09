@@ -7,74 +7,74 @@ const Company = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface-800 pt-24 pb-16">
-      <div className="max-w-3xl mx-auto px-6 lg:px-8">
+    <div className="min-h-screen bg-dark-900 pt-24 pb-16">
+      <div className="max-w-2xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-12">
+          <h1 className="font-serif text-4xl md:text-5xl text-dark-50 mb-12">
             Company Information
           </h1>
           
           <div className="space-y-8">
             {/* Company Details */}
-            <div className="bg-surface-700/50 rounded-2xl p-8 border border-white/5">
+            <div className="bg-dark-800 rounded-2xl p-8 border border-dark-700">
               <dl className="space-y-6">
                 <div>
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     Company name
                   </dt>
-                  <dd className="text-xl font-semibold text-white">
+                  <dd className="text-xl font-semibold text-dark-50">
                     Revalyze B.V.
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     Legal form
                   </dt>
-                  <dd className="text-lg text-content-secondary">
+                  <dd className="text-dark-300">
                     Private Limited Company (Besloten Vennootschap)
                   </dd>
                 </div>
 
-                <div className="pt-4 border-t border-white/5">
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                <div className="pt-4 border-t border-dark-700">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     Chamber of Commerce (KvK) number
                   </dt>
-                  <dd className="text-lg text-white font-mono">
+                  <dd className="text-dark-100 font-mono">
                     97717606
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     VAT number
                   </dt>
-                  <dd className="text-lg text-white font-mono">
+                  <dd className="text-dark-100 font-mono">
                     NL868199473B01
                   </dd>
                 </div>
 
-                <div className="pt-4 border-t border-white/5">
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                <div className="pt-4 border-t border-dark-700">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     Registered location
                   </dt>
-                  <dd className="text-lg text-content-secondary">
+                  <dd className="text-dark-300">
                     Utrecht, Netherlands
                   </dd>
                 </div>
 
-                <div className="pt-4 border-t border-white/5">
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                <div className="pt-4 border-t border-dark-700">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     Website
                   </dt>
                   <dd>
                     <a 
                       href="https://revalyze.co" 
-                      className="text-lg text-brand-400 hover:text-brand-300 transition-colors"
+                      className="text-dark-100 underline hover:text-dark-50 transition-colors"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -84,13 +84,13 @@ const Company = () => {
                 </div>
 
                 <div>
-                  <dt className="text-sm font-medium text-content-tertiary uppercase tracking-wider mb-1">
+                  <dt className="text-xs font-medium text-dark-500 uppercase tracking-wider mb-1">
                     Contact email
                   </dt>
                   <dd>
                     <a 
                       href="mailto:hello@revalyze.co" 
-                      className="text-lg text-brand-400 hover:text-brand-300 transition-colors"
+                      className="text-dark-100 underline hover:text-dark-50 transition-colors"
                     >
                       hello@revalyze.co
                     </a>
@@ -100,9 +100,9 @@ const Company = () => {
             </div>
 
             {/* Description */}
-            <div className="bg-surface-700/30 rounded-xl p-6 border border-white/5">
-              <p className="text-content-secondary leading-relaxed">
-                Revalyze B.V. provides AI-powered pricing analysis and simulation software for SaaS companies.
+            <div className="text-center py-8">
+              <p className="text-dark-500 leading-relaxed">
+                Revalyze helps teams make better decisions by providing tools to capture, explore, and learn from every choice.
               </p>
             </div>
           </div>

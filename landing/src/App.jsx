@@ -1,14 +1,11 @@
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
-import FeaturesSection from './components/FeaturesSection'
-import AnalysisShowcase from './components/AnalysisShowcase'
-import SimulationShowcase from './components/SimulationShowcase'
-import CompetitorShowcase from './components/CompetitorShowcase'
-import HowItWorks from './components/HowItWorks'
-import PricingSection from './components/PricingSection'
-import FAQ from './components/FAQ'
-import CTASection from './components/CTASection'
+import ProblemSection from './components/ProblemSection'
+import SolutionSection from './components/SolutionSection'
+import WhySection from './components/WhySection'
+import PricingTeaser from './components/PricingTeaser'
+import FinalCTA from './components/FinalCTA'
 import Footer from './components/Footer'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
@@ -21,14 +18,11 @@ function HomePage() {
   return (
     <>
       <Hero />
-      <FeaturesSection />
-      <AnalysisShowcase />
-      <SimulationShowcase />
-      <CompetitorShowcase />
-      <HowItWorks />
-      <PricingSection />
-      <FAQ />
-      <CTASection />
+      <ProblemSection />
+      <SolutionSection />
+      <WhySection />
+      <PricingTeaser />
+      <FinalCTA />
     </>
   )
 }
@@ -44,7 +38,7 @@ function App() {
       
       {/* Main site with Navbar/Footer */}
       <Route path="*" element={
-        <div className="min-h-screen bg-surface-800">
+        <div className="min-h-screen bg-dark-900">
           <Navbar />
           <Routes>
             <Route path="/" element={<HomePage />} />

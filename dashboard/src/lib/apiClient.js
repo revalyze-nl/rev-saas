@@ -479,7 +479,7 @@ export const exportApi = {
   // Export decision as JSON download
   exportJSON: async (decisionId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/json`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -500,7 +500,7 @@ export const exportApi = {
   // Export decision as Markdown download
   exportMarkdown: async (decisionId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/markdown`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -521,7 +521,7 @@ export const exportApi = {
   // Open HTML export (for browser print to PDF) - opens in new tab with content
   openHTML: async (decisionId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/api/v2/decisions/${decisionId}/export/html`, {
         headers: {
           'Authorization': `Bearer ${token}`,

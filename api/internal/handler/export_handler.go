@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,9 +17,6 @@ import (
 	mongorepo "rev-saas-api/internal/repository/mongo"
 	"rev-saas-api/internal/service"
 )
-
-// Revalyze logo as base64 PNG (purple lightning bolt icon)
-const revalyzeLogo = "iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEsklEQVR4nO2ZW4hVVRjHf+OMl9FydMYZx0sXp0ZNzSwrK7OLayJBEUQPvURBLxE99NALQdBDENFDL0EPvfQQQRAEQUQQRERERBBBZJqWZWmaaY5jjpfxMjP9+Na0OWeftfbae58zc/QPi3P2Wt/6vv9a37r7QC/+d6gAPgTOA38Co/I/fgVYDDQC9+W+r0YD8ATwGnAI+B24BHQCp4EjwBbg3e4K4DLwGfA28C7wNvA+8AHwIfAx8AnwWe7/T0v/NrANeB94D3gXeIe/8R7wIfAJ8BnwOfAF8FXue/N5G/gAeA94F3gHeJu/8S7wPvBh7nv7/TnwJfA18E3ue/N5C/gA+CT3vY29A3wMfA58CXwNfJP73nzeAj4EPsl9b3/vAB8DnwNfAl8D3+S+t7+3gA+BT3Lf29+7wMfA58CXwNfAN7nvze9N4APgk9z35vMO8DHwOfAl8DXwTe5787sTeBf4JPe9+b0NfAx8DnwJfA18k/ve/O4E3gU+yX1vfm8BHwGfA18BXwPf5L43v9uBd4FPct+b31vAR8DnwFfA18A3ue/N7zbgHeCT3Pfmdxvwbq6u+bwF3AG8D3yS+76c/G4HPgA+zX1vPrcB7wGf5L4vJ78bgfeBT3Pfl5Pf9cD7wKe578vJ7wbgA+DT3Pfl5Hcd8B7wae77cvK7DvgA+DT3fbn5XQe8B3ya+76c/K4FPgA+zX1fbn7XAO8Bn+a+Lze/a4APgE9z35eb31XA+8Cnue/Lze8q4H3g09z35eZ3BfA+8Gnu+3LzuwJ4D/g09325+V0GvA98mvu+3PwuA94DPs19X25+lwLvA5/mvi8nv0uA94FPc9+Xk9/FwAfAp7nvy8nvIuB94NPc9+XkdyHwAfBp7vty8rsAeB/4NPd9OflNBD4APs19X05+5wMfAJ/mvi8nv/OA94FPc9+Xk985wPvAp7nvy8nvbOB94NPc9+XkdxbwHvBp7vty8jsTeA/4NPd9OfmdAbwHfJr7vpz8Tgc+AD7NfV9OfqcB7wGf5r4vJ79TgPeAT3Pfl5PfycB7wKe578vJ70TgPeDT3Pfl5DcO+AD4NPd9OfmNBd4DPs19X05+Y4D3gE9z35eT32jgPeDT3Pfl5DcKeA/4NPd9OfmNBN4DPs19X05+I4B3gU9z35eT3zDgXeDT3Pfl5DcUeJe/8Wnu+3LyOwZ4l7/xae77cvI7GngX+DT3fTn5HQW8A3ya+76c/IYA7wCf5r4vJ7/BwDvAp7nvy8lvEPAO8Gnu+3LyGwi8A3ya+76c/AYA7wCf5r4vJ78+wDvAp7nvy8mvN/AO8Gnu+3Ly6wW8A3ya+76c/HoC7wCf5r4vJ78ewNvAJ7nvy8mvO/A28Enue/O7HXgL+CT3vfm9DbwFfJL73vyuB94CPsl9b343Am8Cn+S+N7+bgTeBT3Lfm9/NwBvAJ7nvze824A3gk9z35ncr8DrwSe5787sFeBX4JPe9+d0MvAJ8kvve/G4CXgE+yX1vftcBLwMf5743v2uBl4CPct+b3zXAi8BHue/N72rgBeCj3PfmdzXwPPBR7nvzuxJ4Dvgo9735/RfVKFP0A8AAAAAASUVORK5CYII="
 
 // ExportHandler handles decision export functionality
 type ExportHandler struct {
@@ -114,44 +110,40 @@ func (h *ExportHandler) ExportDecisionPDF(w http.ResponseWriter, r *http.Request
 
 // PDF Colors
 var (
-	colorPrimary  = []int{139, 92, 246}   // Purple
-	colorDark     = []int{15, 23, 42}     // Dark blue
-	colorGray     = []int{100, 116, 139}  // Gray
-	colorLightBg  = []int{241, 245, 249}  // Light gray bg
-	colorGreen    = []int{16, 185, 129}   // Green
-	colorRed      = []int{239, 68, 68}    // Red
-	colorAmber    = []int{245, 158, 11}   // Amber
-	colorBlue     = []int{59, 130, 246}   // Blue
+	colorPrimary = []int{139, 92, 246}  // Purple
+	colorDark    = []int{15, 23, 42}    // Dark blue
+	colorGray    = []int{100, 116, 139} // Gray
+	colorLightBg = []int{241, 245, 249} // Light gray bg
+	colorGreen   = []int{16, 185, 129}  // Green
+	colorRed     = []int{239, 68, 68}   // Red
+	colorAmber   = []int{245, 158, 11}  // Amber
+	colorBlue    = []int{59, 130, 246}  // Blue
 )
 
 func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.ScenarioSet, outcome *model.MeasurableOutcome) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 15, 20)
 	pdf.SetAutoPageBreak(true, 20)
-	
+
 	pageWidth := 170.0
 	currentDate := time.Now().Format("Jan 02, 2006")
 
-	// Add logo image
-	logoData, _ := base64.StdEncoding.DecodeString(revalyzeLogo)
-	pdf.RegisterImageOptionsReader("logo", gofpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(logoData))
-
 	// === PAGE 1: Cover & Executive Summary ===
 	pdf.AddPage()
-	
-	// Header with logo
-	pdf.ImageOptions("logo", 20, 15, 12, 12, false, gofpdf.ImageOptions{}, 0, "")
+
+	// Header with logo icon (drawn as rounded rect with lightning bolt shape)
+	drawLogoIcon(pdf, 20, 15)
 	pdf.SetXY(34, 17)
 	pdf.SetFont("Helvetica", "B", 20)
 	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.CellFormat(80, 8, "Revalyze", "", 0, "L", false, 0, "")
-	
+
 	pdf.SetFont("Helvetica", "", 10)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 	pdf.CellFormat(56, 8, currentDate, "", 1, "R", false, 0, "")
-	
+
 	pdf.Ln(8)
-	
+
 	// Divider
 	pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.SetLineWidth(0.8)
@@ -162,7 +154,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	pdf.SetFont("Helvetica", "B", 24)
 	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 	pdf.CellFormat(pageWidth, 10, "Decision Intelligence Report", "", 1, "L", false, 0, "")
-	
+
 	pdf.SetFont("Helvetica", "", 11)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 	pdf.CellFormat(pageWidth, 6, "Strategic analysis and recommendations based on AI-powered insights", "", 1, "L", false, 0, "")
@@ -182,12 +174,12 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 
 	// Executive Summary Section
 	drawSection(pdf, "Executive Summary", pageWidth)
-	
+
 	pdf.SetFont("Helvetica", "B", 13)
 	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 	pdf.MultiCell(pageWidth, 6, decision.Verdict.Headline, "", "L", false)
 	pdf.Ln(2)
-	
+
 	pdf.SetFont("Helvetica", "", 10)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 	pdf.MultiCell(pageWidth, 5, decision.Verdict.Summary, "", "L", false)
@@ -203,14 +195,14 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	// If You Proceed
 	if decision.Verdict.IfYouProceed != nil {
 		drawSection(pdf, "If You Proceed With This Decision", pageWidth)
-		
+
 		if len(decision.Verdict.IfYouProceed.ExpectedUpside) > 0 {
 			pdf.SetFont("Helvetica", "B", 10)
 			pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
 			pdf.CellFormat(pageWidth, 5, "Expected Upside:", "", 1, "L", false, 0, "")
 			drawBulletList(pdf, decision.Verdict.IfYouProceed.ExpectedUpside, colorDark)
 		}
-		
+
 		if len(decision.Verdict.IfYouProceed.SecondaryEffects) > 0 {
 			pdf.Ln(2)
 			pdf.SetFont("Helvetica", "B", 10)
@@ -225,9 +217,9 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if decision.Verdict.IfYouDoNotAct != nil {
 		checkPageBreak(pdf, 50)
 		drawSection(pdf, "If You Do NOT Take Action", pageWidth)
-		
+
 		ina := decision.Verdict.IfYouDoNotAct
-		
+
 		if ina.WhatStagnates != "" {
 			pdf.SetFont("Helvetica", "B", 9)
 			pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
@@ -236,7 +228,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 			pdf.MultiCell(pageWidth-35, 5, ina.WhatStagnates, "", "L", false)
 		}
-		
+
 		if ina.CompetitorAdvantage != "" {
 			pdf.SetFont("Helvetica", "B", 9)
 			pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
@@ -245,7 +237,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 			pdf.MultiCell(pageWidth-35, 5, ina.CompetitorAdvantage, "", "L", false)
 		}
-		
+
 		if ina.FutureDifficulty != "" {
 			pdf.SetFont("Helvetica", "B", 9)
 			pdf.SetTextColor(colorRed[0], colorRed[1], colorRed[2])
@@ -261,12 +253,12 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if len(decision.Verdict.AlternativesConsidered) > 0 {
 		checkPageBreak(pdf, 40)
 		drawSection(pdf, "Alternatives Considered and Rejected", pageWidth)
-		
+
 		for i, alt := range decision.Verdict.AlternativesConsidered {
 			pdf.SetFont("Helvetica", "B", 10)
 			pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 			pdf.CellFormat(pageWidth, 5, fmt.Sprintf("%d. %s", i+1, alt.Name), "", 1, "L", false, 0, "")
-			
+
 			pdf.SetFont("Helvetica", "I", 9)
 			pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 			pdf.MultiCell(pageWidth, 4, "Why rejected: "+alt.WhyNotSelected, "", "L", false)
@@ -279,9 +271,9 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if decision.Verdict.RiskAnalysis != nil {
 		checkPageBreak(pdf, 45)
 		drawSection(pdf, "Risk and Trade-off Analysis", pageWidth)
-		
+
 		ra := decision.Verdict.RiskAnalysis
-		
+
 		// Risk badge
 		riskColor := colorAmber
 		if strings.ToLower(ra.RiskLevel) == "low" {
@@ -289,7 +281,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 		} else if strings.ToLower(ra.RiskLevel) == "high" {
 			riskColor = colorRed
 		}
-		
+
 		pdf.SetFillColor(riskColor[0], riskColor[1], riskColor[2])
 		pdf.SetTextColor(255, 255, 255)
 		pdf.SetFont("Helvetica", "B", 9)
@@ -298,7 +290,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 		pdf.SetXY(20, pdf.GetY())
 		pdf.CellFormat(badgeW, 6, strings.ToUpper(ra.RiskLevel)+" RISK", "", 1, "C", false, 0, "")
 		pdf.Ln(3)
-		
+
 		drawLabelValue(pdf, "Who is Affected:", ra.WhoIsAffected, pageWidth)
 		drawLabelValue(pdf, "How It Manifests:", ra.HowItManifests, pageWidth)
 		drawLabelValue(pdf, "Why Acceptable:", ra.WhyAcceptable, pageWidth)
@@ -309,9 +301,9 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if decision.Verdict.WhyThisFits != nil {
 		checkPageBreak(pdf, 50)
 		drawSection(pdf, "Why This Decision Fits Your Company", pageWidth)
-		
+
 		wtf := decision.Verdict.WhyThisFits
-		
+
 		if wtf.CompanyStageReason != "" {
 			drawLabelValue(pdf, "Company Stage:", wtf.CompanyStageReason, pageWidth)
 		}
@@ -331,16 +323,16 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if decision.Verdict.ExecutionChecklist != nil {
 		checkPageBreak(pdf, 60)
 		drawSection(pdf, "Execution Checklist", pageWidth)
-		
+
 		ec := decision.Verdict.ExecutionChecklist
-		
+
 		if len(ec.Next14Days) > 0 {
 			pdf.SetFont("Helvetica", "B", 10)
 			pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
 			pdf.CellFormat(pageWidth, 5, "Next 14 Days:", "", 1, "L", false, 0, "")
 			drawChecklistItems(pdf, ec.Next14Days)
 		}
-		
+
 		if len(ec.Next30To60Days) > 0 {
 			pdf.Ln(2)
 			pdf.SetFont("Helvetica", "B", 10)
@@ -348,7 +340,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 			pdf.CellFormat(pageWidth, 5, "Next 30-60 Days:", "", 1, "L", false, 0, "")
 			drawChecklistItems(pdf, ec.Next30To60Days)
 		}
-		
+
 		if len(ec.SuccessMetrics) > 0 {
 			pdf.Ln(2)
 			pdf.SetFont("Helvetica", "B", 10)
@@ -362,9 +354,9 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	// === SCENARIOS SECTION ===
 	if scenarios != nil && len(scenarios.Scenarios) > 0 {
 		pdf.AddPage()
-		
+
 		// Section header
-		pdf.ImageOptions("logo", 20, 15, 10, 10, false, gofpdf.ImageOptions{}, 0, "")
+		drawLogoIcon(pdf, 20, 15)
 		pdf.SetXY(32, 17)
 		pdf.SetFont("Helvetica", "B", 16)
 		pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
@@ -373,12 +365,12 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 		pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 		pdf.CellFormat(58, 6, "Strategic Scenarios", "", 1, "R", false, 0, "")
 		pdf.Ln(8)
-		
+
 		pdf.SetDrawColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 		pdf.SetLineWidth(0.5)
 		pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
 		pdf.Ln(8)
-		
+
 		pdf.SetFont("Helvetica", "B", 18)
 		pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 		pdf.CellFormat(pageWidth, 8, "Alternative Strategic Paths", "", 1, "L", false, 0, "")
@@ -390,11 +382,11 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 		// Each scenario
 		for _, sc := range scenarios.Scenarios {
 			checkPageBreak(pdf, 70)
-			
+
 			// Scenario card
 			isChosen := decision.ChosenScenarioID != nil && string(sc.ScenarioID) == *decision.ChosenScenarioID
 			isRecommended := sc.ScenarioID == "balanced"
-			
+
 			// Background
 			if isChosen {
 				pdf.SetFillColor(139, 92, 246) // Purple bg for chosen
@@ -409,7 +401,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 				pdf.RoundedRect(20, pdf.GetY(), pageWidth, 6, 2, "12", "F")
 				pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 			}
-			
+
 			pdf.SetFont("Helvetica", "B", 10)
 			pdf.SetXY(25, pdf.GetY()+1)
 			badgeText := sc.Title
@@ -420,13 +412,13 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 			}
 			pdf.CellFormat(pageWidth-10, 5, badgeText, "", 1, "L", false, 0, "")
 			pdf.Ln(2)
-			
+
 			// Summary
 			pdf.SetFont("Helvetica", "", 9)
 			pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 			pdf.MultiCell(pageWidth, 4, sc.Summary, "", "L", false)
 			pdf.Ln(2)
-			
+
 			// Metrics row
 			pdf.SetFont("Helvetica", "", 8)
 			pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
@@ -437,7 +429,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 				sc.Metrics.TimeToImpact,
 				sc.Metrics.ExecutionEffort)
 			pdf.CellFormat(pageWidth, 4, metricsText, "", 1, "L", false, 0, "")
-			
+
 			// Trade-offs
 			if len(sc.Tradeoffs) > 0 {
 				pdf.Ln(1)
@@ -448,7 +440,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 					pdf.MultiCell(pageWidth-5, 4, t, "", "L", false)
 				}
 			}
-			
+
 			pdf.Ln(6)
 		}
 	}
@@ -457,9 +449,9 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if outcome != nil && len(outcome.KPIs) > 0 {
 		checkPageBreak(pdf, 80)
 		pdf.Ln(4)
-		
+
 		drawSection(pdf, "Outcome Tracking", pageWidth)
-		
+
 		// Status badge
 		statusText := "PENDING"
 		statusColor := colorGray
@@ -474,7 +466,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 			statusText = "IN PROGRESS"
 			statusColor = colorBlue
 		}
-		
+
 		pdf.SetFillColor(statusColor[0], statusColor[1], statusColor[2])
 		pdf.SetTextColor(255, 255, 255)
 		pdf.SetFont("Helvetica", "B", 8)
@@ -483,7 +475,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 		pdf.SetXY(20, pdf.GetY())
 		pdf.CellFormat(badgeWidth, 6, statusText, "", 1, "C", false, 0, "")
 		pdf.Ln(4)
-		
+
 		// KPI Table
 		drawKPITable(pdf, outcome.KPIs, pageWidth)
 	}
@@ -494,15 +486,15 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	pdf.SetLineWidth(0.2)
 	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
 	pdf.Ln(4)
-	
+
 	pdf.SetFont("Helvetica", "", 8)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 	pdf.CellFormat(pageWidth, 4, "Generated by", "", 1, "C", false, 0, "")
-	
+
 	pdf.SetFont("Helvetica", "B", 9)
 	pdf.SetTextColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
 	pdf.CellFormat(pageWidth, 5, "Revalyze - AI-Powered Decision Intelligence", "", 1, "C", false, 0, "")
-	
+
 	pdf.SetFont("Helvetica", "", 7)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
 	pdf.CellFormat(pageWidth, 4, fmt.Sprintf("© %d Revalyze B.V. | www.revalyze.co", time.Now().Year()), "", 1, "C", false, 0, "")
@@ -518,7 +510,7 @@ func buildComprehensivePDF(decision *model.DecisionV2, scenarios *model.Scenario
 	if err != nil {
 		return nil, fmt.Errorf("PDF output error: %v", err)
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -536,21 +528,21 @@ func drawSnapshotTable(pdf *gofpdf.Fpdf, ds *model.DecisionSnapshotV2) {
 	pdf.SetFillColor(colorLightBg[0], colorLightBg[1], colorLightBg[2])
 	pdf.SetFont("Helvetica", "B", 8)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
-	
+
 	cols := []string{"REVENUE IMPACT", "RISK LEVEL", "TIME TO IMPACT", "EFFORT", "REVERSIBILITY"}
 	colW := 34.0
-	
+
 	for _, col := range cols {
 		pdf.CellFormat(colW, 7, col, "", 0, "C", true, 0, "")
 	}
 	pdf.Ln(-1)
-	
+
 	pdf.SetFont("Helvetica", "B", 10)
-	
+
 	// Revenue - green
 	pdf.SetTextColor(colorGreen[0], colorGreen[1], colorGreen[2])
 	pdf.CellFormat(colW, 8, ds.RevenueImpactRange, "", 0, "C", false, 0, "")
-	
+
 	// Risk
 	riskColor := colorAmber
 	if strings.ToLower(ds.PrimaryRiskLevel) == "low" {
@@ -560,11 +552,11 @@ func drawSnapshotTable(pdf *gofpdf.Fpdf, ds *model.DecisionSnapshotV2) {
 	}
 	pdf.SetTextColor(riskColor[0], riskColor[1], riskColor[2])
 	pdf.CellFormat(colW, 8, ds.PrimaryRiskLevel, "", 0, "C", false, 0, "")
-	
+
 	// Time
 	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 	pdf.CellFormat(colW, 8, ds.TimeToImpact, "", 0, "C", false, 0, "")
-	
+
 	// Effort
 	effortColor := colorGray
 	if strings.ToLower(ds.ExecutionEffort) == "low" {
@@ -574,7 +566,7 @@ func drawSnapshotTable(pdf *gofpdf.Fpdf, ds *model.DecisionSnapshotV2) {
 	}
 	pdf.SetTextColor(effortColor[0], effortColor[1], effortColor[2])
 	pdf.CellFormat(colW, 8, ds.ExecutionEffort, "", 0, "C", false, 0, "")
-	
+
 	// Reversibility
 	pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 	pdf.CellFormat(colW, 8, ds.Reversibility, "", 1, "C", false, 0, "")
@@ -614,28 +606,28 @@ func drawKPITable(pdf *gofpdf.Fpdf, kpis []model.OutcomeKPI, pageWidth float64) 
 	pdf.SetFillColor(colorLightBg[0], colorLightBg[1], colorLightBg[2])
 	pdf.SetFont("Helvetica", "B", 8)
 	pdf.SetTextColor(colorGray[0], colorGray[1], colorGray[2])
-	
+
 	cols := []float64{50, 30, 30, 30, 30}
 	headers := []string{"KPI", "BASELINE", "TARGET", "ACTUAL", "DELTA"}
-	
+
 	for i, h := range headers {
 		pdf.CellFormat(cols[i], 7, h, "", 0, "C", true, 0, "")
 	}
 	pdf.Ln(-1)
-	
+
 	for _, kpi := range kpis {
 		pdf.SetFont("Helvetica", "", 9)
 		pdf.SetTextColor(colorDark[0], colorDark[1], colorDark[2])
 		pdf.CellFormat(cols[0], 7, string(kpi.Key), "B", 0, "L", false, 0, "")
 		pdf.CellFormat(cols[1], 7, fmt.Sprintf("%.1f", kpi.Baseline), "B", 0, "C", false, 0, "")
 		pdf.CellFormat(cols[2], 7, fmt.Sprintf("%.1f", kpi.Target), "B", 0, "C", false, 0, "")
-		
+
 		actualStr := "—"
 		if kpi.Actual != nil {
 			actualStr = fmt.Sprintf("%.1f", *kpi.Actual)
 		}
 		pdf.CellFormat(cols[3], 7, actualStr, "B", 0, "C", false, 0, "")
-		
+
 		deltaStr := "—"
 		if kpi.DeltaPct != nil {
 			if *kpi.DeltaPct > 0 {
@@ -669,4 +661,20 @@ func sanitizeExportFilename(name string) string {
 		name = name[:50]
 	}
 	return name
+}
+
+// drawLogoIcon draws a purple rounded square with a lightning bolt
+func drawLogoIcon(pdf *gofpdf.Fpdf, x, y float64) {
+	// Purple rounded square background
+	pdf.SetFillColor(colorPrimary[0], colorPrimary[1], colorPrimary[2])
+	pdf.RoundedRect(x, y, 10, 10, 2, "1234", "F")
+	
+	// Lightning bolt (simplified as lines)
+	pdf.SetDrawColor(255, 255, 255)
+	pdf.SetLineWidth(0.8)
+	
+	// Lightning bolt shape
+	pdf.Line(x+6, y+2, x+4, y+5)   // Top diagonal
+	pdf.Line(x+4, y+5, x+6.5, y+5) // Middle horizontal
+	pdf.Line(x+6.5, y+5, x+4, y+8) // Bottom diagonal
 }

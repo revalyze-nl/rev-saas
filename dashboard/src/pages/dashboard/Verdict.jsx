@@ -9,6 +9,7 @@ import {
   calculateReadinessScore,
   getOutcomeStatusLabel,
 } from '../../lib/outcomeStorage';
+import ExportButton from '../../components/ExportButton';
 
 // Context options
 const COMPANY_STAGES = [
@@ -517,16 +518,21 @@ const Verdict = () => {
               <span className="text-xs text-slate-600">(30-second overview)</span>
             </div>
             
-            {/* Outcome Status Badge */}
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium ${outcomeStatus.style}`}>
-                {outcomeStatus.label}
-              </span>
-              {outcomeStatus.date && (
-                <span className="text-xs text-slate-500">
-                  • {new Date(outcomeStatus.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {/* Outcome Status Badge + Export */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${outcomeStatus.style}`}>
+                  {outcomeStatus.label}
                 </span>
-              )}
+                {outcomeStatus.date && (
+                  <span className="text-xs text-slate-500">
+                    • {new Date(outcomeStatus.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
+              </div>
+              
+              {/* Export Button */}
+              {decision?.id && <ExportButton decisionId={decision.id} />}
             </div>
           </div>
           

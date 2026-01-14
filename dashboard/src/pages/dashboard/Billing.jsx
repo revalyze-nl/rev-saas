@@ -121,6 +121,7 @@ const Billing = () => {
   const monthlyCredits = credits?.monthly_credits ?? credits?.monthlyCredits ?? 0;
   const creditsPercentage = monthlyCredits > 0 ? (remainingCredits / monthlyCredits) * 100 : 0;
 
+  // Plans data synced from landing page (PricingSection.jsx)
   const plans = [
     {
       key: 'starter',
@@ -128,16 +129,14 @@ const Billing = () => {
       price: 69,
       currency: '€',
       interval: 'month',
-      description: 'For small SaaS teams',
+      description: 'For early-stage SaaS',
       features: [
         'Up to 3 pricing plans',
         'Up to 3 competitors',
         'AI-powered pricing analysis',
         '5 AI Insight Credits / month',
-        'PDF export of pricing reports',
-        'Email support'
-      ],
-      color: 'slate'
+        'PDF export of reports'
+      ]
     },
     {
       key: 'growth',
@@ -152,10 +151,8 @@ const Billing = () => {
         'AI-powered pricing analysis',
         'Pricing simulations (what-if)',
         '20 AI Insight Credits / month',
-        'PDF export of analyses & simulations',
-        'Priority email support'
+        'PDF export of all reports'
       ],
-      color: 'violet',
       popular: true
     },
     {
@@ -164,18 +161,16 @@ const Billing = () => {
       price: 399,
       currency: '€',
       interval: 'month',
-      description: 'For larger SaaS companies',
+      description: 'For larger organizations',
       features: [
         '7+ pricing plans',
         '10+ competitors',
-        'Full AI-powered pricing analysis',
-        'Full pricing simulations access',
+        'Full AI analysis suite',
+        'Unlimited simulations',
         '100 AI Insight Credits / month',
         'CSV & Excel export',
-        '3 team seats (multi-user access)',
-        'Dedicated onboarding & priority support'
-      ],
-      color: 'emerald'
+        '3 team seats included'
+      ]
     }
   ];
 
@@ -185,7 +180,7 @@ const Billing = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto pt-8 pb-16">
+    <div className="max-w-5xl mx-auto pt-8 pb-16">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 ${
@@ -334,8 +329,8 @@ const Billing = () => {
         )}
       </div>
 
-      {/* Plans Grid */}
-      <div className="space-y-4 mb-10">
+      {/* Plans Grid - 3 Column Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
         {plans.map((plan) => {
           const cta = getPlanCTA(plan);
           const isCurrentPlan = currentPlanKey === plan.key;
@@ -344,7 +339,7 @@ const Billing = () => {
           return (
             <div
               key={plan.key}
-              className={`p-5 rounded-xl border transition-all ${
+              className={`relative p-6 rounded-xl border transition-all ${
                 isPopular 
                   ? 'bg-violet-500/5 border-violet-500/30' 
                   : isCurrentPlan
@@ -352,88 +347,95 @@ const Billing = () => {
                   : 'bg-slate-900/20 border-slate-800/30 hover:border-slate-700/50'
               }`}
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                {/* Plan Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                    {isPopular && (
-                      <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 text-xs font-medium rounded">
-                        Recommended
-                      </span>
-                    )}
-                    {isCurrentPlan && (
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded">
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500 mb-3">{plan.description}</p>
-                  
-                  {/* Features - Horizontal on larger screens */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    {plan.features.slice(0, 4).map((feature, index) => (
-                      <span key={index} className="text-xs text-slate-400 flex items-center gap-1">
-                        <svg className={`w-3 h-3 ${isPopular ? 'text-violet-400' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {feature}
-                      </span>
-                    ))}
-                    {plan.features.length > 4 && (
-                      <span className="text-xs text-slate-500">+{plan.features.length - 4} more</span>
-                    )}
-                  </div>
+              {/* Popular Badge */}
+              {isPopular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-3 py-1 bg-violet-500 text-white text-xs font-semibold rounded-full">
+                    Recommended
+                  </span>
                 </div>
+              )}
 
-                {/* Price & CTA */}
-                <div className="flex items-center gap-4 md:flex-col md:items-end">
-                  <div className="text-right">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-white">{plan.currency}{plan.price}</span>
-                      <span className="text-slate-500 text-sm">/{plan.interval}</span>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={() => !cta.disabled && handleUpgradeClick(plan.key)}
-                    disabled={cta.disabled || checkoutLoading === plan.key}
-                    className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all disabled:cursor-not-allowed min-w-[120px] ${
-                      cta.disabled
-                        ? 'bg-slate-800/50 text-slate-500'
-                        : isPopular
-                        ? 'bg-white text-slate-900 hover:bg-slate-100'
-                        : 'bg-slate-800 text-white hover:bg-slate-700'
-                    }`}
-                  >
-                    {checkoutLoading === plan.key ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      </span>
-                    ) : cta.text}
-                  </button>
+              {/* Current Badge */}
+              {isCurrentPlan && !isPopular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full border border-emerald-500/30">
+                    Current
+                  </span>
+                </div>
+              )}
+
+              {/* Plan Header */}
+              <div className="text-center mb-5 pt-2">
+                <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+                <p className="text-sm text-slate-500">{plan.description}</p>
+              </div>
+
+              {/* Price */}
+              <div className="text-center mb-6">
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-4xl font-bold text-white">{plan.currency}{plan.price}</span>
+                  <span className="text-slate-500 text-sm">/{plan.interval}</span>
                 </div>
               </div>
+
+              {/* Features List */}
+              <ul className="space-y-3 mb-6">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-start gap-2.5">
+                    <svg 
+                      className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                        isPopular ? 'text-violet-400' : isCurrentPlan ? 'text-emerald-400' : 'text-slate-500'
+                      }`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm text-slate-300">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA Button */}
+              <button
+                onClick={() => !cta.disabled && handleUpgradeClick(plan.key)}
+                disabled={cta.disabled || checkoutLoading === plan.key}
+                className={`w-full py-3 rounded-lg font-semibold text-sm transition-all disabled:cursor-not-allowed ${
+                  cta.disabled
+                    ? 'bg-slate-800/50 text-slate-500'
+                    : isPopular
+                    ? 'bg-white text-slate-900 hover:bg-slate-100'
+                    : 'bg-slate-800 text-white hover:bg-slate-700'
+                }`}
+              >
+                {checkoutLoading === plan.key ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </span>
+                ) : cta.text}
+              </button>
             </div>
           );
         })}
       </div>
 
-      {/* FAQ Section - Collapsible style */}
+      {/* FAQ Section */}
       <div className="p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl">
         <h3 className="text-sm text-slate-400 uppercase tracking-wide mb-4">Frequently Asked Questions</h3>
         
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
           {[
             { q: 'What are AI Insight Credits?', a: '1 pricing analysis = 1 credit. 1 pricing simulation = 1 credit. Credits are shared between analyses and simulations each month.' },
             { q: 'Can I change plans later?', a: 'Yes. Upgrade or downgrade anytime with prorated billing.' },
             { q: 'Is there a free trial?', a: 'Yes. 14-day free trial on all paid plans, no card required.' },
             { q: 'What payment methods do you accept?', a: 'All major credit cards and SEPA transfers via Stripe.' },
           ].map((faq, i) => (
-            <div key={i} className="border-b border-slate-800/30 pb-3 last:border-b-0 last:pb-0">
+            <div key={i} className="p-4 bg-slate-800/20 rounded-lg">
               <h4 className="text-sm text-slate-300 font-medium mb-1">{faq.q}</h4>
               <p className="text-sm text-slate-500">{faq.a}</p>
             </div>

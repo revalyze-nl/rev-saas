@@ -1,12 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import useAiCredits from '../../hooks/useAiCredits';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { credits, loading: creditsLoading } = useAiCredits();
 
   // Check if user is on free plan
   const isFreePlan = !user?.plan || user.plan === 'free';
+  const isAdmin = user?.role === 'admin' || user?.plan === 'admin';
 
   // Main navigation items
   const navItems = [
@@ -105,18 +108,18 @@ const Sidebar = () => {
 
       {/* Bottom Section */}
       <div className="border-t border-slate-800/30">
-        {/* Upgrade Plan Button - Only for free users */}
-        {isFreePlan && (
+        {/* Upgrade Plan Button - Show for free users and admin */}
+        {(isFreePlan || isAdmin) && (
           <div className="p-3">
-            <button
-              onClick={() => navigate('/settings/billing')}
+            <NavLink
+              to="/upgrade"
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600 transition-all duration-150"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               <span>Upgrade Plan</span>
-            </button>
+            </NavLink>
           </div>
         )}
 
@@ -158,7 +161,37 @@ const Sidebar = () => {
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate">{user?.email || 'User'}</p>
               <p className="text-xs text-slate-500">{getPlanDisplay()} Plan</p>
+              
             </div>
+          </div>
+        </div>
+
+        {/* Credits Section */}
+        <div className="px-3 pb-2">
+          <div className="flex flex-col gap-2 px-3 py-3 rounded-lg bg-slate-900/50 shadow-sm">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6h4.5" />
+              </svg>
+              <span className="text-white font-semibold text-sm">Credits</span>
+            </div>
+            <div className="w-full flex flex-col gap-2">
+  
+  <div className="flex items-center justify-between">
+    <span className="text-lg font-bold text-white">
+      {creditsLoading ? '...' : credits ? credits.remainingCredits ?? credits.remaining_credits ?? 0 : '-'}
+    </span>
+    <span className="text-xs text-slate-400">/ {creditsLoading ? '...' : credits ? credits.monthlyCredits ?? credits.monthly_credits ?? 0 : '-'}</span>
+  </div>
+  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+    <div
+      className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+      style={{ width: `${credits && credits.monthlyCredits ? Math.min(100, Math.round(100 * (credits.remainingCredits ?? credits.remaining_credits ?? 0) / credits.monthlyCredits)) : 0}%` }}
+    />
+  </div>
+  <span className="text-[10px] text-slate-500 text-right">Remaining / Monthly</span>
+</div>
           </div>
         </div>
 

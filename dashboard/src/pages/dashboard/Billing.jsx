@@ -76,9 +76,7 @@ const Billing = () => {
   }, [searchParams, setSearchParams, fetchBillingStatus, fetchCredits]);
 
   // Redirect admin users
-  useEffect(() => {
-    if (isAdmin) navigate('/verdict', { replace: true });
-  }, [isAdmin, navigate]);
+
 
   const handleUpgradeClick = async (planKey) => {
     setCheckoutLoading(planKey);
@@ -106,7 +104,7 @@ const Billing = () => {
     }
   };
 
-  if (isAdmin) return null;
+
 
   const currentPlanKey = billingStatus?.plan_key || 'free';
   const subscriptionStatus = billingStatus?.status || '';
@@ -193,7 +191,7 @@ const Billing = () => {
   };
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen pb-12 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 ${

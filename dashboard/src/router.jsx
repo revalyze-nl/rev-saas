@@ -133,6 +133,10 @@ export const router = createBrowserRouter([
       {
         path: 'billing',
         element: <Billing />
+      },
+      {
+        path: 'upgrade',
+        element: <Billing />
       }
     ]
   }

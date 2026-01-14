@@ -48,14 +48,22 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (user?.full_name) return user.full_name;
+    if (user?.name) return user.name;
+    return user?.email || 'User';
+  };
+
   // Get user initials
   const getUserInitials = () => {
-    if (user?.full_name) {
-      const parts = user.full_name.split(' ');
+    const name = getUserDisplayName();
+    if (name && name !== user?.email) {
+      const parts = name.split(' ');
       if (parts.length >= 2) {
         return (parts[0][0] + parts[1][0]).toUpperCase();
       }
-      return user.full_name.substring(0, 2).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
     }
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
@@ -67,6 +75,54 @@ const Sidebar = () => {
   const getPlanDisplay = () => {
     const plan = user?.plan || 'free';
     return plan.charAt(0).toUpperCase() + plan.slice(1);
+  };
+
+  // Circular progress component
+  const CircularProgress = ({ percentage, size = 44, strokeWidth = 3.5 }) => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg className="transform -rotate-90" width={size} height={size}>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="none"
+            className="text-slate-800"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="url(#creditGradient)"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeLinecap="round"
+            style={{
+              strokeDasharray: circumference,
+              strokeDashoffset: offset,
+              transition: 'stroke-dashoffset 0.5s ease'
+            }}
+          />
+          <defs>
+            <linearGradient id="creditGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={isEmpty ? '#ef4444' : isLow ? '#f59e0b' : '#8b5cf6'} />
+              <stop offset="100%" stopColor={isEmpty ? '#dc2626' : isLow ? '#f97316' : '#d946ef'} />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg className={`w-4 h-4 ${isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-violet-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -113,168 +169,112 @@ const Sidebar = () => {
         </div>
       </nav>
 
-      {/* Bottom Section */}
-      <div className="border-t border-slate-800/30">
-        {/* AI Credits Section */}
-        <div className="p-3">
+      {/* Bottom Card Section */}
+      <div className="p-3">
+        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-800/50 overflow-hidden">
+          {/* Credits Section with Circular Progress */}
           <button
             onClick={() => navigate('/upgrade')}
-            className={`w-full p-3 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
-              isEmpty
-                ? 'bg-red-500/10 border-red-500/30 hover:border-red-500/50'
-                : isLow
-                ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50'
-                : 'bg-slate-900/50 border-slate-700/50 hover:border-violet-500/30'
-            }`}
+            className="w-full p-3 flex items-center gap-3 hover:bg-slate-800/30 transition-colors"
           >
             {creditsLoading ? (
-              <div className="flex items-center justify-center gap-2 py-1">
+              <div className="flex items-center justify-center gap-2 py-2 w-full">
                 <div className="w-4 h-4 border-2 border-slate-600 border-t-violet-400 rounded-full animate-spin" />
                 <span className="text-xs text-slate-400">Loading...</span>
               </div>
             ) : (
               <>
-                {/* Header */}
-                <div className="flex items-center justify-between mb-2">
+                <CircularProgress percentage={percentage} size={44} strokeWidth={3.5} />
+                <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${
-                      isEmpty ? 'bg-red-500/20' : isLow ? 'bg-amber-500/20' : 'bg-violet-500/20'
-                    }`}>
-                      <svg 
-                        className={`w-3.5 h-3.5 ${
-                          isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-violet-400'
-                        }`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                    </div>
-                    <span className="text-xs font-medium text-slate-400">AI Credits</span>
+                    <p className="text-sm font-medium text-white">{getPlanDisplay()} Plan</p>
+                    {isEmpty && (
+                      <span className="text-[9px] font-semibold text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded animate-pulse">
+                        EMPTY
+                      </span>
+                    )}
+                    {isLow && !isEmpty && (
+                      <span className="text-[9px] font-semibold text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded animate-pulse">
+                        LOW
+                      </span>
+                    )}
                   </div>
-                  {isEmpty && (
-                    <span className="text-[10px] font-semibold text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded animate-pulse">
-                      EMPTY
+                  <p className="text-xs text-slate-400">
+                    <span className={`font-semibold ${isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-violet-400'}`}>
+                      {remainingCredits}
                     </span>
-                  )}
-                  {isLow && !isEmpty && (
-                    <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded animate-pulse">
-                      LOW
-                    </span>
-                  )}
+                    <span className="text-slate-500">/{monthlyCredits}</span>
+                    <span className="text-slate-500 ml-1">Credits</span>
+                  </p>
                 </div>
-
-                {/* Credits Count */}
-                <div className="flex items-baseline gap-1.5 mb-2">
-                  <span className={`text-xl font-bold ${
-                    isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-white'
-                  }`}>
-                    {remainingCredits}
-                  </span>
-                  <span className="text-xs text-slate-500">/ {monthlyCredits}</span>
-                  <span className="text-[10px] text-slate-600 ml-auto">this month</span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      isEmpty 
-                        ? 'bg-red-500' 
-                        : isLow 
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-500' 
-                        : 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
-                    }`}
-                    style={{ width: `${Math.max(percentage, 2)}%` }}
-                  />
-                </div>
-
-                {/* Upgrade hint for empty state */}
-                {isEmpty && (
-                  <div className="mt-2 pt-2 border-t border-red-500/20">
-                    <span className="text-[10px] text-red-400 flex items-center justify-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Click to upgrade
-                    </span>
-                  </div>
-                )}
               </>
             )}
           </button>
-        </div>
 
-        {/* Upgrade Plan Button - Show for free users and admin */}
-        {(isFreePlan || isAdmin) && (
-          <div className="px-3 pb-3">
+          {/* Upgrade Button - Inside Card for Free Users */}
+          {(isFreePlan || isAdmin) && (
             <NavLink
               to="/upgrade"
-              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600 transition-all duration-150"
+              className="flex items-center justify-center gap-2 mx-3 mb-3 px-3 py-2 rounded-lg text-xs font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600 transition-all"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               <span>Upgrade Plan</span>
             </NavLink>
-          </div>
-        )}
+          )}
 
-        {/* Settings */}
-        <div className="p-3 pt-0">
+          {/* User Profile Section */}
           <NavLink
             to="/settings"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                isActive
-                  ? 'bg-white/10 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`
-            }
+            className="flex items-center gap-3 px-3 py-3 hover:bg-slate-800/30 transition-colors border-t border-slate-800/50 group"
           >
-            {({ isActive }) => (
-              <>
-                <svg
-                  className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500'}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>Settings</span>
-              </>
-            )}
-          </NavLink>
-        </div>
-
-        {/* Account Info */}
-        <div className="px-3 pb-2">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-slate-900/50">
-            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-medium text-xs">
+            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-md flex-shrink-0">
               {getUserInitials()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white truncate">{user?.email || 'User'}</p>
-              <p className="text-xs text-slate-500">{getPlanDisplay()} Plan</p>
+              <p className="text-sm font-medium text-white truncate">{getUserDisplayName()}</p>
+              <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
             </div>
-          </div>
+            <svg className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </NavLink>
+
+          {/* Settings Link */}
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 border-t border-slate-800/50 transition-colors ${
+                isActive
+                  ? 'text-violet-400 bg-violet-500/10'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
+              }`
+            }
+          >
+            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-sm font-medium">Settings</span>
+          </NavLink>
         </div>
 
-        {/* Sign Out */}
-        <div className="p-3 pt-0">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-            <span>Sign Out</span>
-          </button>
-        </div>
+        {/* Sign Out - Outside Card */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 rounded-xl text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+          </svg>
+          <span>Sign Out</span>
+        </button>
+
+        {/* Copyright */}
+        <p className="text-[10px] text-slate-600 text-center mt-2">
+          © {new Date().getFullYear()} Revalyze B.V.
+        </p>
       </div>
     </div>
   );

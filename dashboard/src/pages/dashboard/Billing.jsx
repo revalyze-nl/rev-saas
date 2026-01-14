@@ -96,7 +96,7 @@ const Billing = () => {
       if (data.url) window.location.href = data.url;
     } catch (err) {
       console.error('Portal error:', err);
-      setBillingError(err. message || 'Failed to open billing portal');
+      setBillingError(err.message || 'Failed to open billing portal');
       setPortalLoading(false);
     }
   };
@@ -104,7 +104,7 @@ const Billing = () => {
   const currentPlanKey = billingStatus?.plan_key || 'free';
   const subscriptionStatus = billingStatus?.status || '';
   const cancelAtPeriodEnd = billingStatus?.cancel_at_period_end || false;
-  const currentPeriodEnd = billingStatus?.current_period_end ?  new Date(billingStatus.current_period_end) : null;
+  const currentPeriodEnd = billingStatus?.current_period_end ? new Date(billingStatus.current_period_end) : null;
   const hasActiveSubscription = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
   const isPastDue = subscriptionStatus === 'past_due' || subscriptionStatus === 'unpaid';
   const hasStripeCustomer = !!billingStatus?.stripe_customer_id;
@@ -117,9 +117,9 @@ const Billing = () => {
     admin: 'Admin'
   }[currentPlanKey] || 'Free Preview';
 
-  const remainingCredits = credits?.remaining_credits ??  credits?.remainingCredits ??  0;
-  const monthlyCredits = credits?.monthly_credits ?? credits?.monthlyCredits ??  0;
-  const creditsPercentage = monthlyCredits > 0 ?  (remainingCredits / monthlyCredits) * 100 : 0;
+  const remainingCredits = credits?.remaining_credits ?? credits?.remainingCredits ?? 0;
+  const monthlyCredits = credits?.monthly_credits ?? credits?.monthlyCredits ?? 0;
+  const creditsPercentage = monthlyCredits > 0 ? (remainingCredits / monthlyCredits) * 100 : 0;
 
   // Plans data with aurora gradient colors
   const plans = [
@@ -157,7 +157,7 @@ const Billing = () => {
         'Track measurable outcomes',
         'Build a decision history'
       ],
-      limits:  [
+      limits: [
         '10 decisions / month',
         '10 scenarios / month',
         'Outcome KPIs',
@@ -181,7 +181,7 @@ const Billing = () => {
         'Share insights with leadership',
         'Export decisions and results'
       ],
-      limits:  [
+      limits: [
         '50 decisions / month',
         '50 scenarios / month',
         'Learning across decisions',
@@ -199,7 +199,7 @@ const Billing = () => {
     return { text: plan.ctaText || 'Upgrade', disabled: false };
   };
 
-  // Aurora Pricing Card Component
+  // Aurora Pricing Card Component with smooth gradient fade
   const AuroraPricingCard = ({ plan }) => {
     const cta = getPlanCTA(plan);
     const isCurrentPlan = currentPlanKey === plan.key;
@@ -211,68 +211,73 @@ const Billing = () => {
         <div className={`absolute -inset-0.5 bg-gradient-to-r ${plan.gradient} rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-500`}></div>
         
         <div className="relative flex flex-col h-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-800/50">
-          {/* Aurora Header Section */}
-          <div className={`relative px-6 pt-8 pb-20 bg-gradient-to-br ${plan.gradient} overflow-hidden`}>
-            {/* Aurora glow effects */}
-            <div className="absolute inset-0 overflow-hidden">
-              {/* Large gradient orbs */}
-              <div className={`absolute -top-20 -left-20 w-60 h-60 bg-white/20 rounded-full blur-3xl`}></div>
-              <div className={`absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl`}></div>
-              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/15 rounded-full blur-2xl`}></div>
-              
-              {/* Sparkle stars */}
-              <div className="absolute top-6 right-8 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-              <div className="absolute top-12 right-16 w-1 h-1 bg-white/80 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-              <div className="absolute top-20 right-6 w-0.5 h-0.5 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-              <div className="absolute top-8 left-12 w-1 h-1 bg-white/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-              <div className="absolute top-16 left-6 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.8s' }}></div>
-              
-              {/* Grid pattern overlay */}
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                backgroundSize: '20px 20px'
-              }}></div>
-            </div>
-
-            {/* Popular Badge */}
-            {isPopular && (
-              <div className="absolute top-4 right-4">
-                <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
-                  Popular
-                </span>
+          {/* Aurora Header Section with gradient fade */}
+          <div className="relative">
+            {/* Main gradient background */}
+            <div className={`relative px-6 pt-8 pb-24 bg-gradient-to-br ${plan.gradient} overflow-hidden`}> 
+              {/* Aurora glow effects */}
+              <div className="absolute inset-0 overflow-hidden">
+                {/* Large gradient orbs */}
+                <div className="absolute -top-20 -left-20 w-60 h-60 bg-white/20 rounded-full blur-3xl"></div>
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/15 rounded-full blur-2xl"></div>
+                
+                {/* Sparkle stars */}
+                <div className="absolute top-6 right-8 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                <div className="absolute top-12 right-16 w-1 h-1 bg-white/80 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+                <div className="absolute top-20 right-6 w-0.5 h-0.5 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-8 left-12 w-1 h-1 bg-white/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                <div className="absolute top-16 left-6 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.8s' }}></div>
               </div>
-            )}
 
-            {/* Current Badge */}
-            {isCurrentPlan && (
-              <div className="absolute top-4 right-4">
-                <span className="px-2.5 py-1 bg-white/25 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/40">
-                  Current
-                </span>
-              </div>
-            )}
+              {/* Popular Badge */}
+              {isPopular && (
+                <div className="absolute top-4 right-4">
+                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
+                    Popular
+                  </span>
+                </div>
+              )}
 
-            {/* Plan name and price */}
-            <div className="relative z-10">
-              <h3 className="text-lg font-semibold text-white/90 mb-1">{plan.name}</h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-bold text-white">{plan.currency}{plan.price}</span>
-                <span className="text-white/70 text-sm font-medium">/{plan.interval}</span>
+              {/* Current Badge */}
+              {isCurrentPlan && (
+                <div className="absolute top-4 right-4">
+                  <span className="px-2.5 py-1 bg-white/25 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/40">
+                    Current
+                  </span>
+                </div>
+              )}
+
+              {/* Plan name and price */}
+              <div className="relative z-10">
+                <h3 className="text-lg font-semibold text-white/90 mb-1">{plan.name}</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold text-white">{plan.currency}{plan.price}</span>
+                  <span className="text-white/70 text-sm font-medium">/{plan.interval}</span>
+                </div>
               </div>
             </div>
 
-            {/* CTA Button - positioned at bottom of gradient section */}
-            <div className="absolute bottom-4 left-6 right-6">
+            {/* Smooth gradient fade overlay - creates the aurora-to-dark transition */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+              style={{
+                background: 'linear-gradient(to bottom, transparent 0%, rgba(15, 23, 42, 0.3) 30%, rgba(15, 23, 42, 0.7) 60%, rgb(15, 23, 42) 100%)'
+              }}
+            ></div>
+
+            {/* CTA Button - positioned over the fade */}
+            <div className="absolute bottom-4 left-6 right-6 z-10">
               <button
                 onClick={() => !cta.disabled && handleUpgradeClick(plan.key)}
-                disabled={cta. disabled || checkoutLoading === plan.key}
+                disabled={cta.disabled || checkoutLoading === plan.key}
                 className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:cursor-not-allowed ${
                   cta.disabled
                     ? 'bg-white/30 text-white/60 backdrop-blur-sm'
                     : 'bg-white text-slate-900 hover:bg-white/90 shadow-lg hover:shadow-xl hover:scale-[1.02]'
                 }`}
               >
-                {checkoutLoading === plan.key ?  (
+                {checkoutLoading === plan.key ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -291,7 +296,7 @@ const Billing = () => {
 
             {/* Features List */}
             <ul className="space-y-3 mb-5">
-              {plan.features. map((feature, index) => (
+              {plan.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <svg className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
                     plan.glowColor === 'cyan' ? 'text-cyan-400' : 
@@ -328,11 +333,11 @@ const Billing = () => {
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 ${
-          toast.type === 'success' ? 'bg-emerald-500/90 text-white' :  
+          toast.type === 'success' ? 'bg-emerald-500/90 text-white' : 
           toast.type === 'warning' ? 'bg-amber-500/90 text-white' : 
           'bg-red-500/90 text-white'
-        }`}>
-          {toast.type === 'success' ?  (
+        }`}> 
+          {toast.type === 'success' ? (
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
@@ -359,7 +364,7 @@ const Billing = () => {
           Upgrade your plan
         </h1>
         <p className="text-lg text-slate-400">
-          Scale your decision intelligence as your team grows. 
+          Scale your decision intelligence as your team grows.
         </p>
       </div>
 
@@ -402,7 +407,7 @@ const Billing = () => {
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         subscriptionStatus === 'trialing' 
                           ? 'bg-violet-500/20 text-violet-400' 
-                          :  'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-emerald-500/20 text-emerald-400'
                       }`}>
                         {subscriptionStatus === 'trialing' ? 'Trial' : 'Active'}
                       </span>
@@ -415,7 +420,7 @@ const Billing = () => {
                   </div>
                   {currentPeriodEnd && hasActiveSubscription && (
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {cancelAtPeriodEnd ?  'Cancels' : 'Renews'} {currentPeriodEnd. toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {cancelAtPeriodEnd ? 'Cancels' : 'Renews'} {currentPeriodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   )}
                 </>
@@ -429,7 +434,7 @@ const Billing = () => {
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-slate-500">AI Credits</span>
                 {creditsLoading ? (
-                  <span className="text-xs text-slate-500">... </span>
+                  <span className="text-xs text-slate-500">...</span>
                 ) : (
                   <span className={`text-xs font-medium ${
                     remainingCredits === 0 ? 'text-red-400' : remainingCredits <= 2 ? 'text-amber-400' : 'text-slate-300'
@@ -438,12 +443,12 @@ const Billing = () => {
                   </span>
                 )}
               </div>
-              <div className="h-1. 5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
                     remainingCredits === 0 
                       ? 'bg-red-500' 
-                      :  remainingCredits <= 2 
+                      : remainingCredits <= 2 
                       ? 'bg-amber-500' 
                       : 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
                   }`}
@@ -467,7 +472,7 @@ const Billing = () => {
         {isPastDue && (
           <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
             <p className="text-sm text-red-400">
-              <span className="font-medium">Payment failed. </span> Please update your payment method.
+              <span className="font-medium">Payment failed.</span> Please update your payment method.
             </p>
           </div>
         )}
@@ -486,10 +491,10 @@ const Billing = () => {
         
         <div className="grid md:grid-cols-2 gap-4">
           {[
-            { q: 'What counts as a decision?', a: 'Each verdict you create counts as one decision.  Scenarios within a decision are tracked separately.' },
-            { q: 'Can I change plans later?', a: 'Yes.  Upgrade or downgrade anytime with prorated billing.' },
-            { q: 'Is there a free trial?', a: 'Yes.  14-day free trial on all paid plans, no card required.' },
-            { q: 'What payment methods do you accept?', a:  'All major credit cards and SEPA transfers via Stripe.' },
+            { q: 'What counts as a decision?', a: 'Each verdict you create counts as one decision. Scenarios within a decision are tracked separately.' },
+            { q: 'Can I change plans later?', a: 'Yes. Upgrade or downgrade anytime with prorated billing.' },
+            { q: 'Is there a free trial?', a: 'Yes. 14-day free trial on all paid plans, no card required.' },
+            { q: 'What payment methods do you accept?', a: 'All major credit cards and SEPA transfers via Stripe.' },
           ].map((faq, i) => (
             <div key={i} className="p-4 bg-slate-800/20 rounded-lg">
               <h4 className="text-sm text-slate-300 font-medium mb-1">{faq.q}</h4>

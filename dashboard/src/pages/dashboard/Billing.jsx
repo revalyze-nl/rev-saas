@@ -121,7 +121,7 @@ const Billing = () => {
   const monthlyCredits = credits?.monthly_credits ?? credits?.monthlyCredits ?? 0;
   const creditsPercentage = monthlyCredits > 0 ? (remainingCredits / monthlyCredits) * 100 : 0;
 
-  // Plans data synced from landing page (PricingSection.jsx)
+  // Plans data synced from landing page
   const plans = [
     {
       key: 'starter',
@@ -129,14 +129,18 @@ const Billing = () => {
       price: 69,
       currency: '€',
       interval: 'month',
-      description: 'For early-stage SaaS',
+      description: 'For teams exploring better decisions',
       features: [
-        'Up to 3 pricing plans',
-        'Up to 3 competitors',
-        'AI-powered pricing analysis',
-        '5 AI Insight Credits / month',
-        'PDF export of reports'
-      ]
+        'Make decisions visible',
+        'Explore alternatives',
+        'See what might happen'
+      ],
+      limits: [
+        '3 decisions / month',
+        '3 scenarios / month',
+        'Notes-only outcomes'
+      ],
+      ctaText: 'Start small'
     },
     {
       key: 'growth',
@@ -144,16 +148,21 @@ const Billing = () => {
       price: 159,
       currency: '€',
       interval: 'month',
-      description: 'For growing SaaS companies',
+      description: 'For teams that want to learn from outcomes',
       features: [
-        'Up to 5 pricing plans',
-        'Up to 5 competitors',
-        'AI-powered pricing analysis',
-        'Pricing simulations (what-if)',
-        '20 AI Insight Credits / month',
-        'PDF export of all reports'
+        'Compare scenarios',
+        'Choose paths intentionally',
+        'Track measurable outcomes',
+        'Build a decision history'
       ],
-      popular: true
+      limits: [
+        '10 decisions / month',
+        '10 scenarios / month',
+        'Outcome KPIs',
+        'Decision timeline'
+      ],
+      popular: true,
+      ctaText: 'Upgrade to Growth'
     },
     {
       key: 'enterprise',
@@ -161,22 +170,27 @@ const Billing = () => {
       price: 399,
       currency: '€',
       interval: 'month',
-      description: 'For larger organizations',
+      description: "For organizations that don't want to repeat mistakes",
       features: [
-        '7+ pricing plans',
-        '10+ competitors',
-        'Full AI analysis suite',
-        'Unlimited simulations',
-        '100 AI Insight Credits / month',
-        'CSV & Excel export',
-        '3 team seats included'
-      ]
+        'Learn from past decisions',
+        'Recognize patterns over time',
+        'Share insights with leadership',
+        'Export decisions and results'
+      ],
+      limits: [
+        '50 decisions / month',
+        '50 scenarios / month',
+        'Learning across decisions',
+        'Exports & reports',
+        'Team-level visibility (coming soon)'
+      ],
+      ctaText: 'Start with Enterprise'
     }
   ];
 
   const getPlanCTA = (plan) => {
     if (currentPlanKey === plan.key) return { text: 'Current Plan', disabled: true };
-    return { text: 'Upgrade', disabled: false };
+    return { text: plan.ctaText || 'Upgrade', disabled: false };
   };
 
   return (
@@ -215,7 +229,7 @@ const Billing = () => {
           Upgrade your plan
         </h1>
         <p className="text-lg text-slate-400">
-          Scale your pricing intelligence as your business grows.
+          Scale your decision intelligence as your team grows.
         </p>
       </div>
 
@@ -339,19 +353,19 @@ const Billing = () => {
           return (
             <div
               key={plan.key}
-              className={`relative p-6 rounded-xl border transition-all ${
+              className={`relative p-6 rounded-xl border transition-all flex flex-col ${
                 isPopular 
-                  ? 'bg-violet-500/5 border-violet-500/30' 
+                  ? 'bg-slate-900/60 border-slate-700/50' 
                   : isCurrentPlan
                   ? 'bg-emerald-500/5 border-emerald-500/30'
-                  : 'bg-slate-900/20 border-slate-800/30 hover:border-slate-700/50'
+                  : 'bg-slate-900/30 border-slate-800/30 hover:border-slate-700/50'
               }`}
             >
               {/* Popular Badge */}
               {isPopular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="px-3 py-1 bg-violet-500 text-white text-xs font-semibold rounded-full">
-                    Recommended
+                  <span className="px-3 py-1 bg-slate-700 text-slate-300 text-xs font-medium rounded-full">
+                    Most teams start here
                   </span>
                 </div>
               )}
@@ -366,34 +380,37 @@ const Billing = () => {
               )}
 
               {/* Plan Header */}
-              <div className="text-center mb-5 pt-2">
+              <div className="mb-4 pt-2">
                 <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
                 <p className="text-sm text-slate-500">{plan.description}</p>
               </div>
 
               {/* Price */}
-              <div className="text-center mb-6">
-                <div className="flex items-baseline justify-center gap-1">
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">{plan.currency}{plan.price}</span>
                   <span className="text-slate-500 text-sm">/{plan.interval}</span>
                 </div>
               </div>
 
               {/* Features List */}
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-2.5 mb-6">
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-2.5">
-                    <svg 
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                        isPopular ? 'text-violet-400' : isCurrentPlan ? 'text-emerald-400' : 'text-slate-500'
-                      }`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <span className="text-slate-600 mt-0.5">—</span>
                     <span className="text-sm text-slate-300">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Divider */}
+              <div className="border-t border-slate-800/50 my-4"></div>
+
+              {/* Limits */}
+              <ul className="space-y-1.5 mb-6 flex-1">
+                {plan.limits.map((limit, index) => (
+                  <li key={index} className="text-xs text-slate-500">
+                    {limit}
                   </li>
                 ))}
               </ul>
@@ -402,12 +419,12 @@ const Billing = () => {
               <button
                 onClick={() => !cta.disabled && handleUpgradeClick(plan.key)}
                 disabled={cta.disabled || checkoutLoading === plan.key}
-                className={`w-full py-3 rounded-lg font-semibold text-sm transition-all disabled:cursor-not-allowed ${
+                className={`w-full py-3 rounded-lg font-semibold text-sm transition-all disabled:cursor-not-allowed mt-auto ${
                   cta.disabled
                     ? 'bg-slate-800/50 text-slate-500'
                     : isPopular
                     ? 'bg-white text-slate-900 hover:bg-slate-100'
-                    : 'bg-slate-800 text-white hover:bg-slate-700'
+                    : 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700'
                 }`}
               >
                 {checkoutLoading === plan.key ? (
@@ -430,7 +447,7 @@ const Billing = () => {
         
         <div className="grid md:grid-cols-2 gap-4">
           {[
-            { q: 'What are AI Insight Credits?', a: '1 pricing analysis = 1 credit. 1 pricing simulation = 1 credit. Credits are shared between analyses and simulations each month.' },
+            { q: 'What counts as a decision?', a: 'Each verdict you create counts as one decision. Scenarios within a decision are tracked separately.' },
             { q: 'Can I change plans later?', a: 'Yes. Upgrade or downgrade anytime with prorated billing.' },
             { q: 'Is there a free trial?', a: 'Yes. 14-day free trial on all paid plans, no card required.' },
             { q: 'What payment methods do you accept?', a: 'All major credit cards and SEPA transfers via Stripe.' },

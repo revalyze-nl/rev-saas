@@ -121,7 +121,7 @@ const Billing = () => {
   const monthlyCredits = credits?.monthly_credits ?? credits?.monthlyCredits ?? 0;
   const creditsPercentage = monthlyCredits > 0 ? (remainingCredits / monthlyCredits) * 100 : 0;
 
-  // Plans data - all plans use the same nebula gradient style
+  // Plans data
   const plans = [
     {
       key: 'starter',
@@ -193,64 +193,56 @@ const Billing = () => {
     return { text: plan.ctaText || 'Upgrade', disabled: false };
   };
 
-  // Nebula Aurora Pricing Card Component - matching reference design exactly
+  // Nebula Aurora Pricing Card Component
   const NebulaPricingCard = ({ plan }) => {
     const cta = getPlanCTA(plan);
     const isCurrentPlan = currentPlanKey === plan.key;
     const isPopular = plan.popular;
 
+    let buttonClass = 'bg-white text-slate-900 hover:bg-white/95 shadow-lg hover:shadow-xl';
+    if (cta.disabled) {
+      buttonClass = 'bg-white/20 text-white/60 backdrop-blur-sm border border-white/20';
+    }
+
     return (
       <div className="relative group">
-        {/* Outer glow effect on hover */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 rounded-2xl blur opacity-0 group-hover:opacity-25 transition duration-500"></div>
         
         <div className="relative flex flex-col h-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-800/50">
-          {/* Nebula Aurora Header Section */}
           <div className="relative h-52">
-            {/* Base dark background */}
             <div className="absolute inset-0 bg-slate-900"></div>
             
-            {/* Nebula gradient layers - matching the reference image */}
-            {/* Main red/orange aurora glow - top right */}
             <div 
               className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl opacity-70"
               style={{ background: 'radial-gradient(circle, rgba(251,113,133,0.8) 0%, rgba(244,63,94,0.6) 40%, transparent 70%)' }}
             ></div>
             
-            {/* Pink/magenta center glow */}
             <div 
               className="absolute top-0 right-1/4 w-40 h-40 rounded-full blur-3xl opacity-60"
               style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.7) 0%, rgba(219,39,119,0.5) 50%, transparent 70%)' }}
             ></div>
             
-            {/* Purple/violet left side glow */}
             <div 
               className="absolute bottom-10 -left-10 w-44 h-44 rounded-full blur-3xl opacity-50"
               style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.6) 0%, rgba(109,40,217,0.4) 50%, transparent 70%)' }}
             ></div>
             
-            {/* Blue accent - bottom left */}
             <div 
               className="absolute bottom-5 left-10 w-32 h-32 rounded-full blur-2xl opacity-40"
               style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, rgba(37,99,235,0.3) 50%, transparent 70%)' }}
             ></div>
             
-            {/* Subtle orange highlight */}
             <div 
               className="absolute top-5 right-5 w-24 h-24 rounded-full blur-2xl opacity-50"
               style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.6) 0%, transparent 60%)' }}
             ></div>
 
-            {/* Sparkle stars */}
             <div className="absolute top-8 right-10 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
             <div className="absolute top-14 right-20 w-1 h-1 bg-white/80 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
             <div className="absolute top-20 right-8 w-0.5 h-0.5 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
             <div className="absolute top-6 right-1/3 w-1 h-1 bg-white/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
             <div className="absolute top-12 left-1/4 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.8s' }}></div>
-            <div className="absolute top-24 right-1/4 w-1 h-1 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '1.2s' }}></div>
-            <div className="absolute top-16 left-10 w-0.5 h-0.5 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
 
-            {/* Popular Badge */}
             {isPopular && (
               <div className="absolute top-4 right-4 z-20">
                 <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
@@ -259,7 +251,6 @@ const Billing = () => {
               </div>
             )}
 
-            {/* Current Badge */}
             {isCurrentPlan && (
               <div className="absolute top-4 right-4 z-20">
                 <span className="px-2.5 py-1 bg-white/25 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/40">
@@ -268,7 +259,6 @@ const Billing = () => {
               </div>
             )}
 
-            {/* Plan name and price - positioned in the aurora area */}
             <div className="absolute top-6 left-6 z-10">
               <h3 className="text-lg font-semibold text-white mb-2">{plan.name}</h3>
               <div className="flex items-baseline gap-1">
@@ -277,16 +267,11 @@ const Billing = () => {
               <p className="text-white/70 text-sm mt-1">per month / billed annually</p>
             </div>
 
-            {/* CTA Button - positioned at bottom of aurora section */}
             <div className="absolute bottom-4 left-6 right-6 z-20">
               <button
                 onClick={() => !cta.disabled && handleUpgradeClick(plan.key)}
                 disabled={cta.disabled || checkoutLoading === plan.key}
-                className={`w-full py-3.5 rounded-2xl font-semibold text-sm transition-all disabled:cursor-not-allowed ${
-                  cta.disabled
-                    ? 'bg-white/20 text-white/60 backdrop-blur-sm border border-white/20'
-                    : 'bg-white text-slate-900 hover:bg-white/95 shadow-lg hover:shadow-xl'
-                }}
+                className={"w-full py-3.5 rounded-2xl font-semibold text-sm transition-all disabled:cursor-not-allowed " + buttonClass}
               >
                 {checkoutLoading === plan.key ? (
                   <span className="flex items-center justify-center gap-2">
@@ -299,7 +284,6 @@ const Billing = () => {
               </button>
             </div>
 
-            {/* Smooth gradient fade to dark section */}
             <div 
               className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
               style={{
@@ -308,9 +292,7 @@ const Billing = () => {
             ></div>
           </div>
 
-          {/* Dark Content Section */}
           <div className="flex-1 px-6 py-5 bg-slate-900">
-            {/* Features List */}
             <ul className="space-y-3">
               {plan.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-3">
@@ -322,10 +304,8 @@ const Billing = () => {
               ))}
             </ul>
 
-            {/* Divider */}
             <div className="border-t border-slate-800 my-4"></div>
 
-            {/* Limits */}
             <ul className="space-y-2">
               {plan.limits.map((limit, index) => (
                 <li key={index} className="flex items-center gap-2 text-xs text-slate-500">
@@ -340,15 +320,34 @@ const Billing = () => {
     );
   };
 
+  // Helper functions for dynamic classes
+  const getToastClass = () => {
+    if (toast?.type === 'success') return 'bg-emerald-500/90 text-white';
+    if (toast?.type === 'warning') return 'bg-amber-500/90 text-white';
+    return 'bg-red-500/90 text-white';
+  };
+
+  const getCreditsBarClass = () => {
+    if (remainingCredits === 0) return 'bg-red-500';
+    if (remainingCredits <= 2) return 'bg-amber-500';
+    return 'bg-gradient-to-r from-violet-500 to-fuchsia-500';
+  };
+
+  const getCreditsTextClass = () => {
+    if (remainingCredits === 0) return 'text-red-400';
+    if (remainingCredits <= 2) return 'text-amber-400';
+    return 'text-slate-300';
+  };
+
+  const getSubscriptionBadgeClass = () => {
+    if (subscriptionStatus === 'trialing') return 'bg-violet-500/20 text-violet-400';
+    return 'bg-emerald-500/20 text-emerald-400';
+  };
+
   return (
     <div className="max-w-5xl mx-auto pt-8 pb-16">
-      {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 ${
-          toast.type === 'success' ? 'bg-emerald-500/90 text-white' : 
-          toast.type === 'warning' ? 'bg-amber-500/90 text-white' : 
-          'bg-red-500/90 text-white'
-        }`}> 
+        <div className={"fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 " + getToastClass()}>
           {toast.type === 'success' ? (
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -367,7 +366,6 @@ const Billing = () => {
         </div>
       )}
 
-      {/* Header */}
       <div className="text-center mb-10">
         <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">
           Subscription Management
@@ -380,7 +378,6 @@ const Billing = () => {
         </p>
       </div>
 
-      {/* Error Banner */}
       {billingError && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center justify-between">
           <p className="text-sm text-red-400">{billingError}</p>
@@ -392,10 +389,8 @@ const Billing = () => {
         </div>
       )}
 
-      {/* Current Plan & Credits Status */}
       <div className="mb-10 p-5 bg-slate-900/30 border border-slate-800/30 rounded-xl">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          {/* Current Plan */}
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-slate-800/50 rounded-xl flex items-center justify-center">
               <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -416,11 +411,7 @@ const Billing = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-semibold text-white">{planDisplayName}</span>
                     {hasActiveSubscription && (
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        subscriptionStatus === 'trialing' 
-                          ? 'bg-violet-500/20 text-violet-400' 
-                          : 'bg-emerald-500/20 text-emerald-400'
-                      }`}> 
+                      <span className={"px-2 py-0.5 rounded text-xs font-medium " + getSubscriptionBadgeClass()}>
                         {subscriptionStatus === 'trialing' ? 'Trial' : 'Active'}
                       </span>
                     )}
@@ -440,7 +431,6 @@ const Billing = () => {
             </div>
           </div>
 
-          {/* AI Credits */}
           <div className="flex items-center gap-4">
             <div className="flex-1 md:w-48">
               <div className="flex items-center justify-between mb-1">
@@ -448,23 +438,15 @@ const Billing = () => {
                 {creditsLoading ? (
                   <span className="text-xs text-slate-500">...</span>
                 ) : (
-                  <span className={`text-xs font-medium ${
-                    remainingCredits === 0 ? 'text-red-400' : remainingCredits <= 2 ? 'text-amber-400' : 'text-slate-300'
-                  }`}> 
+                  <span className={"text-xs font-medium " + getCreditsTextClass()}>
                     {remainingCredits} / {monthlyCredits}
                   </span>
                 )}
               </div>
               <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    remainingCredits === 0 
-                      ? 'bg-red-500' 
-                      : remainingCredits <= 2 
-                      ? 'bg-amber-500' 
-                      : 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
-                  }`
-                  style={{ width: `${Math.max(creditsPercentage, 2)}%` }}
+                  className={"h-full rounded-full transition-all " + getCreditsBarClass()}
+                  style={{ width: Math.max(creditsPercentage, 2) + '%' }}
                 />
               </div>
             </div>
@@ -490,33 +472,35 @@ const Billing = () => {
         )}
       </div>
 
-      {/* Nebula Aurora Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {plans.map((plan) => (
           <NebulaPricingCard key={plan.key} plan={plan} />
         ))}
       </div>
 
-      {/* FAQ Section */}
       <div className="p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl">
         <h3 className="text-sm text-slate-400 uppercase tracking-wide mb-4">Frequently Asked Questions</h3>
         
         <div className="grid md:grid-cols-2 gap-4">
-          {[
-            { q: 'What counts as a decision?', a: 'Each verdict you create counts as one decision. Scenarios within a decision are tracked separately.' },
-            { q: 'Can I change plans later?', a: 'Yes. Upgrade or downgrade anytime with prorated billing.' },
-            { q: 'Is there a free trial?', a: 'Yes. 14-day free trial on all paid plans, no card required.' },
-            { q: 'What payment methods do you accept?', a: 'All major credit cards and SEPA transfers via Stripe.' },
-          ].map((faq, i) => (
-            <div key={i} className="p-4 bg-slate-800/20 rounded-lg">
-              <h4 className="text-sm text-slate-300 font-medium mb-1">{faq.q}</h4>
-              <p className="text-sm text-slate-500">{faq.a}</p>
-            </div>
-          ))}
+          <div className="p-4 bg-slate-800/20 rounded-lg">
+            <h4 className="text-sm text-slate-300 font-medium mb-1">What counts as a decision?</h4>
+            <p className="text-sm text-slate-500">Each verdict you create counts as one decision. Scenarios within a decision are tracked separately.</p>
+          </div>
+          <div className="p-4 bg-slate-800/20 rounded-lg">
+            <h4 className="text-sm text-slate-300 font-medium mb-1">Can I change plans later?</h4>
+            <p className="text-sm text-slate-500">Yes. Upgrade or downgrade anytime with prorated billing.</p>
+          </div>
+          <div className="p-4 bg-slate-800/20 rounded-lg">
+            <h4 className="text-sm text-slate-300 font-medium mb-1">Is there a free trial?</h4>
+            <p className="text-sm text-slate-500">Yes. 14-day free trial on all paid plans, no card required.</p>
+          </div>
+          <div className="p-4 bg-slate-800/20 rounded-lg">
+            <h4 className="text-sm text-slate-300 font-medium mb-1">What payment methods do you accept?</h4>
+            <p className="text-sm text-slate-500">All major credit cards and SEPA transfers via Stripe.</p>
+          </div>
         </div>
       </div>
 
-      {/* Footer note */}
       <p className="text-xs text-slate-600 mt-6 text-center">
         No refunds for unused time or credits, unless required by law. Cancel anytime from your dashboard.
       </p>

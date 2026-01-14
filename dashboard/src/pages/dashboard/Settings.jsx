@@ -3,9 +3,171 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext';
 import { stripeApi, workspaceApi } from '../../lib/apiClient';
 
+// Skeleton Loading Component
+const SkeletonField = () => (
+  <div className="animate-pulse">
+    <div className="h-4 w-24 bg-slate-700 rounded mb-2" />
+    <div className="h-12 w-full bg-slate-800 rounded-xl" />
+  </div>
+);
+
+const SkeletonCard = ({ rows = 4 }) => (
+  <div className="animate-pulse space-y-4">
+    {Array.from({ length: rows }).map((_, i) => (
+      <div key={i} className="flex items-center gap-4">
+        <div className="h-10 w-10 bg-slate-700 rounded-xl" />
+        <div className="flex-1">
+          <div className="h-4 w-32 bg-slate-700 rounded mb-2" />
+          <div className="h-3 w-48 bg-slate-800 rounded" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', confirmStyle = 'danger', loading = false }) => {
+  if (!isOpen) return null;
+
+  const buttonStyles = {
+    danger: 'bg-red-500 hover:bg-red-600 text-white',
+    warning: 'bg-amber-500 hover:bg-amber-600 text-slate-900',
+    primary: 'bg-violet-500 hover:bg-violet-600 text-white',
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+        <p className="text-sm text-slate-400 mb-6">{message}</p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2.5 bg-slate-700 text-slate-300 rounded-xl font-medium hover:bg-slate-600 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`px-4 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center gap-2 ${buttonStyles[confirmStyle]}`}
+          >
+            {loading && (
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Toast Component
+const Toast = ({ toast, onClose }) => {
+  if (!toast) return null;
+
+  const styles = {
+    success: 'bg-emerald-500/90 text-white',
+    error: 'bg-red-500/90 text-white',
+    warning: 'bg-amber-500/90 text-slate-900',
+    info: 'bg-violet-500/90 text-white',
+  };
+
+  const icons = {
+    success: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+      </svg>
+    ),
+    error: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+      </svg>
+    ),
+    warning: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+      </svg>
+    ),
+    info: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+      </svg>
+    ),
+  };
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-in slide-in-from-top-2 ${styles[toast.type] || styles.info}`}>
+      {icons[toast.type] || icons.info}
+      <span className="font-medium">{toast.message}</span>
+      <button onClick={onClose} className="ml-2 hover:opacity-80">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
+// Collapsible Section Component
+const CollapsibleSection = ({ id, title, children, defaultOpen = true, badge = null, icon = null, expandedSections, toggleSection }) => {
+  const isOpen = expandedSections[id] ?? defaultOpen;
+  
+  return (
+    <div className="relative group">
+      <div className="absolute -inset-1 bg-gradient-to-r from-slate-600 to-slate-700 rounded-3xl blur opacity-5 group-hover:opacity-10 transition-opacity" />
+      <div className="relative bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden">
+        <button
+          onClick={() => toggleSection(id)}
+          className="w-full flex items-center justify-between p-6 hover:bg-slate-800/30 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            {icon && (
+              <div className="w-10 h-10 bg-slate-800/50 rounded-xl flex items-center justify-center">
+                {icon}
+              </div>
+            )}
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-white">{title}</h3>
+            </div>
+            {badge}
+          </div>
+          <svg
+            className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {isOpen && (
+          <div className="px-6 pb-6 pt-0 border-t border-slate-800/50">
+            {children}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { profile, updateProfile } = useSettings();
+
+  // Expanded sections state
+  const [expandedSections, setExpandedSections] = useState({
+    profile: true,
+    stripe: true,
+    defaults: false,
+    danger: false,
+  });
 
   const [showSavedMessage, setShowSavedMessage] = useState(false);
 
@@ -14,7 +176,12 @@ const Settings = () => {
   const [stripeAction, setStripeAction] = useState(null);
   const [stripeError, setStripeError] = useState(null);
   const [stripeSyncWarnings, setStripeSyncWarnings] = useState([]);
-  const [stripeToast, setStripeToast] = useState(null);
+
+  // Toast state (unified)
+  const [toast, setToast] = useState(null);
+
+  // Confirmation modal state
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Workspace defaults state
   const [workspaceDefaults, setWorkspaceDefaults] = useState({
@@ -25,7 +192,22 @@ const Settings = () => {
   });
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
-  const [workspaceToast, setWorkspaceToast] = useState(null);
+
+  // Toggle section
+  const toggleSection = useCallback((section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  }, []);
+
+  // Show toast helper
+  const showToast = useCallback((type, message, duration = 5000) => {
+    setToast({ type, message });
+    if (duration > 0) {
+      setTimeout(() => setToast(null), duration);
+    }
+  }, []);
 
   // Fetch Stripe status
   const fetchStripeStatus = useCallback(async () => {
@@ -82,11 +264,9 @@ const Settings = () => {
         } : undefined,
       };
       await workspaceApi.updateDefaults(payload);
-      setWorkspaceToast({ type: 'success', message: 'Workspace defaults saved!' });
-      setTimeout(() => setWorkspaceToast(null), 3000);
+      showToast('success', 'Workspace defaults saved!');
     } catch (err) {
-      setWorkspaceToast({ type: 'error', message: err.message || 'Failed to save defaults' });
-      setTimeout(() => setWorkspaceToast(null), 5000);
+      showToast('error', err.message || 'Failed to save defaults');
     } finally {
       setWorkspaceSaving(false);
     }
@@ -96,20 +276,18 @@ const Settings = () => {
   useEffect(() => {
     const stripeParam = searchParams.get('stripe');
     if (stripeParam === 'connected') {
-      setStripeToast({ type: 'success', message: 'Stripe account connected successfully!' });
+      showToast('success', 'Stripe account connected successfully!');
       fetchStripeStatus();
       searchParams.delete('stripe');
       setSearchParams(searchParams, { replace: true });
-      setTimeout(() => setStripeToast(null), 5000);
     } else if (stripeParam === 'error') {
       const errorCode = searchParams.get('error') || 'unknown';
-      setStripeToast({ type: 'error', message: `Failed to connect Stripe: ${errorCode}` });
+      showToast('error', `Failed to connect Stripe: ${errorCode}`);
       searchParams.delete('stripe');
       searchParams.delete('error');
       setSearchParams(searchParams, { replace: true });
-      setTimeout(() => setStripeToast(null), 5000);
     }
-  }, [searchParams, setSearchParams, fetchStripeStatus]);
+  }, [searchParams, setSearchParams, fetchStripeStatus, showToast]);
 
   // Stripe handlers
   const handleStripeConnect = async () => {
@@ -131,8 +309,7 @@ const Settings = () => {
     try {
       const { data } = await stripeApi.syncMetrics();
       if (data.ok) {
-        setStripeToast({ type: 'success', message: 'Metrics synced from Stripe!' });
-        setTimeout(() => setStripeToast(null), 5000);
+        showToast('success', 'Metrics synced from Stripe!');
         fetchStripeStatus();
         if (data.warnings?.length > 0) setStripeSyncWarnings(data.warnings);
       }
@@ -144,14 +321,13 @@ const Settings = () => {
   };
 
   const handleStripeDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Stripe account?')) return;
     setStripeAction('disconnecting');
     setStripeError(null);
     try {
       await stripeApi.disconnect();
       setStripeStatus({ connected: false, loading: false });
-      setStripeToast({ type: 'success', message: 'Stripe account disconnected' });
-      setTimeout(() => setStripeToast(null), 5000);
+      showToast('success', 'Stripe account disconnected');
+      setShowDisconnectModal(false);
     } catch (err) {
       setStripeError(err.message || 'Failed to disconnect Stripe');
     } finally {
@@ -166,29 +342,21 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Stripe Toast */}
-      {stripeToast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 ${
-          stripeToast.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'
-        }`}>
-          {stripeToast.type === 'success' ? (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          )}
-          <span className="font-medium">{stripeToast.message}</span>
-          <button onClick={() => setStripeToast(null)} className="ml-2 hover:opacity-80">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
+    <div className="min-h-screen pb-16">
+      {/* Toast */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDisconnectModal}
+        onClose={() => setShowDisconnectModal(false)}
+        onConfirm={handleStripeDisconnect}
+        title="Disconnect Stripe?"
+        message="This will remove the connection to your Stripe account. Your synced data will remain, but automatic syncing will stop."
+        confirmText={stripeAction === 'disconnecting' ? 'Disconnecting...' : 'Disconnect'}
+        confirmStyle="danger"
+        loading={stripeAction === 'disconnecting'}
+      />
 
       {/* Hero Header */}
       <div className="relative mb-10">
@@ -213,21 +381,31 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* User Profile Section */}
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
           <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">User Profile</h2>
+                  <p className="text-sm text-slate-400">Your personal account information</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">User Profile</h2>
-                <p className="text-sm text-slate-400">Your personal account information</p>
-              </div>
+              {showSavedMessage && (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  Saved
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -255,7 +433,7 @@ const Settings = () => {
                 <select
                   value={profile.currency || 'USD'}
                   onChange={(e) => handleInputChange('currency', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all appearance-none"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all appearance-none cursor-pointer"
                 >
                   <option value="EUR">EUR (€)</option>
                   <option value="USD">USD ($)</option>
@@ -264,17 +442,6 @@ const Settings = () => {
               </div>
             </div>
 
-            {showSavedMessage && (
-              <div className="mt-6 p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
-                <p className="text-sm text-violet-400 flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Changes saved locally
-                </p>
-              </div>
-            )}
-            
             {/* Company Settings Link */}
             <div className="mt-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
               <div className="flex items-center justify-between">
@@ -319,7 +486,11 @@ const Settings = () => {
                   <p className="text-sm text-slate-400">Connect to auto-sync MRR and customer data</p>
                 </div>
               </div>
-              {!stripeStatus.loading && (
+              {stripeStatus.loading ? (
+                <div className="px-3 py-1 rounded-full bg-slate-700 animate-pulse">
+                  <div className="h-4 w-16 bg-slate-600 rounded" />
+                </div>
+              ) : (
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                   stripeStatus.connected 
                     ? 'bg-emerald-500/20 text-emerald-400' 
@@ -352,13 +523,7 @@ const Settings = () => {
 
             <div className="flex flex-wrap items-center gap-3">
               {stripeStatus.loading ? (
-                <div className="flex items-center gap-2 text-slate-400">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span className="text-sm">Loading...</span>
-                </div>
+                <SkeletonCard rows={1} />
               ) : stripeStatus.connected ? (
                 <>
                   <button
@@ -384,11 +549,11 @@ const Settings = () => {
                     )}
                   </button>
                   <button
-                    onClick={handleStripeDisconnect}
+                    onClick={() => setShowDisconnectModal(true)}
                     disabled={stripeAction === 'disconnecting'}
                     className="px-4 py-2.5 bg-slate-800 text-slate-300 border border-slate-700 rounded-xl font-medium hover:bg-slate-700 transition-all disabled:opacity-50"
                   >
-                    {stripeAction === 'disconnecting' ? 'Disconnecting...' : 'Disconnect'}
+                    Disconnect
                   </button>
                   {stripeStatus.last_sync_at && (
                     <span className="text-xs text-slate-500">
@@ -424,39 +589,28 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Workspace Defaults Section */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
-          <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Decision Defaults</h2>
-                  <p className="text-sm text-slate-400">Pre-fill context for new decisions (override per-decision)</p>
-                </div>
-              </div>
-              {workspaceToast && (
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  workspaceToast.type === 'success'
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {workspaceToast.message}
-                </span>
-              )}
-            </div>
-
+        {/* Workspace Defaults Section - Collapsible */}
+        <CollapsibleSection
+          id="defaults"
+          title="Decision Defaults"
+          expandedSections={expandedSections}
+          toggleSection={toggleSection}
+          defaultOpen={false}
+          icon={
+            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          }
+          badge={
+            <span className="text-xs text-slate-500 ml-2">Pre-fill context for new decisions</span>
+          }
+        >
+          <div className="pt-4">
             {workspaceLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <svg className="animate-spin h-6 w-6 text-emerald-400" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonField key={i} />
+                ))}
               </div>
             ) : (
               <>
@@ -469,7 +623,7 @@ const Settings = () => {
                     <select
                       value={workspaceDefaults.companyStage}
                       onChange={(e) => setWorkspaceDefaults(prev => ({ ...prev, companyStage: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Select stage...</option>
                       <option value="pre_seed">Pre-Seed</option>
@@ -489,7 +643,7 @@ const Settings = () => {
                     <select
                       value={workspaceDefaults.businessModel}
                       onChange={(e) => setWorkspaceDefaults(prev => ({ ...prev, businessModel: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Select model...</option>
                       <option value="saas">SaaS</option>
@@ -509,7 +663,7 @@ const Settings = () => {
                     <select
                       value={workspaceDefaults.primaryKpi}
                       onChange={(e) => setWorkspaceDefaults(prev => ({ ...prev, primaryKpi: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Select KPI...</option>
                       <option value="arr">ARR</option>
@@ -532,7 +686,7 @@ const Settings = () => {
                         ...prev,
                         market: { ...prev.market, type: e.target.value }
                       }))}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Select type...</option>
                       <option value="b2b">B2B</option>
@@ -552,7 +706,7 @@ const Settings = () => {
                         ...prev,
                         market: { ...prev.market, segment: e.target.value }
                       }))}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Select segment...</option>
                       <option value="devtools">DevTools</option>
@@ -601,8 +755,62 @@ const Settings = () => {
               </>
             )}
           </div>
-        </div>
+        </CollapsibleSection>
 
+        {/* Danger Zone - Collapsible */}
+        <CollapsibleSection
+          id="danger"
+          title="Danger Zone"
+          expandedSections={expandedSections}
+          toggleSection={toggleSection}
+          defaultOpen={false}
+          icon={
+            <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          }
+          badge={
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 ml-2">
+              Destructive actions
+            </span>
+          }
+        >
+          <div className="pt-4 space-y-4">
+            <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-sm font-medium text-red-400 mb-1">Delete Account</h4>
+                  <p className="text-xs text-slate-500">
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                </div>
+                <button
+                  disabled
+                  className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed"
+                >
+                  Coming Soon
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-300 mb-1">Export Data</h4>
+                  <p className="text-xs text-slate-500">
+                    Download all your data including decisions, outcomes, and settings.
+                  </p>
+                </div>
+                <button
+                  disabled
+                  className="px-4 py-2 bg-slate-700 text-slate-400 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed"
+                >
+                  Coming Soon
+                </button>
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
       </div>
     </div>
   );

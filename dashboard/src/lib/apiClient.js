@@ -89,10 +89,10 @@ export class AICreditsError extends Error {
 const fetchWithError = async (url, options = {}) => {
   try {
     const response = await fetch(url, options);
-    
+
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type');
-    
+
     if (response.status === 204) {
       return { ok: true, data: null };
     }
@@ -118,7 +118,7 @@ const fetchWithError = async (url, options = {}) => {
           );
         }
       }
-      
+
       // Check for plan limit errors (402 - Payment Required)
       if (response.status === 402 && typeof data === 'object' && data.code) {
         const planLimitCodes = ['PLAN_LIMIT_DECISIONS', 'PLAN_LIMIT_SCENARIOS'];
@@ -132,7 +132,7 @@ const fetchWithError = async (url, options = {}) => {
           );
         }
       }
-      
+
       // Check for feature locked errors (403 with feature code)
       if (response.status === 403 && typeof data === 'object' && data.code) {
         const featureLockedCodes = [
@@ -145,7 +145,7 @@ const fetchWithError = async (url, options = {}) => {
           throw new FeatureLockedError(data.code, data.message, data.plan);
         }
       }
-      
+
       // Check for AI credits errors (402 or 403 with code field)
       if ((response.status === 402 || response.status === 403) && typeof data === 'object' && data.code) {
         const aiErrorCodes = ['AI_QUOTA_EXCEEDED', 'SIMULATION_NOT_AVAILABLE'];
@@ -153,7 +153,7 @@ const fetchWithError = async (url, options = {}) => {
           throw new AICreditsError(data.code, data.message);
         }
       }
-      
+
       const errorMessage = typeof data === 'string' ? data : data.error || data.message || 'Request failed';
       throw new Error(errorMessage);
     }
@@ -219,7 +219,7 @@ export const putJson = async (path, body = {}, options = {}) => {
 
 // Auth-specific API calls
 export const authApi = {
-  signup: (signupData) => 
+  signup: (signupData) =>
     postJson('/auth/signup', {
       email: signupData.email,
       password: signupData.password,
@@ -231,18 +231,21 @@ export const authApi = {
       heard_from: signupData.heardFrom,
       acceptedTerms: signupData.acceptedTerms,
     }, { includeAuth: false }),
-  
-  login: (email, password) => 
+
+  login: (email, password) =>
     postJson('/auth/login', { email, password }, { includeAuth: false }),
-  
-  me: () => 
+
+  me: () =>
     getJson('/auth/me'),
+
+  updateProfile: (data) =>
+    patchJson('/auth/profile', data),
 };
 
 // Plans API calls
 export const plansApi = {
   list: () => getJson('/api/plans'),
-  create: (name, price, currency = 'USD', billingCycle = 'monthly', stripePriceId = '') => 
+  create: (name, price, currency = 'USD', billingCycle = 'monthly', stripePriceId = '') =>
     postJson('/api/plans', { name, price, currency, billing_cycle: billingCycle, stripe_price_id: stripePriceId || undefined }),
   update: (id, data) => putJson(`/api/plans/${id}`, data),
   delete: (id) => deleteJson(`/api/plans/${id}`),
@@ -260,7 +263,7 @@ export const competitorsApi = {
 export const fetchBlob = async (path, options = {}) => {
   const url = `${API_BASE_URL}${path}`;
   const includeAuth = options.includeAuth !== false;
-  
+
   const headers = {};
   if (includeAuth) {
     const token = getToken();
@@ -426,6 +429,9 @@ export const workspaceApi = {
 
   // Patch workspace defaults (partial update)
   patchDefaults: (patch) => patchJson('/api/v2/workspace/defaults', patch),
+
+  // Update workspace profile (company details)
+  updateProfile: (data) => putJson('/api/v2/workspace/profile', data),
 };
 
 // Decisions V2 API (versioned decisions with context resolution)
@@ -475,11 +481,11 @@ export const decisionsV2Api = {
   getScenarios: (decisionId) => getJson(`/api/v2/decisions/${decisionId}/scenarios`),
 
   // Generate scenarios for a decision (idempotent - returns existing if available)
-  generateScenarios: (decisionId, force = false) => 
+  generateScenarios: (decisionId, force = false) =>
     postJson(`/api/v2/decisions/${decisionId}/scenarios/generate`, { force }),
 
   // Set chosen scenario for a decision ("Apply this scenario")
-  setChosenScenario: (decisionId, scenarioId) => 
+  setChosenScenario: (decisionId, scenarioId) =>
     patchJson(`/api/v2/decisions/${decisionId}/chosen-scenario`, { chosenScenarioId: scenarioId }),
 
   // Apply a scenario and create/update outcome
@@ -520,7 +526,7 @@ export const learningApi = {
     if (primaryKpi) params.append('primaryKpi', primaryKpi);
     return getJson(`/api/v2/learning/indicators?${params.toString()}`);
   },
-  
+
   // Refresh insights (admin only)
   refresh: () => postJson('/api/v2/learning/refresh'),
 };
@@ -536,9 +542,9 @@ export const exportApi = {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (!response.ok) throw new Error('Export failed');
-      
+
       const blob = await response.blob();
       const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `decision_${decisionId}.json`;
       downloadExportBlob(blob, filename);
@@ -547,7 +553,7 @@ export const exportApi = {
       throw err;
     }
   },
-  
+
   // Export decision as Markdown download
   exportMarkdown: async (decisionId) => {
     try {
@@ -557,9 +563,9 @@ export const exportApi = {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (!response.ok) throw new Error('Export failed');
-      
+
       const blob = await response.blob();
       const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `decision_${decisionId}.md`;
       downloadExportBlob(blob, filename);
@@ -568,7 +574,7 @@ export const exportApi = {
       throw err;
     }
   },
-  
+
   // Download PDF export directly
   downloadPDF: async (decisionId) => {
     try {
@@ -578,9 +584,9 @@ export const exportApi = {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (!response.ok) throw new Error('Export failed');
-      
+
       const blob = await response.blob();
       const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `decision-report-${decisionId}.pdf`;
       downloadExportBlob(blob, filename);

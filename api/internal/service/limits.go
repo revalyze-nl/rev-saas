@@ -12,15 +12,15 @@ import (
 
 // LimitError codes for frontend to handle
 const (
-	LimitCodeCompetitors   = "LIMIT_COMPETITORS"
-	LimitCodePlans         = "LIMIT_PLANS"
-	LimitCodeAnalyses      = "LIMIT_ANALYSES"
-	LimitCodeTrialExpired  = "LIMIT_TRIAL_EXPIRED"
-	
+	LimitCodeCompetitors  = "LIMIT_COMPETITORS"
+	LimitCodePlans        = "LIMIT_PLANS"
+	LimitCodeAnalyses     = "LIMIT_ANALYSES"
+	LimitCodeTrialExpired = "LIMIT_TRIAL_EXPIRED"
+
 	// Decision Intelligence limit codes
-	LimitCodeDecisions     = "PLAN_LIMIT_DECISIONS"
-	LimitCodeScenarios     = "PLAN_LIMIT_SCENARIOS"
-	
+	LimitCodeDecisions = "PLAN_LIMIT_DECISIONS"
+	LimitCodeScenarios = "PLAN_LIMIT_SCENARIOS"
+
 	// Feature gating codes
 	FeatureLockedOutcomeKPIs      = "FEATURE_LOCKED_OUTCOME_KPIS"
 	FeatureLockedDecisionTimeline = "FEATURE_LOCKED_DECISION_TIMELINE"
@@ -46,6 +46,7 @@ type LimitsService struct {
 	analysisRepo   *mongorepo.AnalysisRepository
 	decisionRepo   *mongorepo.DecisionV2Repository
 	scenarioRepo   *mongorepo.ScenarioRepository
+	billingRepo    *mongorepo.BillingSubscriptionRepository
 }
 
 // NewLimitsService creates a new LimitsService.
@@ -54,12 +55,14 @@ func NewLimitsService(
 	planRepo *mongorepo.PlanRepository,
 	competitorRepo *mongorepo.CompetitorRepository,
 	analysisRepo *mongorepo.AnalysisRepository,
+	billingRepo *mongorepo.BillingSubscriptionRepository,
 ) *LimitsService {
 	return &LimitsService{
 		userRepo:       userRepo,
 		planRepo:       planRepo,
 		competitorRepo: competitorRepo,
 		analysisRepo:   analysisRepo,
+		billingRepo:    billingRepo,
 	}
 }
 
@@ -327,10 +330,29 @@ func isSameMonth(t1, t2 time.Time) bool {
 	return t1.Year() == t2.Year() && t1.Month() == t2.Month()
 }
 
-// getStartOfMonth returns the start of the current month
 func getStartOfMonth() time.Time {
 	now := time.Now()
+	// Default to first day of month 00:00:00
 	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+}
+
+// getLimitResetDate determines when the monthly limit resets for a user.
+// For free users -> 1st of month
+// For paid users -> CurrentPeriodStart of subscription
+func (s *LimitsService) getLimitResetDate(ctx context.Context, user *model.User) time.Time {
+	// Default to calendar month
+	resetDate := getStartOfMonth()
+
+	// If user is on a paid plan, try to get subscription period start
+	if user.GetEffectivePlan() != model.PlanFree && s.billingRepo != nil {
+		sub, err := s.billingRepo.GetByUserID(ctx, user.ID)
+		if err == nil && sub != nil && !sub.CurrentPeriodStart.IsZero() {
+			// Use subscription start date
+			resetDate = sub.CurrentPeriodStart
+		}
+	}
+
+	return resetDate
 }
 
 // CanCreateDecision checks if the user can create another decision this month.
@@ -358,8 +380,8 @@ func (s *LimitsService) CanCreateDecision(ctx context.Context, user *model.User)
 		return LimitCheckResult{Allowed: true}
 	}
 
-	startOfMonth := getStartOfMonth()
-	count, err := s.decisionRepo.CountByUserSince(ctx, user.ID, startOfMonth)
+	startDate := s.getLimitResetDate(ctx, user)
+	count, err := s.decisionRepo.CountByUserSince(ctx, user.ID, startDate)
 	if err != nil {
 		// On error, allow the operation (fail open for better UX)
 		return LimitCheckResult{Allowed: true}
@@ -404,8 +426,8 @@ func (s *LimitsService) CanGenerateScenarios(ctx context.Context, user *model.Us
 		return LimitCheckResult{Allowed: true}
 	}
 
-	startOfMonth := getStartOfMonth()
-	count, err := s.scenarioRepo.CountByUserSince(ctx, user.ID, startOfMonth)
+	startDate := s.getLimitResetDate(ctx, user)
+	count, err := s.scenarioRepo.CountByUserSince(ctx, user.ID, startDate)
 	if err != nil {
 		// On error, allow the operation (fail open for better UX)
 		return LimitCheckResult{Allowed: true}
@@ -493,8 +515,8 @@ func (s *LimitsService) GetDecisionUsageThisMonth(ctx context.Context, user *mod
 	if s.decisionRepo == nil {
 		return 0
 	}
-	startOfMonth := getStartOfMonth()
-	count, err := s.decisionRepo.CountByUserSince(ctx, user.ID, startOfMonth)
+	startDate := s.getLimitResetDate(ctx, user)
+	count, err := s.decisionRepo.CountByUserSince(ctx, user.ID, startDate)
 	if err != nil {
 		return 0
 	}
@@ -506,18 +528,10 @@ func (s *LimitsService) GetScenarioUsageThisMonth(ctx context.Context, user *mod
 	if s.scenarioRepo == nil {
 		return 0
 	}
-	startOfMonth := getStartOfMonth()
-	count, err := s.scenarioRepo.CountByUserSince(ctx, user.ID, startOfMonth)
+	startDate := s.getLimitResetDate(ctx, user)
+	count, err := s.scenarioRepo.CountByUserSince(ctx, user.ID, startDate)
 	if err != nil {
 		return 0
 	}
 	return int(count)
 }
-
-
-
-
-
-
-
-

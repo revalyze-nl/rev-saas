@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -12,17 +13,42 @@ import (
 
 // WorkspaceProfileService handles workspace profile operations
 type WorkspaceProfileService struct {
-	repo *mongorepo.WorkspaceProfileRepository
+	repo        *mongorepo.WorkspaceProfileRepository
+	companyRepo *mongorepo.CompanyRepository
 }
 
 // NewWorkspaceProfileService creates a new service
-func NewWorkspaceProfileService(repo *mongorepo.WorkspaceProfileRepository) *WorkspaceProfileService {
-	return &WorkspaceProfileService{repo: repo}
+func NewWorkspaceProfileService(repo *mongorepo.WorkspaceProfileRepository, companyRepo *mongorepo.CompanyRepository) *WorkspaceProfileService {
+	return &WorkspaceProfileService{repo: repo, companyRepo: companyRepo}
 }
 
 // GetByUserID retrieves workspace profile for a user
 func (s *WorkspaceProfileService) GetByUserID(ctx context.Context, userID primitive.ObjectID) (*model.WorkspaceProfile, error) {
-	return s.repo.GetByUserID(ctx, userID)
+	log.Printf("[DEBUG] GetByUserID called for user: %s", userID.Hex())
+	profile, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		log.Printf("[DEBUG] Error fetching workspace profile: %v", err)
+		return nil, err
+	}
+
+	// Fetch company details
+	company, err := s.companyRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		log.Printf("[DEBUG] Error fetching company: %v", err)
+	}
+
+	if company != nil {
+		log.Printf("[DEBUG] Company found: %s", company.Name)
+	} else {
+		log.Printf("[DEBUG] No company found for user: %s", userID.Hex())
+	}
+
+	if err == nil && company != nil && profile != nil {
+		profile.CompanyName = company.Name
+		profile.CompanyWebsite = company.Website
+	}
+
+	return profile, err
 }
 
 // GetOrCreateDefault retrieves existing profile or creates an empty one
@@ -32,7 +58,14 @@ func (s *WorkspaceProfileService) GetOrCreateDefault(ctx context.Context, userID
 		return nil, err
 	}
 
+	company, _ := s.companyRepo.GetByUserID(ctx, userID)
+
 	if profile != nil {
+		// Populate company details if available
+		if company != nil {
+			profile.CompanyName = company.Name
+			profile.CompanyWebsite = company.Website
+		}
 		return profile, nil
 	}
 
@@ -44,6 +77,12 @@ func (s *WorkspaceProfileService) GetOrCreateDefault(ctx context.Context, userID
 
 	if err := s.repo.Create(ctx, newProfile); err != nil {
 		return nil, fmt.Errorf("failed to create default profile: %w", err)
+	}
+
+	// Populate company details in return object
+	if company != nil {
+		newProfile.CompanyName = company.Name
+		newProfile.CompanyWebsite = company.Website
 	}
 
 	return newProfile, nil
@@ -85,7 +124,7 @@ func (s *WorkspaceProfileService) UpdateDefaults(ctx context.Context, userID pri
 		return nil, fmt.Errorf("failed to update defaults: %w", err)
 	}
 
-	return s.repo.GetByUserID(ctx, userID)
+	return s.GetByUserID(ctx, userID)
 }
 
 // PatchDefaults partially updates workspace defaults
@@ -138,6 +177,50 @@ func (s *WorkspaceProfileService) PatchDefaults(ctx context.Context, userID prim
 	}
 
 	return existing, nil
+}
+
+// UpdateProfile updates workspace profile information (company details)
+func (s *WorkspaceProfileService) UpdateProfile(ctx context.Context, userID primitive.ObjectID, req model.WorkspaceProfileRequest) (*model.WorkspaceProfile, error) {
+	// Update company details via CompanyRepository
+	company, err := s.companyRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		// If company doesn't exist, create it (part of a new flow)
+		if company == nil {
+			company = &model.Company{
+				UserID: userID,
+			}
+		} else {
+			return nil, fmt.Errorf("failed to get company: %w", err)
+		}
+	}
+
+	if company == nil {
+		// Try creating a new company object if get returned nil without error
+		company = &model.Company{
+			UserID: userID,
+		}
+	}
+
+	if req.CompanyName != "" {
+		company.Name = req.CompanyName
+	}
+	if req.CompanyWebsite != "" {
+		company.Website = req.CompanyWebsite
+	}
+
+	if company.ID.IsZero() {
+		if err := s.companyRepo.Create(ctx, company); err != nil {
+			return nil, fmt.Errorf("failed to create company: %w", err)
+		}
+	} else {
+		if err := s.companyRepo.Update(ctx, company); err != nil {
+			return nil, fmt.Errorf("failed to update company: %w", err)
+		}
+	}
+
+	// We don't update defaults here, use UpdateDefaults for that
+	// But we need to return the full profile
+	return s.GetByUserID(ctx, userID)
 }
 
 // Validation helpers

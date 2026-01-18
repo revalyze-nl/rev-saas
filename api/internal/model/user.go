@@ -31,6 +31,7 @@ type User struct {
 	FullName  string             `bson:"full_name,omitempty" json:"full_name,omitempty"`
 	Role      string             `bson:"role,omitempty" json:"role,omitempty"` // "user" or "admin"
 	Plan      string             `bson:"plan,omitempty" json:"plan,omitempty"` // "free", "starter", "growth", "enterprise", "admin"
+	Currency  string             `bson:"currency,omitempty" json:"currency,omitempty"` // "EUR", "USD", "GBP"
 	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
 
 	// Usage tracking fields

@@ -382,3 +382,26 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 
 	return nil
 }
+
+// UpdateProfile updates the user's profile information.
+func (s *AuthService) UpdateProfile(ctx context.Context, userId, fullName, role, currency string) (*model.User, error) {
+	// Find user first
+	user, err := s.GetUserByID(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update fields
+	user.FullName = fullName
+	user.Role = role
+	if currency != "" {
+		user.Currency = currency
+	}
+
+	// Persist
+	if err := s.users.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}

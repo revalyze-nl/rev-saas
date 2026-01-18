@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const hydrateUser = async () => {
       const storedToken = getToken();
-      
+
       if (!storedToken) {
         setIsLoading(false);
         return;
@@ -40,17 +40,17 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = useCallback(async (email, password) => {
     setError(null);
-    
+
     try {
       const { data } = await authApi.login(email, password);
-      
+
       // Store token
       setToken(data.token);
       setTokenState(data.token);
-      
+
       // Store user
       setUser(data.user);
-      
+
       return { success: true, user: data.user };
     } catch (err) {
       const errorMessage = err.message || 'Login failed';
@@ -63,17 +63,17 @@ export const AuthProvider = ({ children }) => {
   // Now auto-logs in the user by saving the returned token
   const signup = useCallback(async (signupData) => {
     setError(null);
-    
+
     try {
       const { data } = await authApi.signup(signupData);
-      
+
       // Auto-login: save token and user
       if (data.token) {
         setToken(data.token);
         setTokenState(data.token);
         setUser(data.user);
       }
-      
+
       return { success: true, user: data.user, company: data.company };
     } catch (err) {
       const errorMessage = err.message || 'Signup failed';
@@ -88,6 +88,19 @@ export const AuthProvider = ({ children }) => {
     setTokenState(null);
     setUser(null);
     setError(null);
+  }, []);
+
+  // Update user function
+  const updateUser = useCallback(async (updates) => {
+    try {
+      const { data } = await authApi.updateProfile(updates);
+      setUser(prev => ({ ...prev, ...data }));
+      return { success: true, user: data };
+    } catch (err) {
+      const errorMessage = err.message || 'Failed to update profile';
+      setError(errorMessage);
+      throw err;
+    }
   }, []);
 
   // Clear error
@@ -108,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    updateUser,
     clearError,
   };
 

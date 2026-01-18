@@ -29,20 +29,20 @@ const (
 
 // Billing errors
 var (
-	ErrBillingNotConfigured   = errors.New("billing not configured")
-	ErrInvalidPlanKey         = errors.New("invalid plan key")
-	ErrNoStripeCustomer       = errors.New("no Stripe customer found for this user")
-	ErrSubscriptionNotFound   = errors.New("subscription not found")
+	ErrBillingNotConfigured    = errors.New("billing not configured")
+	ErrInvalidPlanKey          = errors.New("invalid plan key")
+	ErrNoStripeCustomer        = errors.New("no Stripe customer found for this user")
+	ErrSubscriptionNotFound    = errors.New("subscription not found")
 	ErrWebhookSignatureInvalid = errors.New("webhook signature verification failed")
 )
 
 // BillingService handles Stripe billing operations.
 type BillingService struct {
-	cfg           *config.Config
-	billingRepo   *mongo.BillingSubscriptionRepository
-	webhookRepo   *mongo.WebhookEventRepository
-	userRepo      *mongo.UserRepository
-	aiUsageRepo   *mongo.AIUsageRepository
+	cfg         *config.Config
+	billingRepo *mongo.BillingSubscriptionRepository
+	webhookRepo *mongo.WebhookEventRepository
+	userRepo    *mongo.UserRepository
+	aiUsageRepo *mongo.AIUsageRepository
 }
 
 // NewBillingService creates a new billing service.
@@ -441,6 +441,7 @@ func (s *BillingService) handleSubscriptionCreatedOrUpdated(ctx context.Context,
 		CancelAtPeriodEnd  bool   `json:"cancel_at_period_end"`
 		CancelAt           int64  `json:"cancel_at"` // Stripe may use this instead of cancel_at_period_end
 		CurrentPeriodEnd   int64  `json:"current_period_end"`
+		CurrentPeriodStart int64  `json:"current_period_start"`
 		Items              struct {
 			Data []struct {
 				Price struct {
@@ -462,7 +463,7 @@ func (s *BillingService) handleSubscriptionCreatedOrUpdated(ctx context.Context,
 	}
 
 	log.Printf("[billing] subscription event: id=%s customer=%s status=%s period_end=%d cancel_at_period_end=%v cancel_at=%d",
-		subscription.ID, subscription.Customer, subscription.Status, subscription.CurrentPeriodEnd, 
+		subscription.ID, subscription.Customer, subscription.Status, subscription.CurrentPeriodEnd,
 		subscription.CancelAtPeriodEnd, subscription.CancelAt)
 
 	// Get price ID from first item
@@ -504,10 +505,15 @@ func (s *BillingService) handleSubscriptionCreatedOrUpdated(ctx context.Context,
 	}
 	planChanged := oldPlanKey != planKey
 
-	// Parse current_period_end
+	// Parse period dates
 	var periodEnd time.Time
 	if subscription.CurrentPeriodEnd > 0 {
 		periodEnd = time.Unix(subscription.CurrentPeriodEnd, 0)
+	}
+
+	var periodStart time.Time
+	if subscription.CurrentPeriodStart > 0 {
+		periodStart = time.Unix(subscription.CurrentPeriodStart, 0)
 	}
 
 	// Determine if subscription is scheduled for cancellation
@@ -524,6 +530,7 @@ func (s *BillingService) handleSubscriptionCreatedOrUpdated(ctx context.Context,
 		Status:               model.SubscriptionStatus(subscription.Status),
 		CancelAtPeriodEnd:    cancelScheduled,
 		CurrentPeriodEnd:     periodEnd,
+		CurrentPeriodStart:   periodStart,
 	}
 
 	if err := s.billingRepo.Upsert(ctx, sub); err != nil {
@@ -595,9 +602,9 @@ func (s *BillingService) handleSubscriptionDeleted(ctx context.Context, data jso
 // handleInvoicePaid handles invoice.paid event - resets credits.
 func (s *BillingService) handleInvoicePaid(ctx context.Context, data json.RawMessage) error {
 	var invoice struct {
-		ID           string `json:"id"`
-		Customer     string `json:"customer"`
-		Subscription string `json:"subscription"`
+		ID            string `json:"id"`
+		Customer      string `json:"customer"`
+		Subscription  string `json:"subscription"`
 		BillingReason string `json:"billing_reason"` // "subscription_cycle", "subscription_create", etc.
 	}
 	if err := json.Unmarshal(data, &invoice); err != nil {
@@ -655,4 +662,3 @@ func (s *BillingService) handlePaymentFailed(ctx context.Context, data json.RawM
 
 	return nil
 }
-

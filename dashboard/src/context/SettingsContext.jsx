@@ -1,64 +1,118 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { workspaceApi } from '../lib/apiClient';
 
 const SettingsContext = createContext();
 
-const STORAGE_KEY = 'revalyze_settings_profile';
-
 export const SettingsProvider = ({ children }) => {
-  const [profile, setProfile] = useState(() => {
-    // Try to load from localStorage
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.error('Failed to load profile from localStorage:', error);
-    }
-    
-    // Default profile
-    return {
-      fullName: '',
-      email: '',
-      role: '',
-      companyName: '',
-      companyWebsite: '',
-      currency: 'EUR'
-    };
+  const { user, updateUser: authUpdateUser } = useAuth();
+
+  const [profile, setProfile] = useState({
+    fullName: '',
+    email: '',
+    role: '',
+    companyName: '',
+    companyWebsite: '',
+    currency: 'EUR'
   });
+  const [loading, setLoading] = useState(true);
 
-  // Persist to localStorage whenever profile changes
+  // Sync with AuthContext user and fetch workspace info
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    } catch (error) {
-      console.error('Failed to save profile to localStorage:', error);
+    // Immediate update from user object (AuthContext)
+    if (user) {
+      setProfile(prev => ({
+        ...prev,
+        fullName: user.full_name || user.name || '',
+        email: user.email || '',
+        role: user.role || '',
+        currency: user.currency || 'EUR'
+      }));
     }
-  }, [profile]);
 
-  const updateProfile = (partial) => {
-    setProfile(prev => ({
-      ...prev,
-      ...partial
-    }));
+    const loadWorkspaceProfile = async () => {
+      try {
+        setLoading(true);
+
+        if (user) {
+          // Fetch workspace/company info via apiClient
+          const { data } = await workspaceApi.getProfile();
+
+          if (data) {
+            setProfile(prev => ({
+              ...prev,
+              companyName: data.companyName || '',
+              companyWebsite: data.companyWebsite || ''
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load workspace profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadWorkspaceProfile();
+    }
+  }, [user]);
+
+  const updateProfile = async (updates) => {
+    try {
+      // Split updates between user and workspace
+      const userUpdates = {};
+      const wsUpdates = {};
+      let hasUserUpdates = false;
+      let hasWsUpdates = false;
+
+      if ('fullName' in updates) { userUpdates.full_name = updates.fullName; hasUserUpdates = true; }
+      if ('role' in updates) { userUpdates.role = updates.role; hasUserUpdates = true; }
+      if ('currency' in updates) { userUpdates.currency = updates.currency; hasUserUpdates = true; }
+
+      if ('companyName' in updates) { wsUpdates.companyName = updates.companyName; hasWsUpdates = true; }
+      if ('companyWebsite' in updates) { wsUpdates.companyWebsite = updates.companyWebsite; hasWsUpdates = true; }
+
+      if (hasUserUpdates) {
+        // Use AuthContext update method to keep global state in sync
+        await authUpdateUser(userUpdates);
+      }
+
+      if (hasWsUpdates) {
+        // Use workspaceApi which handles base URL and headers
+        await workspaceApi.updateProfile(wsUpdates);
+      }
+
+      // Update local state
+      setProfile(prev => ({
+        ...prev,
+        ...updates
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw error;
+    }
   };
 
   const resetProfile = () => {
-    const defaultProfile = {
+    // Basic reset
+    setProfile({
       fullName: '',
       email: '',
       role: '',
       companyName: '',
       companyWebsite: '',
       currency: 'EUR'
-    };
-    setProfile(defaultProfile);
+    });
   };
 
   const value = {
     profile,
     updateProfile,
-    resetProfile
+    resetProfile,
+    loading
   };
 
   return (
@@ -75,13 +129,3 @@ export const useSettings = () => {
   }
   return context;
 };
-
-
-
-
-
-
-
-
-
-

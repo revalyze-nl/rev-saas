@@ -80,10 +80,12 @@ const Settings = () => {
 
   // Expanded sections state
   const [expandedSections, setExpandedSections] = useState({
-    profile: false,
+    profile: true,
     stripe: false,
     defaults: false,
+    notifications: false,
     danger: false,
+    company: true
   });
 
   // Stripe state
@@ -356,28 +358,18 @@ const Settings = () => {
           )}
         </div>
 
-        {/* Stripe Integration (Collapsible) */}
+        {/* Company Profile Section (Collapsible) */}
         <div className="border border-slate-800/30 rounded-xl overflow-hidden">
           <button
             type="button"
-            onClick={() => toggleSection('stripe')}
+            onClick={() => toggleSection('company')}
             className="w-full flex items-center justify-between p-4 bg-slate-900/30 hover:bg-slate-900/50 transition-colors"
           >
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-400">
-                Stripe integration
-              </span>
-              {!stripeStatus.loading && (
-                <span className={`px-2 py-0.5 text-xs rounded ${stripeStatus.connected
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'bg-slate-800 text-slate-500'
-                  }`}>
-                  {stripeStatus.connected ? 'Connected' : 'Not connected'}
-                </span>
-              )}
-            </div>
+            <span className="text-sm text-slate-400">
+              Company profile
+            </span>
             <svg
-              className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.stripe ? 'rotate-180' : ''}`}
+              className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.company ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -386,70 +378,28 @@ const Settings = () => {
             </svg>
           </button>
 
-          {expandedSections.stripe && (
-            <div className="p-4 bg-slate-900/20 border-t border-slate-800/30">
-              <p className="text-sm text-slate-400 mb-4">
-                Connect your Stripe account to auto-sync MRR and customer data.
-              </p>
+          {expandedSections.company && (
+            <div className="p-4 bg-slate-900/20 border-t border-slate-800/30 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-500 block mb-1.5">Company Name</label>
+                <input
+                  type="text"
+                  value={profile.companyName || ''}
+                  onChange={(e) => handleInputChange('companyName', e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800/50 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/50"
+                  placeholder="Acme Corp"
+                />
+              </div>
 
-              {stripeError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg mb-4">
-                  <p className="text-sm text-red-400">{stripeError}</p>
-                </div>
-              )}
-
-              {stripeSyncWarnings.length > 0 && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg mb-4">
-                  <p className="text-sm font-medium text-amber-400 mb-1">Sync completed with warnings:</p>
-                  <ul className="text-sm text-amber-300/80 list-disc list-inside">
-                    {stripeSyncWarnings.map((w, i) => <li key={i}>{w}</li>)}
-                  </ul>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                {stripeStatus.connected ? (
-                  <>
-                    <button
-                      onClick={handleStripeSync}
-                      disabled={stripeAction === 'syncing'}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
-                    >
-                      {stripeAction === 'syncing' && (
-                        <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      )}
-                      Sync now
-                    </button>
-                    <button
-                      onClick={() => setShowDisconnectModal(true)}
-                      className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-colors border border-red-500/20"
-                    >
-                      Disconnect
-                    </button>
-                    {stripeStatus.last_sync_at && (
-                      <span className="text-xs text-slate-500 flex items-center">
-                        Last synced: {new Date(stripeStatus.last_sync_at).toLocaleString()}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <button
-                    onClick={handleStripeConnect}
-                    disabled={stripeAction === 'connecting'}
-                    className="px-3 py-1.5 bg-[#635BFF] hover:bg-[#5851DB] text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {stripeAction === 'connecting' && (
-                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                    )}
-                    Connect Stripe
-                  </button>
-                )}
+              <div>
+                <label className="text-xs text-slate-500 block mb-1.5">Website</label>
+                <input
+                  type="url"
+                  value={profile.companyWebsite || ''}
+                  onChange={(e) => handleInputChange('companyWebsite', e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800/50 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/50"
+                  placeholder="https://acme.com"
+                />
               </div>
             </div>
           )}
@@ -628,18 +578,30 @@ const Settings = () => {
           )}
         </div>
 
-        {/* Company & Metrics Link - Main CTA like Verdict page */}
-        <Link
-          to="/app/company"
-          className="w-full py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
-        >
-          Manage Company & Metrics
-        </Link>
 
-        {/* Footer note */}
-        <p className="text-xs text-slate-600 mt-4 text-center">
-          Changes are saved automatically.
-        </p>
+        {/* Save Button & Footer */}
+        <div className="pt-4">
+          <button
+            onClick={async () => {
+              try {
+                // Show loading state if needed
+                await updateProfile(profile);
+                // Maybe show success toast
+                alert('Changes saved successfully');
+              } catch (err) {
+                alert('Failed to save changes');
+              }
+            }}
+            className="w-full py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/5"
+          >
+            Save Changes
+          </button>
+
+          {/* Footer note */}
+          <p className="text-xs text-slate-600 mt-4 text-center">
+            Some settings may require a page refresh to take effect.
+          </p>
+        </div>
       </div>
     </div>
   );

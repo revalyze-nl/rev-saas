@@ -92,7 +92,7 @@ func main() {
 	competitorService := service.NewCompetitorService(competitorRepo)
 	analysisService := service.NewAnalysisService(analysisRepo, planRepo, competitorRepo, businessMetricsRepo)
 	businessMetricsService := service.NewBusinessMetricsService(businessMetricsRepo)
-	limitsService := service.NewLimitsService(userRepo, planRepo, competitorRepo, analysisRepo)
+	limitsService := service.NewLimitsService(userRepo, planRepo, competitorRepo, analysisRepo, billingSubRepo)
 	// Set decision and scenario repos for limit checking
 	limitsService.SetDecisionRepo(decisionV2Repo)
 	limitsService.SetScenarioRepo(scenarioRepo)
@@ -138,7 +138,7 @@ func main() {
 
 	// Decision V2 services (versioned decisions with context resolution)
 	inferenceService := service.NewInferenceService(verdictService)
-	workspaceProfileService := service.NewWorkspaceProfileService(workspaceProfileRepo)
+	workspaceProfileService := service.NewWorkspaceProfileService(workspaceProfileRepo, companyRepo)
 	decisionV2Service := service.NewDecisionV2Service(decisionV2Repo, workspaceProfileRepo, inferenceService)
 
 	// Scenario service (AI-generated strategic scenarios)
@@ -174,15 +174,15 @@ func main() {
 	workspaceProfileHandler := handler.NewWorkspaceProfileHandler(workspaceProfileService)
 	scenarioHandler := handler.NewScenarioHandler(scenarioService, limitsService)
 	outcomeHandler := handler.NewOutcomeHandler(outcomeService, limitsService)
-	
+
 	// Learning service and handler
 	learningRepo := mongorepo.NewLearningRepository(db)
 	learningService := service.NewLearningService(learningRepo)
 	learningHandler := handler.NewLearningHandler(learningService, limitsService)
-	
+
 	// Wire learning service into verdict service for prompt injection
 	verdictService.SetLearningService(learningService)
-	
+
 	// Export handler
 	exportHandler := handler.NewExportHandler(decisionV2Repo, scenarioService, outcomeService, limitsService)
 

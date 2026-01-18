@@ -92,3 +92,27 @@ func (h *WorkspaceProfileHandler) PatchDefaults(w http.ResponseWriter, r *http.R
 
 	writeJSONWP(w, profile, http.StatusOK)
 }
+
+// UpdateProfile handles PUT /api/v2/workspace/profile
+func (h *WorkspaceProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req model.WorkspaceProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	profile, err := h.service.UpdateProfile(r.Context(), user.ID, req)
+	if err != nil {
+		log.Printf("[workspace-profile-handler] update profile error: %v", err)
+		writeJSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSONWP(w, profile, http.StatusOK)
+}

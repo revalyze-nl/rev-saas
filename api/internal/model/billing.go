@@ -38,6 +38,7 @@ type BillingSubscription struct {
 	PlanKey              PlanKey            `bson:"plan_key" json:"plan_key"`
 	Status               SubscriptionStatus `bson:"status" json:"status"`
 	CancelAtPeriodEnd    bool               `bson:"cancel_at_period_end" json:"cancel_at_period_end"`
+	CurrentPeriodStart   time.Time          `bson:"current_period_start" json:"current_period_start"`
 	CurrentPeriodEnd     time.Time          `bson:"current_period_end" json:"current_period_end"`
 	CreatedAt            time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt            time.Time          `bson:"updated_at" json:"updated_at"`
@@ -85,7 +86,3 @@ type CheckoutSessionResponse struct {
 type PortalSessionResponse struct {
 	URL string `json:"url"`
 }
-
-
-
-

@@ -56,12 +56,13 @@ func NewRouter(
 	// Auth endpoints (protected)
 	r.Handle("/auth/me", authMiddleware.RequireAuth(http.HandlerFunc(authHandler.Me))).
 		Methods(http.MethodGet)
+	r.Handle("/auth/profile", authMiddleware.RequireAuth(http.HandlerFunc(authHandler.UpdateProfile))).
+		Methods(http.MethodPatch)
 
 	// API v1 (protected)
 	api := r.PathPrefix("/api").Subrouter()
 	api.StrictSlash(true)
 	api.Use(authMiddleware.RequireAuth)
-
 
 	// Usage stats
 	api.HandleFunc("/usage", limitsHandler.GetUsageStats).Methods(http.MethodGet)
@@ -94,6 +95,7 @@ func NewRouter(
 
 	// Workspace Profile V2
 	apiv2.HandleFunc("/workspace/profile", workspaceProfileHandler.Get).Methods(http.MethodGet)
+	apiv2.HandleFunc("/workspace/profile", workspaceProfileHandler.UpdateProfile).Methods(http.MethodPut)
 	apiv2.HandleFunc("/workspace/defaults", workspaceProfileHandler.UpdateDefaults).Methods(http.MethodPut)
 	apiv2.HandleFunc("/workspace/defaults", workspaceProfileHandler.PatchDefaults).Methods(http.MethodPatch)
 
@@ -125,7 +127,7 @@ func NewRouter(
 	// Learning (cross-decision memory)
 	apiv2.HandleFunc("/learning/indicators", learningHandler.GetLearningIndicators).Methods(http.MethodGet)
 	apiv2.HandleFunc("/learning/refresh", learningHandler.RefreshInsights).Methods(http.MethodPost)
-	
+
 	// Export (decision reports)
 	apiv2.HandleFunc("/decisions/{id}/export/json", exportHandler.ExportDecisionJSON).Methods(http.MethodGet)
 	apiv2.HandleFunc("/decisions/{id}/export/markdown", exportHandler.ExportDecisionMarkdown).Methods(http.MethodGet)

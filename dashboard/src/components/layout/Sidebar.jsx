@@ -144,10 +144,9 @@ const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? 'bg-white/10 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
@@ -169,38 +168,25 @@ const Sidebar = () => {
         </div>
       </nav>
 
-      {/* Bottom Card Section */}
+      {/* Bottom Card Section - Clean minimal design */}
       <div className="p-3">
-        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-800/50 overflow-hidden">
+        <div className="bg-slate-800/40 rounded-2xl border border-slate-700/40 overflow-hidden shadow-lg">
           {/* Credits Section with Circular Progress */}
           <button
             onClick={() => navigate('/upgrade')}
-            className="w-full p-3 flex items-center gap-3 hover:bg-slate-800/30 transition-colors"
+            className="w-full p-4 flex items-center gap-3 hover:bg-slate-700/20 transition-colors"
           >
             {creditsLoading ? (
               <div className="flex items-center justify-center gap-2 py-2 w-full">
-                <div className="w-4 h-4 border-2 border-slate-600 border-t-violet-400 rounded-full animate-spin" />
-                <span className="text-xs text-slate-400">Loading...</span>
+                <div className="w-5 h-5 border-2 border-slate-600 border-t-violet-400 rounded-full animate-spin" />
               </div>
             ) : (
               <>
-                <CircularProgress percentage={percentage} size={44} strokeWidth={3.5} />
+                <CircularProgress percentage={percentage} size={48} strokeWidth={4} />
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-white">{getPlanDisplay()} Plan</p>
-                    {isEmpty && (
-                      <span className="text-[9px] font-semibold text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded animate-pulse">
-                        EMPTY
-                      </span>
-                    )}
-                    {isLow && !isEmpty && (
-                      <span className="text-[9px] font-semibold text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded animate-pulse">
-                        LOW
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-sm font-semibold text-white">{getPlanDisplay()}</p>
                   <p className="text-xs text-slate-400">
-                    <span className={`font-semibold ${isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-violet-400'}`}>
+                    <span className={`font-bold ${isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-slate-300'}`}>
                       {remainingCredits}
                     </span>
                     <span className="text-slate-500">/{monthlyCredits}</span>
@@ -211,44 +197,60 @@ const Sidebar = () => {
             )}
           </button>
 
-          {/* Upgrade Button - Inside Card for Free Users */}
+          {/* Upgrade Button - Balanced Glassmorphic Style */}
           {(isFreePlan || isAdmin) && (
-            <NavLink
-              to="/upgrade"
-              className="flex items-center justify-center gap-2 mx-3 mb-3 px-3 py-2 rounded-lg text-xs font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span>Upgrade Plan</span>
-            </NavLink>
+            <div className="px-4 pb-3">
+              <NavLink
+                to="/upgrade"
+                className="relative block w-full group"
+              >
+                {/* Outer glow */}
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full blur-lg opacity-50 group-hover:opacity-70 transition-opacity" />
+
+                {/* Main button with glass effect */}
+                <div className="relative bg-gradient-to-b from-violet-500 to-fuchsia-600 rounded-full px-4 py-2.5 flex items-center justify-center gap-2 border border-white/10 shadow-lg shadow-violet-500/30">
+                  {/* Top highlight */}
+                  <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-full" />
+
+                  <svg className="w-4 h-4 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-white relative z-10">Upgrade Plan</span>
+                </div>
+              </NavLink>
+            </div>
           )}
+
+          {/* Divider */}
+          <div className="mx-4 border-t border-slate-700/50" />
 
           {/* User Profile Section */}
           <NavLink
             to="/settings"
-            className="flex items-center gap-3 px-3 py-3 hover:bg-slate-800/30 transition-colors border-t border-slate-800/50 group"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700/20 transition-colors group"
           >
-            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-md flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md flex-shrink-0">
               {getUserInitials()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{getUserDisplayName()}</p>
-              <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
             <svg className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </NavLink>
 
+          {/* Divider */}
+          <div className="mx-4 border-t border-slate-700/50" />
+
           {/* Settings Link */}
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 border-t border-slate-800/50 transition-colors ${
-                isActive
-                  ? 'text-violet-400 bg-violet-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
+              `flex items-center gap-3 px-4 py-3 transition-colors ${isActive
+                ? 'text-violet-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-700/20'
               }`
             }
           >
@@ -263,18 +265,13 @@ const Sidebar = () => {
         {/* Sign Out - Outside Card */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 rounded-xl text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+          className="w-full flex items-center gap-3 px-4 py-2.5 mt-2 rounded-xl text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
           </svg>
           <span>Sign Out</span>
         </button>
-
-        {/* Copyright */}
-        <p className="text-[10px] text-slate-600 text-center mt-2">
-          © {new Date().getFullYear()} Revalyze B.V.
-        </p>
       </div>
     </div>
   );

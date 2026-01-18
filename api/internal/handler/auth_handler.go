@@ -235,6 +235,45 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// UpdateProfile handles PATCH /auth/profile
+func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userId := middleware.UserIDFromContext(r.Context())
+	if userId == "" {
+		writeJSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		FullName string `json:"full_name"`
+		Role     string `json:"role"`
+		Currency string `json:"currency"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.auth.UpdateProfile(r.Context(), userId, req.FullName, req.Role, req.Currency)
+	if err != nil {
+		writeJSONError(w, "failed to update profile", http.StatusInternalServerError)
+		return
+	}
+
+	resp := authUserResponse{
+		ID:            user.ID.Hex(),
+		Email:         user.Email,
+		FullName:      user.FullName,
+		Role:          user.Role,
+		Plan:          user.Plan,
+		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		EmailVerified: user.EmailVerified,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
 // VerifyEmail handles GET /auth/verify-email?token=...
 func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")

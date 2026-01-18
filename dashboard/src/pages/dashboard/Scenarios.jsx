@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { decisionsV2Api, PlanLimitError } from '../../lib/apiClient';
 import { useUsage } from '../../context/UsageContext';
-import { 
-  getOutcome, 
-  getChosenScenario, 
-  saveChosenScenario 
+import {
+  getOutcome,
+  getChosenScenario,
+  saveChosenScenario
 } from '../../lib/outcomeStorage';
 
 // ==================== HELPER FUNCTIONS ====================
@@ -55,7 +55,7 @@ const formatDateTime = (dateString) => {
 // Transform backend scenarios to frontend format
 const transformScenarios = (backendScenarios) => {
   if (!backendScenarios || !Array.isArray(backendScenarios)) return null;
-  
+
   return backendScenarios.map(s => ({
     id: s.scenarioId,
     type: s.scenarioId.replace('_', '-'),
@@ -112,7 +112,7 @@ const calculateDelta = (scenarioValue, chosenValue, metric) => {
     if (diff === 0) return 'Same';
     return diff > 0 ? 'Higher' : 'Lower';
   }
-  
+
   // For revenue/churn, just show the comparison text
   if (scenarioValue === chosenValue) return 'Same';
   return scenarioValue || 'N/A';
@@ -176,7 +176,7 @@ const ApplyScenarioModal = ({ isOpen, scenario, onConfirm, onCancel, isApplying 
             <p className="text-sm text-slate-400 mb-1">Selected scenario:</p>
             <p className="text-white font-medium mb-2">{scenario.name}</p>
             <p className="text-xs text-slate-500 italic">{scenario.positioning}</p>
-            
+
             {/* Expected Impact Preview */}
             <div className="mt-3 pt-3 border-t border-slate-800/50 grid grid-cols-2 gap-2 text-xs">
               <div>
@@ -202,7 +202,7 @@ const ApplyScenarioModal = ({ isOpen, scenario, onConfirm, onCancel, isApplying 
 
           {/* Confirmation Text */}
           <p className="text-sm text-slate-400 mb-6">
-            Apply this scenario as your <span className="text-white font-medium">chosen execution path</span>? 
+            Apply this scenario as your <span className="text-white font-medium">chosen execution path</span>?
             This will update your verdict with the expected impact metrics.
           </p>
 
@@ -255,7 +255,7 @@ const RegenerateModal = ({ isOpen, onConfirm, onCancel, isLoading }) => {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
           <h3 className="text-lg font-semibold text-white mb-2">Regenerate Scenarios?</h3>
           <p className="text-sm text-slate-400 mb-6">
-            This will generate new AI scenarios and replace the existing ones. 
+            This will generate new AI scenarios and replace the existing ones.
             Your chosen execution path will be cleared.
           </p>
           <div className="flex gap-3 justify-end">
@@ -290,7 +290,7 @@ const RegenerateModal = ({ isOpen, onConfirm, onCancel, isLoading }) => {
 const VerdictSnapshotCard = ({ verdict, decision, chosenScenario }) => {
   const snapshot = verdict?.decisionSnapshot || {};
   const execVerdict = verdict?.executiveVerdict || {};
-  
+
   return (
     <div className="mb-8 p-5 bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-slate-800/60 rounded-2xl">
       {/* Header */}
@@ -372,7 +372,7 @@ const DeltaComparisonBadge = ({ value, isChosen, isBaseline }) => {
       </span>
     );
   }
-  
+
   if (isBaseline && !value) {
     return (
       <span className="text-xs text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded">
@@ -393,38 +393,36 @@ const DeltaComparisonBadge = ({ value, isChosen, isBaseline }) => {
   const isNegative = value?.includes('-') || value?.toLowerCase().includes('slower') || value?.toLowerCase().includes('higher');
 
   return (
-    <span className={`text-xs px-2 py-0.5 rounded ${
-      isPositive ? 'text-emerald-400 bg-emerald-500/10' :
-      isNegative ? 'text-amber-400 bg-amber-500/10' :
-      'text-slate-400 bg-slate-800/50'
-    }`}>
+    <span className={`text-xs px-2 py-0.5 rounded ${isPositive ? 'text-emerald-400 bg-emerald-500/10' :
+        isNegative ? 'text-amber-400 bg-amber-500/10' :
+          'text-slate-400 bg-slate-800/50'
+      }`}>
       {value}
     </span>
   );
 };
 
 // ==================== SCENARIO CARD ====================
-const ScenarioCard = ({ 
-  scenario, 
-  onViewDetails, 
+const ScenarioCard = ({
+  scenario,
+  onViewDetails,
   onApply,
-  isChosen, 
+  isChosen,
   chosenScenario,
-  readOnly = false 
+  readOnly = false
 }) => {
   const isRecommended = scenario.isBaseline;
 
   // Calculate comparison vs chosen scenario (if one exists)
   const comparisonTarget = chosenScenario ? 'chosen' : 'baseline';
-  
+
   return (
-    <div className={`relative p-5 border rounded-2xl transition-all ${
-      isChosen
+    <div className={`relative p-5 border rounded-2xl transition-all ${isChosen
         ? 'bg-violet-500/10 border-violet-500/40 ring-2 ring-violet-500/30'
-        : isRecommended 
-        ? 'bg-emerald-500/5 border-emerald-500/30' 
-        : 'bg-slate-900/30 border-slate-800/40 hover:border-slate-700/60'
-    }`}>
+        : isRecommended
+          ? 'bg-emerald-500/5 border-emerald-500/30'
+          : 'bg-slate-900/30 border-slate-800/40 hover:border-slate-700/60'
+      }`}>
       {/* Chosen indicator */}
       {isChosen && (
         <div className="absolute -top-2 -right-2 w-7 h-7 bg-violet-500 rounded-full flex items-center justify-center shadow-lg shadow-violet-500/30">
@@ -513,12 +511,11 @@ const ScenarioCard = ({
           <p className="text-xs text-slate-500 mb-1">
             {chosenScenario ? 'Compared to chosen path:' : 'Compared to recommended:'}
           </p>
-          <p className={`text-sm font-medium ${
-            scenario.type === 'aggressive' ? 'text-amber-400' :
-            scenario.type === 'balanced' ? 'text-emerald-400' :
-            scenario.type === 'conservative' ? 'text-blue-400' :
-            'text-slate-400'
-          }`}>
+          <p className={`text-sm font-medium ${scenario.type === 'aggressive' ? 'text-amber-400' :
+              scenario.type === 'balanced' ? 'text-emerald-400' :
+                scenario.type === 'conservative' ? 'text-blue-400' :
+                  'text-slate-400'
+            }`}>
             {scenario.comparedToRecommended}
           </p>
         </div>
@@ -554,7 +551,7 @@ const ScenarioCard = ({
           </svg>
           Inspect scenario
         </button>
-        
+
         {!readOnly && !isChosen && (
           <button
             onClick={() => onApply(scenario)}
@@ -566,7 +563,7 @@ const ScenarioCard = ({
             Apply this scenario
           </button>
         )}
-        
+
         {isChosen && (
           <div className="w-full py-2.5 text-sm bg-violet-500/10 text-violet-400 font-medium rounded-lg flex items-center justify-center gap-2 border border-violet-500/20">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -668,7 +665,7 @@ const ScenarioDrawer = ({ scenario, isOpen, onClose, onApply, isChosen, isApplyi
                 What would change if you chose this?
               </h3>
               <p className="text-sm text-slate-300 leading-relaxed">{impl.whatChangesVsBaseline}</p>
-              
+
               {/* Deltas summary */}
               <div className="mt-3 pt-3 border-t border-violet-500/20 grid grid-cols-2 gap-2">
                 <div className="flex justify-between items-center">
@@ -834,7 +831,7 @@ const ScenarioDrawer = ({ scenario, isOpen, onClose, onApply, isChosen, isApplyi
               )}
             </button>
           )}
-          
+
           {isChosen && (
             <div className="w-full py-3 bg-violet-500/20 text-violet-400 font-medium rounded-xl flex items-center justify-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -843,7 +840,7 @@ const ScenarioDrawer = ({ scenario, isOpen, onClose, onApply, isChosen, isApplyi
               Chosen Execution Path
             </div>
           )}
-          
+
           <button
             onClick={onClose}
             className="w-full py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
@@ -860,7 +857,7 @@ const ScenarioDrawer = ({ scenario, isOpen, onClose, onApply, isChosen, isApplyi
 const ScenarioCompareTable = ({ scenarios, chosenScenarioId, readOnly = false }) => {
   const chosenScenario = scenarios.find(s => s.id === chosenScenarioId);
   const baseline = chosenScenario || scenarios.find(s => s.isBaseline);
-  
+
   const metrics = [
     { key: 'revenueImpact', deltaKey: 'revenue', label: 'Revenue Impact' },
     { key: 'churnImpact', deltaKey: 'churn', label: 'Churn Impact' },
@@ -876,10 +873,9 @@ const ScenarioCompareTable = ({ scenarios, chosenScenarioId, readOnly = false })
           <tr className="border-b border-slate-800/40">
             <th className="text-left py-3 px-4 text-xs text-slate-500 font-medium uppercase tracking-wider">Metric</th>
             {scenarios.map((s) => (
-              <th key={s.id} className={`text-center py-3 px-3 text-xs font-medium uppercase tracking-wider ${
-                s.id === chosenScenarioId ? 'text-violet-400 bg-violet-500/5' : 
-                s.isBaseline && !chosenScenarioId ? 'text-emerald-400 bg-emerald-500/5' : 'text-slate-400'
-              }`}>
+              <th key={s.id} className={`text-center py-3 px-3 text-xs font-medium uppercase tracking-wider ${s.id === chosenScenarioId ? 'text-violet-400 bg-violet-500/5' :
+                  s.isBaseline && !chosenScenarioId ? 'text-emerald-400 bg-emerald-500/5' : 'text-slate-400'
+                }`}>
                 <div className="flex flex-col items-center gap-1">
                   <span className="truncate max-w-[100px]">{s.name}</span>
                   {s.id === chosenScenarioId && <span className="text-[10px] text-violet-500">✓ Chosen</span>}
@@ -894,14 +890,12 @@ const ScenarioCompareTable = ({ scenarios, chosenScenarioId, readOnly = false })
             <tr key={metric.key} className={idx % 2 === 0 ? 'bg-slate-900/20' : ''}>
               <td className="py-3 px-4 text-slate-400">{metric.label}</td>
               {scenarios.map((s) => (
-                <td key={s.id} className={`text-center py-3 px-3 ${
-                  s.id === chosenScenarioId ? 'bg-violet-500/5' : 
-                  s.isBaseline && !chosenScenarioId ? 'bg-emerald-500/5' : ''
-                }`}>
+                <td key={s.id} className={`text-center py-3 px-3 ${s.id === chosenScenarioId ? 'bg-violet-500/5' :
+                    s.isBaseline && !chosenScenarioId ? 'bg-emerald-500/5' : ''
+                  }`}>
                   {metric.key === 'riskLevel' || metric.key === 'executionEffort' ? (
-                    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded border ${
-                      metric.key === 'riskLevel' ? getRiskStyle(s[metric.key]) : getEffortStyle(s[metric.key])
-                    }`}>
+                    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded border ${metric.key === 'riskLevel' ? getRiskStyle(s[metric.key]) : getEffortStyle(s[metric.key])
+                      }`}>
                       {s[metric.key]}
                     </span>
                   ) : (
@@ -944,14 +938,14 @@ const ScenarioSkeleton = () => (
 );
 
 // ==================== MAIN SCENARIOS PAGE ====================
-const Scenarios = ({ 
+const Scenarios = ({
   decision: externalDecision = null,
   readOnly = false
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { canGenerateScenarios, limits, used, refetch: refetchUsage } = useUsage();
-  
+
   // Core state
   const [selectedDecision, setSelectedDecision] = useState(null);
   const [scenarios, setScenarios] = useState(null);
@@ -962,11 +956,11 @@ const Scenarios = ({
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState(null);
   const [showLimitWarning, setShowLimitWarning] = useState(false);
-  
+
   // Chosen scenario state (from localStorage)
   const [chosenScenario, setChosenScenario] = useState(null);
   const [chosenScenarioId, setChosenScenarioId] = useState(null);
-  
+
   // Verdict metadata for explicit linking
   const [verdictContext, setVerdictContext] = useState({
     verdictId: null,
@@ -975,11 +969,11 @@ const Scenarios = ({
     primaryKPI: null,
     timeHorizon: null,
   });
-  
+
   // Available verdicts list state
   const [availableVerdicts, setAvailableVerdicts] = useState([]);
   const [verdictsLoading, setVerdictsLoading] = useState(false);
-  
+
   // Drawer state
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -1017,12 +1011,12 @@ const Scenarios = ({
     try {
       const { data: decision } = await decisionsV2Api.get(decisionId);
       setSelectedDecision(decision);
-      
+
       // Load chosen scenario from localStorage
       const storedChosen = getChosenScenario(decisionId);
       setChosenScenario(storedChosen);
       setChosenScenarioId(storedChosen?.scenarioId || decision.chosenScenarioId || null);
-      
+
       // Set verdict context for explicit linking
       const verdict = decision.verdict || {};
       setVerdictContext({
@@ -1032,7 +1026,7 @@ const Scenarios = ({
         primaryKPI: decision.context?.primaryKPI?.value || 'MRR Growth',
         timeHorizon: verdict.executiveVerdict?.timeHorizon || '30-90 days',
       });
-      
+
       // Try to load scenarios from backend
       try {
         const { data: scenarioData } = await decisionsV2Api.getScenarios(decisionId);
@@ -1052,7 +1046,7 @@ const Scenarios = ({
           setScenariosExist(false);
         }
       }
-      
+
       // Update URL with verdictId
       setSearchParams({ verdictId: decision.id });
     } catch (err) {
@@ -1066,7 +1060,7 @@ const Scenarios = ({
   // Generate scenarios via backend API
   const handleGenerateScenarios = useCallback(async (force = false) => {
     if (!selectedDecision) return;
-    
+
     setGenerating(true);
     setError(null);
     setShowLimitWarning(false);
@@ -1076,10 +1070,10 @@ const Scenarios = ({
       setScenarios(transformedScenarios);
       setScenariosExist(true);
       setScenarioCreatedAt(scenarioData.createdAt);
-      
+
       // Refetch usage after successful generation
       refetchUsage();
-      
+
       // Clear chosen scenario on regenerate
       if (force) {
         setChosenScenario(null);
@@ -1088,14 +1082,14 @@ const Scenarios = ({
       }
     } catch (err) {
       console.error('Failed to generate scenarios:', err);
-      
+
       // Handle plan limit error
       if (err instanceof PlanLimitError || err.name === 'PlanLimitError') {
         setShowLimitWarning(true);
         setError(null);
         return;
       }
-      
+
       setError('Failed to generate scenarios: ' + err.message);
     } finally {
       setGenerating(false);
@@ -1117,20 +1111,20 @@ const Scenarios = ({
     try {
       // Save to localStorage with full impact data
       const saved = saveChosenScenario(selectedDecision.id, scenarioToApply);
-      
+
       // Also try to save to backend
       try {
         await decisionsV2Api.setChosenScenario(selectedDecision.id, scenarioToApply.id);
       } catch (backendErr) {
         console.warn('Failed to save to backend, using localStorage:', backendErr);
       }
-      
+
       // Update local state
       setChosenScenario(saved);
       setChosenScenarioId(scenarioToApply.id);
-      
+
       showToast(`"${scenarioToApply.name}" applied as your execution path`, 'success');
-      
+
       // Close modals
       setShowApplyModal(false);
       setScenarioToApply(null);
@@ -1237,24 +1231,16 @@ const Scenarios = ({
   if (!selectedDecision) {
     return (
       <div className="max-w-3xl mx-auto pt-8 pb-16">
-        {/* Netflix-style Header */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <p className="text-xs text-violet-400 uppercase tracking-wider mb-3 font-medium">
+        {/* Header - matches Verdict page exactly */}
+        <div className="text-center mb-12">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">
             Alternate Endings
           </p>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight leading-tight">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight leading-tight">
             Select an Episode
           </h1>
-          <p className="text-lg text-slate-400 mb-2">
-            Choose an episode to explore its alternate endings
-          </p>
-          <p className="text-sm text-slate-500">
-            Each episode reveals multiple strategic paths you could have taken
+          <p className="text-lg text-slate-400">
+            Choose an episode to explore its alternate endings.
           </p>
         </div>
 
@@ -1309,7 +1295,7 @@ const Scenarios = ({
                 const hasOutcome = outcome.decisionTaken !== null || outcome.status;
                 const storedChosen = getChosenScenario(verdict.id);
                 const episodeNum = availableVerdicts.length - index;
-                
+
                 return (
                   <button
                     key={verdict.id}
@@ -1391,9 +1377,9 @@ const Scenarios = ({
       )}
 
       {/* Verdict Snapshot Card */}
-      <VerdictSnapshotCard 
-        verdict={verdict} 
-        decision={selectedDecision} 
+      <VerdictSnapshotCard
+        verdict={verdict}
+        decision={selectedDecision}
         chosenScenario={chosenScenario}
       />
 
@@ -1405,13 +1391,13 @@ const Scenarios = ({
               Strategic Execution Paths
             </h1>
             <p className="text-sm text-slate-400">
-              {chosenScenario 
+              {chosenScenario
                 ? 'Compare alternatives to your chosen path'
                 : 'Choose an execution path for this decision'
               }
             </p>
           </div>
-          
+
           {/* AI Trust Pill + Regenerate */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 border border-slate-800/50 rounded-full text-xs text-slate-400">
@@ -1426,7 +1412,7 @@ const Scenarios = ({
                 </>
               )}
             </div>
-            
+
             {!readOnly && scenariosExist && (
               <button
                 onClick={() => setShowRegenerateModal(true)}
@@ -1452,7 +1438,7 @@ const Scenarios = ({
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
             AI will generate 4 strategic paths: Aggressive, Balanced, Conservative, and Do Nothing — each with specific metrics and implementation details.
           </p>
-          
+
           {/* Plan Limit Warning */}
           {(showLimitWarning || !canGenerateScenarios()) && (
             <div className="max-w-md mx-auto mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-left">
@@ -1485,7 +1471,7 @@ const Scenarios = ({
               </div>
             </div>
           )}
-          
+
           <button
             onClick={() => handleGenerateScenarios(false)}
             disabled={generating || !canGenerateScenarios()}
@@ -1496,7 +1482,7 @@ const Scenarios = ({
             </svg>
             Generate Scenarios
           </button>
-          
+
           {/* Usage indicator */}
           {limits?.scenarios_per_month && (
             <p className="text-xs text-slate-500 mt-4">
@@ -1525,8 +1511,8 @@ const Scenarios = ({
       {/* Scenario Grid (when scenarios exist) */}
       {scenarios && scenarios.length > 0 && !generating && (
         <div className="mb-12">
-          <ScenarioGrid 
-            scenarios={scenarios} 
+          <ScenarioGrid
+            scenarios={scenarios}
             onViewDetails={handleViewDetails}
             chosenScenarioId={chosenScenarioId}
             chosenScenario={chosenScenario}
@@ -1546,10 +1532,10 @@ const Scenarios = ({
             Comparison at a Glance
           </h2>
           <div className="bg-slate-900/30 border border-slate-800/40 rounded-xl overflow-hidden">
-            <ScenarioCompareTable 
-              scenarios={scenarios} 
+            <ScenarioCompareTable
+              scenarios={scenarios}
               chosenScenarioId={chosenScenarioId}
-              readOnly={readOnly} 
+              readOnly={readOnly}
             />
           </div>
         </div>
@@ -1608,11 +1594,11 @@ const Scenarios = ({
       />
 
       {/* Toast */}
-      <Toast 
-        message={toast.message} 
+      <Toast
+        message={toast.message}
         isVisible={toast.isVisible}
         type={toast.type}
-        onClose={() => setToast({ ...toast, isVisible: false })} 
+        onClose={() => setToast({ ...toast, isVisible: false })}
       />
     </div>
   );

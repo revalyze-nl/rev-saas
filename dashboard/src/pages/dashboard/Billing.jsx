@@ -7,18 +7,18 @@ const Billing = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAdmin, user } = useAuth();
-  
+
   // Billing state
   const [billingStatus, setBillingStatus] = useState(null);
   const [billingLoading, setBillingLoading] = useState(true);
   const [billingError, setBillingError] = useState(null);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  
+
   // Credits state
   const [credits, setCredits] = useState(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
-  
+
   // Toast state
   const [toast, setToast] = useState(null);
 
@@ -193,7 +193,7 @@ const Billing = () => {
     return { text: plan.ctaText || 'Upgrade', disabled: false };
   };
 
-  // Nebula Aurora Pricing Card Component
+  // Nebula Aurora Pricing Card Component - Different colors per plan
   const NebulaPricingCard = ({ plan }) => {
     const cta = getPlanCTA(plan);
     const isCurrentPlan = currentPlanKey === plan.key;
@@ -204,37 +204,67 @@ const Billing = () => {
       buttonClass = 'bg-white/20 text-white/60 backdrop-blur-sm border border-white/20';
     }
 
+    // Define color themes for each plan
+    const colorThemes = {
+      starter: {
+        glow: 'from-cyan-500 via-blue-500 to-indigo-600',
+        orb1: 'radial-gradient(circle, rgba(34,211,238,0.8) 0%, rgba(6,182,212,0.6) 40%, transparent 70%)',
+        orb2: 'radial-gradient(circle, rgba(59,130,246,0.7) 0%, rgba(37,99,235,0.5) 50%, transparent 70%)',
+        orb3: 'radial-gradient(circle, rgba(99,102,241,0.6) 0%, rgba(79,70,229,0.4) 50%, transparent 70%)',
+        orb4: 'radial-gradient(circle, rgba(14,165,233,0.5) 0%, rgba(2,132,199,0.3) 50%, transparent 70%)',
+        orb5: 'radial-gradient(circle, rgba(56,189,248,0.6) 0%, transparent 60%)',
+      },
+      growth: {
+        glow: 'from-rose-500 via-fuchsia-500 to-violet-600',
+        orb1: 'radial-gradient(circle, rgba(251,113,133,0.8) 0%, rgba(244,63,94,0.6) 40%, transparent 70%)',
+        orb2: 'radial-gradient(circle, rgba(236,72,153,0.7) 0%, rgba(219,39,119,0.5) 50%, transparent 70%)',
+        orb3: 'radial-gradient(circle, rgba(139,92,246,0.6) 0%, rgba(109,40,217,0.4) 50%, transparent 70%)',
+        orb4: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, rgba(37,99,235,0.3) 50%, transparent 70%)',
+        orb5: 'radial-gradient(circle, rgba(251,146,60,0.6) 0%, transparent 60%)',
+      },
+      enterprise: {
+        glow: 'from-amber-500 via-orange-500 to-emerald-600',
+        orb1: 'radial-gradient(circle, rgba(251,191,36,0.8) 0%, rgba(245,158,11,0.6) 40%, transparent 70%)',
+        orb2: 'radial-gradient(circle, rgba(251,146,60,0.7) 0%, rgba(234,88,12,0.5) 50%, transparent 70%)',
+        orb3: 'radial-gradient(circle, rgba(52,211,153,0.6) 0%, rgba(16,185,129,0.4) 50%, transparent 70%)',
+        orb4: 'radial-gradient(circle, rgba(253,224,71,0.5) 0%, rgba(250,204,21,0.3) 50%, transparent 70%)',
+        orb5: 'radial-gradient(circle, rgba(249,115,22,0.6) 0%, transparent 60%)',
+      },
+    };
+
+    const theme = colorThemes[plan.key] || colorThemes.growth;
+
     return (
       <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 rounded-2xl blur opacity-0 group-hover:opacity-25 transition duration-500"></div>
-        
+        <div className={`absolute -inset-0.5 bg-gradient-to-r ${theme.glow} rounded-2xl blur opacity-0 group-hover:opacity-25 transition duration-500`}></div>
+
         <div className="relative flex flex-col h-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-800/50">
           <div className="relative h-52">
             <div className="absolute inset-0 bg-slate-900"></div>
-            
-            <div 
+
+            <div
               className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl opacity-70"
-              style={{ background: 'radial-gradient(circle, rgba(251,113,133,0.8) 0%, rgba(244,63,94,0.6) 40%, transparent 70%)' }}
+              style={{ background: theme.orb1 }}
             ></div>
-            
-            <div 
+
+            <div
               className="absolute top-0 right-1/4 w-40 h-40 rounded-full blur-3xl opacity-60"
-              style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.7) 0%, rgba(219,39,119,0.5) 50%, transparent 70%)' }}
+              style={{ background: theme.orb2 }}
             ></div>
-            
-            <div 
+
+            <div
               className="absolute bottom-10 -left-10 w-44 h-44 rounded-full blur-3xl opacity-50"
-              style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.6) 0%, rgba(109,40,217,0.4) 50%, transparent 70%)' }}
+              style={{ background: theme.orb3 }}
             ></div>
-            
-            <div 
+
+            <div
               className="absolute bottom-5 left-10 w-32 h-32 rounded-full blur-2xl opacity-40"
-              style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, rgba(37,99,235,0.3) 50%, transparent 70%)' }}
+              style={{ background: theme.orb4 }}
             ></div>
-            
-            <div 
+
+            <div
               className="absolute top-5 right-5 w-24 h-24 rounded-full blur-2xl opacity-50"
-              style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.6) 0%, transparent 60%)' }}
+              style={{ background: theme.orb5 }}
             ></div>
 
             <div className="absolute top-8 right-10 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
@@ -284,7 +314,7 @@ const Billing = () => {
               </button>
             </div>
 
-            <div 
+            <div
               className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
               style={{
                 background: 'linear-gradient(to bottom, transparent 0%, rgba(15, 23, 42, 0.5) 40%, rgb(15, 23, 42) 100%)'
@@ -450,7 +480,7 @@ const Billing = () => {
                 />
               </div>
             </div>
-            
+
             {hasStripeCustomer && (
               <button
                 onClick={handleManageBilling}
@@ -480,7 +510,7 @@ const Billing = () => {
 
       <div className="p-5 bg-slate-900/20 border border-slate-800/30 rounded-xl">
         <h3 className="text-sm text-slate-400 uppercase tracking-wide mb-4">Frequently Asked Questions</h3>
-        
+
         <div className="grid md:grid-cols-2 gap-4">
           <div className="p-4 bg-slate-800/20 rounded-lg">
             <h4 className="text-sm text-slate-300 font-medium mb-1">What counts as a decision?</h4>
